@@ -2064,53 +2064,6 @@ async function applyFullDetails(m, imdbId){
   return applyWikidataDetails(m, d);
 }
 
-/* ---------- Voti direttamente da Rotten Tomatoes (best effort, keyless) ----------
-   RT non ha un'API pubblica: qui si interroga l'endpoint di ricerca interno
-   del sito (lo stesso della barra di ricerca su rottentomatoes.com) tramite
-   i proxy CORS già usati per IMDb. Quando risponde, arrivano SUBITO e
-   aggiornati sia il voto critica (Tomatometer) sia quello del pubblico
-   (Popcornmeter), più il link alla scheda esatta. Se non risponde, restano
-   i voti da Wikidata e l'inserimento manuale: nessun errore bloccante. */
-async function rtSearchScores(title, year){
-  if(!title) return null;
-  const q = encodeURIComponent(title.trim());
-  const endpoints = [
-    `https://www.rottentomatoes.com/api/private/v2.0/search/?q=${q}&limit=10`,
-    `https://www.rottentomatoes.com/napi/search/all?searchQuery=${q}`
-  ];
-  const wraps = [
-    u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-    u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u)
-  ];
-  for(const ep of endpoints){
-    for(const wrap of wraps){
-      try{
-        const res = await fetchWithTimeout(wrap(ep), 6000);
-        if(!res.ok) continue;
-        const data = await res.json();
-        const movies = (data && data.movies)
-          || (data && data.movie && data.movie.items)
-          || [];
-        if(!movies.length) continue;
-        const y = parseInt(year);
-        const best = (y && movies.find(mv => parseInt(mv.year || mv.releaseYear) === y)) || movies[0];
-        const critics = best.meterScore != null ? best.meterScore
-          : (best.criticsScore ? (best.criticsScore.score != null ? best.criticsScore.score : best.criticsScore.value) : null);
-        const audience = best.audienceScore ? (best.audienceScore.score != null ? best.audienceScore.score : best.audienceScore.value) : null;
-        const path = best.url || '';
-        const url = path ? (path.startsWith('http') ? path : 'https://www.rottentomatoes.com' + path) : '';
-        if(critics != null || audience != null || url){
-          return {
-            votoRT: (critics != null && critics !== '') ? String(critics).replace('%','').trim() + '%' : '',
-            votoRTPubblico: (audience != null && audience !== '') ? String(audience).replace('%','').trim() + '%' : '',
-            url
-          };
-        }
-      }catch(e){ /* prova la combinazione successiva */ }
-    }
-  }
-  return null;
-}
 function renderRtLink(m){
   const box = document.getElementById('rtLinkWrap');
   if(!box) return;
@@ -2120,20 +2073,6 @@ function renderRtLink(m){
     ? `<a href="${escapeHtml(url)}" target="_blank" class="btn ghost" style="width:100%; display:block; text-align:center; box-sizing:border-box; text-decoration:none;">🍅 ${m && m.rtUrl ? 'Apri scheda su Rotten Tomatoes' : 'Cerca su Rotten Tomatoes'}</a>`
     : '';
 }
-/* Recupera i voti RT e compila i campi della scheda aperta */
-async function refreshRtScores(m){
-  try{
-    const rt = await rtSearchScores(m.titolo || document.getElementById('f_titolo').value.trim(), m.anno || document.getElementById('f_anno').value.trim());
-    if(!rt) return false;
-    if(rt.votoRT){ m.votoRT = rt.votoRT; document.getElementById('f_votoRT').value = String(parseInt(rt.votoRT)); }
-    if(rt.votoRTPubblico){ m.votoRTPubblico = rt.votoRTPubblico; document.getElementById('f_votoRTPubblico').value = String(parseInt(rt.votoRTPubblico)); }
-    if(rt.url){ m.rtUrl = rt.url; window._draftRtUrl = rt.url; }
-    renderRatingBadges(m);
-    renderRtLink(m);
-    return !!(rt.votoRT || rt.votoRTPubblico);
-  }catch(e){ return false; }
-}
-
 document.getElementById('retryFullDetailsBtn').addEventListener('click', async ()=>{
   let m = state.movies.find(x=>x.id===currentId);
   if(!m || !m.imdbId){ toast('Nessun film IMDb collegato'); return; }
@@ -2143,8 +2082,6 @@ document.getElementById('retryFullDetailsBtn').addEventListener('click', async (
   try{ ok = await applyFullDetails(m, m.imdbId); }catch(e){ console.error(e); }
   if(m.votoRT) document.getElementById('f_votoRT').value = String(parseInt(m.votoRT));
   if(m.votoRTPubblico) document.getElementById('f_votoRTPubblico').value = String(parseInt(m.votoRTPubblico));
-  const rtOk = await refreshRtScores(m);
-  if(rtOk) ok = true;
   document.getElementById('f_genere').value = m.genere||'';
   document.getElementById('f_regista').value = m.regista||'';
   document.getElementById('f_cast').value = m.cast||'';
@@ -2180,14 +2117,10 @@ document.getElementById('tmdbSearchBtn').addEventListener('click', async ()=>{
         document.getElementById('f_cast').value = m.cast||'';
         renderPosterView(m);
         renderImdbLink(m);
-        toast('Poster, anno e cast importati — recupero voti Rotten Tomatoes, trama, genere, regista…');
-        // Prima i dettagli da Wikidata/Wikipedia, POI i voti in diretta da RT:
-        // così i voti freschi del sito hanno sempre la precedenza su quelli
-        // (spesso più vecchi) registrati su Wikidata.
+        toast('Poster, anno e cast importati — recupero trama, genere, regista, voti…');
         const ok = await applyFullDetails(m, r.id).catch(e=>{ console.error(e); return false; });
         if(m.votoRT) document.getElementById('f_votoRT').value = String(parseInt(m.votoRT));
         if(m.votoRTPubblico) document.getElementById('f_votoRTPubblico').value = String(parseInt(m.votoRTPubblico));
-        const rtOk = await refreshRtScores(m);
         document.getElementById('f_genere').value = m.genere||'';
         document.getElementById('f_regista').value = m.regista||'';
         document.getElementById('f_cast').value = m.cast||'';
@@ -2236,17 +2169,6 @@ document.getElementById('bulkEnrichBtn').addEventListener('click', async ()=>{
         const ok = await applyFullDetails(m, m.imdbId);
         if(ok) full++;
       }
-      // Voti in diretta da Rotten Tomatoes (best effort): sovrascrivono
-      // quelli più vecchi di Wikidata quando disponibili
-      try{
-        const rt = await rtSearchScores(m.titolo, m.anno);
-        if(rt){
-          if(rt.votoRT) m.votoRT = rt.votoRT;
-          if(rt.votoRTPubblico) m.votoRTPubblico = rt.votoRTPubblico;
-          if(rt.url) m.rtUrl = rt.url;
-          if(rt.votoRT || rt.votoRTPubblico) full++;
-        }
-      }catch(e){ /* non bloccante */ }
     }catch(e){ console.error(e); }
     done++;
     document.getElementById('progressFill').style.width = (done/todo.length*100)+'%';
