@@ -1,0 +1,2155 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>My Physical Movie Library</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
+
+:root{
+  --bg:#07080d;
+  --bg-alt:#0d0f18;
+  --card:rgba(255,255,255,.045);
+  --card-hi:rgba(255,255,255,.075);
+  --accent1:#2fe6c9;
+  --accent2:#a78bfa;
+  --accent3:#ff6bb3;
+  --grad: linear-gradient(120deg, var(--accent1), var(--accent2) 55%, var(--accent3));
+  --gold:var(--accent1);
+  --gold-bright:#7cf5e0;
+  --burgundy:#ff5c8a;
+  --burgundy-bright:#ff85a8;
+  --cream:#f2f4fa;
+  --dim:#9199b0;
+  --dim2:#656d84;
+  --line:rgba(255,255,255,.09);
+  --shadow: 0 20px 50px -15px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:
+    radial-gradient(650px 450px at 8% -6%, rgba(47,230,201,.16), transparent 60%),
+    radial-gradient(700px 500px at 95% 8%, rgba(167,139,250,.15), transparent 60%),
+    radial-gradient(800px 600px at 60% 105%, rgba(255,107,179,.10), transparent 60%),
+    var(--bg);
+  color:var(--cream);
+  font-family:'Manrope', sans-serif;
+  min-height:100vh;
+  position:relative;
+  overflow-x:hidden;
+}
+body::before{
+  content:"";
+  position:fixed; inset:0; pointer-events:none; z-index:999;
+  opacity:.025; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+::selection{background:var(--accent1); color:#04110d;}
+::-webkit-scrollbar{width:10px; height:10px;}
+::-webkit-scrollbar-track{background:var(--bg-alt);}
+::-webkit-scrollbar-thumb{background:var(--line); border-radius:6px;}
+::-webkit-scrollbar-thumb:hover{background:var(--accent1);}
+
+/* ---------- Header ---------- */
+header{
+  position:relative;
+  padding:64px 6vw 40px;
+  text-align:center;
+  border-bottom:1px solid var(--line);
+  overflow:hidden;
+}
+header::before{
+  content:""; position:absolute; width:340px; height:340px; border-radius:50%;
+  background:radial-gradient(circle, rgba(47,230,201,.35), transparent 70%);
+  filter:blur(40px); top:-160px; left:10%; animation:floaty 9s ease-in-out infinite;
+}
+header::after{
+  content:""; position:absolute; width:300px; height:300px; border-radius:50%;
+  background:radial-gradient(circle, rgba(167,139,250,.3), transparent 70%);
+  filter:blur(40px); top:-120px; right:8%; animation:floaty 11s ease-in-out infinite reverse;
+}
+@keyframes floaty{ 0%,100%{transform:translateY(0) translateX(0);} 50%{transform:translateY(24px) translateX(14px);} }
+.eyebrow{
+  display:inline-flex; align-items:center; gap:8px;
+  font-family:'Manrope',sans-serif; font-weight:700; font-size:11.5px; letter-spacing:3px; text-transform:uppercase;
+  color:var(--dim); padding:6px 16px; border:1px solid var(--line); border-radius:30px;
+  background:var(--card); position:relative; z-index:1;
+}
+.eyebrow .dot{width:6px; height:6px; border-radius:50%; background:var(--grad); box-shadow:0 0 10px var(--accent1);}
+h1.brand{
+  font-family:'Sora', sans-serif;
+  font-weight:800;
+  font-size:clamp(34px, 6.4vw, 64px);
+  letter-spacing:-1.5px;
+  margin:20px 0 6px;
+  line-height:1.03;
+  position:relative; z-index:1;
+  background:var(--grad);
+  -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+}
+h1.brand span{-webkit-text-fill-color:var(--cream); color:var(--cream);}
+.tagline{
+  font-family:'Manrope', sans-serif;
+  font-weight:600;
+  letter-spacing:1px;
+  font-size:14.5px;
+  color:var(--dim);
+  margin-bottom:30px;
+  position:relative; z-index:1;
+}
+.stats-row{
+  display:flex; flex-wrap:wrap; justify-content:center; gap:14px;
+  margin-top:6px; position:relative; z-index:1;
+}
+.stat{
+  text-align:center; background:var(--card); border:1px solid var(--line); border-radius:16px;
+  padding:14px 26px; backdrop-filter:blur(12px); min-width:110px;
+}
+.stat b{
+  display:block; font-family:'Sora',sans-serif; font-weight:700; font-size:24px; color:var(--cream);
+}
+.stat small{
+  font-size:10.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--dim2); font-weight:600;
+}
+
+/* ---------- Toolbar ---------- */
+.toolbar{
+  max-width:1400px; margin:34px auto 0; padding:14px 6vw;
+  display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;
+  position:sticky; top:0; z-index:50;
+  background:rgba(7,8,13,.72); backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--line);
+}
+.toolbar-group{display:flex; flex-wrap:wrap; gap:10px; align-items:center;}
+input[type=text], select{
+  background:var(--card); border:1px solid var(--line); color:var(--cream);
+  font-family:'Manrope', sans-serif; font-weight:500; font-size:14.5px;
+  padding:10px 16px; border-radius:30px; outline:none;
+  transition:.2s all;
+}
+input[type=text]:focus, select:focus{border-color:var(--accent1); box-shadow:0 0 0 3px rgba(47,230,201,.15);}
+select{cursor:pointer; appearance:none; padding-right:30px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239199b0'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 14px center;
+}
+#search{min-width:220px;}
+.btn{
+  font-family:'Manrope', sans-serif; font-weight:700; font-size:13px; letter-spacing:.2px;
+  padding:10px 20px; border-radius:30px; border:1px solid var(--line);
+  background:var(--card); color:var(--cream); cursor:pointer;
+  transition:.2s all; white-space:nowrap;
+}
+.btn:hover{border-color:var(--accent1); box-shadow:0 0 0 3px rgba(47,230,201,.12); transform:translateY(-1px);}
+.btn.solid{background:var(--grad); color:#04110d; border:none;}
+.btn.solid:hover{filter:brightness(1.08); box-shadow:0 8px 24px -6px rgba(167,139,250,.5);}
+.btn.ghost{border-color:var(--line); color:var(--dim);}
+.btn.ghost:hover{border-color:var(--dim); color:var(--cream); box-shadow:none;}
+.btn.danger{border-color:rgba(255,92,138,.4); color:var(--burgundy-bright);}
+.btn.danger:hover{background:rgba(255,92,138,.12); border-color:var(--burgundy-bright); box-shadow:none;}
+input[type=file]{display:none;}
+
+/* ---------- Grid ---------- */
+.grid-wrap{max-width:1400px; margin:0 auto; padding:34px 6vw 80px;}
+#grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill, minmax(168px, 1fr));
+  gap:26px;
+}
+.card{
+  position:relative; border-radius:18px; overflow:hidden; cursor:pointer;
+  aspect-ratio:2/3; background:var(--card);
+  border:1px solid var(--line);
+  box-shadow:var(--shadow);
+  transition:transform .35s cubic-bezier(.2,.8,.2,1), box-shadow .35s, border-color .35s;
+  content-visibility:auto; contain-intrinsic-size: 230px 345px;
+}
+.card::after{
+  content:""; position:absolute; inset:0; border-radius:18px; padding:1.5px;
+  background:var(--grad); opacity:0; transition:opacity .35s;
+  -webkit-mask:linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none;
+}
+.card:hover{
+  transform:translateY(-8px) scale(1.03);
+  box-shadow:0 25px 50px -10px rgba(0,0,0,.7), 0 0 30px rgba(167,139,250,.2);
+  z-index:2;
+}
+.card:hover::after{opacity:1;}
+.card img{width:100%; height:100%; object-fit:cover; display:block;}
+.poster-fallback{
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+  padding:14px; text-align:center; position:relative;
+}
+.poster-fallback .reel{position:absolute; top:12px; right:12px; opacity:.5; font-size:16px;}
+.poster-fallback .ftitle{
+  font-family:'Sora', sans-serif; font-weight:700; font-size:15px; letter-spacing:-.2px;
+  color:var(--cream); text-shadow:0 2px 10px rgba(0,0,0,.5);
+}
+.card-badge{
+  position:absolute; top:10px; left:10px; padding:4px 10px; border-radius:20px;
+  font-family:'Manrope',sans-serif; font-weight:700; font-size:10px; letter-spacing:.5px; text-transform:uppercase;
+  background:rgba(10,10,16,.55); backdrop-filter:blur(8px); border:1px solid rgba(255,255,255,.15); color:var(--cream);
+  display:inline-flex; align-items:center; white-space:nowrap; max-width:calc(100% - 20px);
+  overflow:hidden; text-overflow:ellipsis;
+}
+.card-badge.qty{left:auto; right:10px; background:rgba(255,92,138,.22); border-color:rgba(255,92,138,.4); color:#ffc2d6;}
+.card-badge.imdb{left:auto; right:10px; top:auto; bottom:44px; background:rgba(167,139,250,.22); border-color:rgba(167,139,250,.4); color:#e3d9ff;}
+.card-bottom{
+  position:absolute; left:0; right:0; bottom:0; padding:26px 12px 12px;
+  background:linear-gradient(0deg, rgba(4,4,8,.95), transparent);
+}
+.card-bottom .t{
+  font-family:'Sora',serif; font-weight:600; font-size:14px; line-height:1.2;
+  color:var(--cream); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.card-bottom .stars{margin-top:5px; font-size:11px; color:var(--accent1); font-weight:700;}
+.card-bottom .meta{
+  margin-top:4px; font-size:11px; font-weight:600; color:var(--dim);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.card-bottom .sub{
+  margin-top:2px; font-size:10.5px; font-weight:500; color:var(--dim2);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.card-bottom .votes{
+  margin-top:5px; display:flex; flex-wrap:wrap; gap:6px; font-size:10.5px; font-weight:700;
+}
+.card-bottom .votes span{color:var(--cream); opacity:.9;}
+#empty{
+  text-align:center; padding:80px 20px; color:var(--dim2); font-family:'Sora',sans-serif; font-weight:600; letter-spacing:1px;
+  display:none;
+}
+
+/* ---------- Modal ---------- */
+.overlay{
+  position:fixed; inset:0; background:rgba(4,4,8,.78); backdrop-filter:blur(6px);
+  display:none; align-items:flex-start; justify-content:center; z-index:100;
+  padding:5vh 4vw; overflow-y:auto;
+}
+.overlay.open{display:flex;}
+.modal{
+  background:linear-gradient(160deg, var(--card-hi), var(--card));
+  backdrop-filter:blur(20px);
+  border:1px solid var(--line); border-radius:24px; max-width:920px; width:100%;
+  box-shadow:0 40px 90px rgba(0,0,0,.55);
+  position:relative; animation:pop .25s ease;
+}
+@keyframes pop{from{opacity:0; transform:translateY(16px) scale(.98);} to{opacity:1; transform:none;}}
+.modal-close{
+  position:absolute; top:16px; right:18px; background:var(--card-hi); border:1px solid var(--line); color:var(--dim);
+  width:34px; height:34px; border-radius:50%;
+  font-size:20px; cursor:pointer; line-height:1; z-index:5; transition:.2s;
+}
+.modal-close:hover{color:var(--cream); border-color:var(--accent1);}
+.modal-body{display:grid; grid-template-columns:280px 1fr; gap:0;}
+@media(max-width:720px){.modal-body{grid-template-columns:1fr;}}
+.modal-poster{
+  background:#0a0b11; border-radius:24px 0 0 24px; overflow:hidden; min-height:380px;
+  display:flex; flex-direction:column;
+}
+@media(max-width:720px){.modal-poster{border-radius:24px 24px 0 0;}}
+.modal-poster img{width:100%; height:280px; object-fit:cover;}
+.modal-poster .poster-fallback{height:280px;}
+.modal-poster-tools{padding:16px; display:flex; flex-direction:column; gap:10px;}
+.modal-poster-tools input{width:100%;}
+.modal-fields{padding:48px 34px 32px;}
+.field-row{display:flex; gap:16px; flex-wrap:wrap; margin-bottom:16px;}
+.field{flex:1; min-width:140px;}
+.field.full{flex-basis:100%;}
+label{
+  display:block; font-family:'Manrope',sans-serif; font-weight:700; font-size:10.5px; letter-spacing:1.2px; text-transform:uppercase;
+  color:var(--dim2); margin-bottom:6px;
+}
+.field input[type=text], .field input[type=number], .field select, .field textarea{
+  width:100%; background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:10px;
+  color:var(--cream); font-family:'Manrope',sans-serif; font-size:15px; padding:9px 12px;
+  outline:none; transition:.2s;
+}
+.field textarea{resize:vertical; min-height:60px; font-size:14.5px; line-height:1.5; white-space:pre-wrap; overflow-wrap:break-word; word-break:normal; font-family:'Manrope',sans-serif;}
+.field textarea.compact{min-height:44px; resize:vertical;}
+.field input[type=text]{overflow-wrap:break-word; word-break:normal;}
+#f_trama{min-height:120px;}
+#f_curiosita{min-height:90px;}
+.field input:focus, .field select:focus, .field textarea:focus{border-color:var(--accent1); box-shadow:0 0 0 3px rgba(47,230,201,.12);}
+.modal-title-input{
+  font-family:'Sora',sans-serif !important; font-weight:800 !important; font-size:26px !important; color:var(--cream) !important;
+  border:none !important; background:transparent !important; padding:4px 2px !important; border-bottom:1px solid var(--line) !important; border-radius:0 !important;
+}
+.stars-input{font-size:20px; letter-spacing:2px; cursor:pointer; color:var(--line); user-select:none;}
+.stars-input span.on{
+  background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+}
+.imdb-vote-row{display:flex; align-items:center; gap:12px; flex-wrap:wrap;}
+.imdb-vote-row input{flex:1; min-width:90px;}
+.imdb-stars{position:relative; font-size:20px; letter-spacing:2px; user-select:none; flex-shrink:0; line-height:1;}
+.imdb-stars-bg{color:var(--line);}
+.imdb-stars-fg{
+  position:absolute; top:0; left:0; overflow:hidden; white-space:nowrap; width:0%;
+  background:var(--grad); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+}
+.tmdb-box{
+  border:1px dashed var(--line); border-radius:14px; padding:14px; margin-top:8px;
+}
+.tmdb-results{display:flex; gap:8px; overflow-x:auto; margin-top:10px;}
+.tmdb-result{
+  flex:0 0 auto; width:70px; cursor:pointer; text-align:center; opacity:.85; transition:.15s;
+}
+.tmdb-result:hover{opacity:1; transform:translateY(-3px);}
+.tmdb-result img{width:70px; height:104px; object-fit:cover; border-radius:8px; border:1px solid var(--line);}
+.tmdb-result .y{font-size:11px; color:var(--dim);}
+.modal-actions{display:flex; justify-content:space-between; margin-top:22px; gap:10px; flex-wrap:wrap;}
+.badge-row{display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 20px;}
+.tag{
+  font-family:'Manrope',sans-serif; font-weight:700; font-size:10.5px; letter-spacing:.5px; text-transform:uppercase;
+  padding:5px 12px; border:1px solid var(--line); background:var(--card); color:var(--cream); border-radius:20px;
+  display:inline-flex; align-items:center; white-space:nowrap; max-width:100%;
+  overflow:hidden; text-overflow:ellipsis;
+}
+
+/* settings modal */
+.settings-modal{max-width:520px; padding:44px 36px;}
+.settings-modal h2{font-family:'Sora',sans-serif; font-weight:800; color:var(--cream); margin-top:0;}
+.settings-modal p{color:var(--dim); font-size:15px; line-height:1.6;}
+.settings-modal a{color:var(--accent1);}
+.settings-modal input{width:100%; margin:10px 0 18px; padding:11px 14px; background:rgba(255,255,255,.03); border:1px solid var(--line); color:var(--cream); border-radius:10px; font-family:'Manrope',sans-serif; font-size:15px;}
+
+/* toast */
+#toast{
+  position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+  background:var(--card-hi); backdrop-filter:blur(14px); border:1px solid var(--line); color:var(--cream);
+  padding:13px 24px; border-radius:30px; font-family:'Manrope',sans-serif; font-weight:600; font-size:13.5px; letter-spacing:.2px;
+  opacity:0; pointer-events:none; transition:.3s; z-index:200; box-shadow:0 10px 30px rgba(0,0,0,.5);
+}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+/* confirm inline */
+.confirm-box{
+  display:none; align-items:center; gap:10px; margin-top:10px; padding:12px 14px; border:1px solid rgba(255,92,138,.4); background:rgba(255,92,138,.08); border-radius:12px; font-size:14px;
+}
+.confirm-box.show{display:flex;}
+
+.progress-wrap{max-width:1400px; margin:0 auto; padding:0 6vw; display:none;}
+.progress-wrap.show{display:block; padding-top:14px;}
+.progress-bar{height:4px; background:var(--line); border-radius:3px; overflow:hidden; margin-top:8px;}
+.progress-fill{height:100%; width:0%; background:var(--grad); transition:width .3s;}
+.progress-text{font-size:12.5px; color:var(--dim); letter-spacing:.3px; font-family:'Manrope',sans-serif; font-weight:600;}
+.progress-head{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+.btn.mini{padding:5px 14px; font-size:11.5px;}
+.save-indicator{
+  display:inline-flex; align-items:center; gap:7px;
+  font-size:11.5px; font-weight:700; letter-spacing:.4px; color:var(--dim2);
+  padding:8px 14px; border-radius:30px; border:1px solid var(--line); background:var(--card);
+  transition:.25s all; user-select:none;
+}
+.save-indicator .sdot{width:7px; height:7px; border-radius:50%; background:var(--dim2); transition:.25s all;}
+.save-indicator.saved .sdot{background:var(--accent1); box-shadow:0 0 8px var(--accent1);}
+.save-indicator.saved{color:var(--accent1); border-color:rgba(47,230,201,.35);}
+.save-indicator.saving .sdot{background:#f5c451; animation:pulse 1s ease-in-out infinite;}
+.save-indicator.saving{color:#f5c451;}
+.save-indicator.error .sdot{background:var(--burgundy-bright); box-shadow:0 0 8px var(--burgundy);}
+.save-indicator.error{color:var(--burgundy-bright); border-color:rgba(255,92,138,.5); cursor:pointer;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.results-count{
+  font-size:11.5px; font-weight:700; letter-spacing:.4px; color:var(--dim);
+  padding:8px 14px; border-radius:30px; border:1px solid var(--line); background:var(--card);
+  white-space:nowrap;
+}
+
+/* ---------- Tags & stato ---------- */
+.chip-row{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;}
+.chip{
+  font-family:'Manrope',sans-serif; font-weight:700; font-size:10px; letter-spacing:.4px; text-transform:uppercase;
+  padding:4px 11px; border-radius:20px; background:rgba(167,139,250,.14); border:1px solid rgba(167,139,250,.35); color:#d8c9ff;
+  display:inline-flex; align-items:center; white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis;
+}
+.chip.watch{background:rgba(47,230,201,.14); border-color:rgba(47,230,201,.35); color:#a8f5e6;}
+.card-badge.seen{left:10px; top:auto; bottom:44px; background:rgba(47,230,201,.22); border-color:rgba(47,230,201,.4); color:#a8f5e6;}
+.btn.toggle-on{background:var(--grad); color:#04110d; border:none;}
+
+/* ---------- Badge voti (IMDb / Rotten Tomatoes / Metacritic) ---------- */
+.rating-badges{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+.rbadge{
+  display:inline-flex; align-items:center; gap:6px; white-space:nowrap; max-width:100%;
+  overflow:hidden; text-overflow:ellipsis;
+  font-family:'Manrope',sans-serif; font-weight:700; font-size:12.5px;
+  padding:6px 12px; border-radius:20px; border:1px solid var(--line); background:var(--card); color:var(--cream);
+}
+.rbadge .ic{font-size:13px;}
+.rbadge.imdb{border-color:rgba(240,197,0,.4); background:rgba(240,197,0,.1); color:#f5d76e;}
+.rbadge.rt{border-color:rgba(250,84,45,.4); background:rgba(250,84,45,.1); color:#ff9c7d;}
+.rbadge.meta{border-color:rgba(102,204,102,.4); background:rgba(102,204,102,.1); color:#a8e6a8;}
+
+/* ---------- List / table view ---------- */
+.table-wrap{display:none; overflow-x:auto;}
+.table-wrap.show{display:block;}
+#grid.hide{display:none;}
+table.movie-table{width:100%; border-collapse:collapse; font-family:'Manrope',sans-serif; font-size:13.5px;}
+table.movie-table th{
+  text-align:left; padding:10px 14px; color:var(--dim2); font-size:10.5px; letter-spacing:1px; text-transform:uppercase;
+  border-bottom:1px solid var(--line); white-space:nowrap;
+}
+table.movie-table td{padding:11px 14px; border-bottom:1px solid var(--line); color:var(--cream); vertical-align:middle;}
+table.movie-table tr{cursor:pointer; transition:.15s;}
+table.movie-table tr:hover td{background:var(--card);}
+table.movie-table td.poster-cell img{width:34px; height:50px; object-fit:cover; border-radius:5px; display:block;}
+table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px; background:var(--card-hi); display:flex; align-items:center; justify-content:center; font-size:14px;}
+
+/* ---------- Stats modal ---------- */
+.stats-modal{max-width:760px; padding:44px 40px;}
+.stats-modal h2{font-family:'Sora',sans-serif; font-weight:800; margin-top:0;}
+.stats-section{margin-bottom:28px;}
+.stats-section h3{font-family:'Manrope',sans-serif; font-size:11.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--dim2); margin-bottom:14px;}
+.bar-row{display:flex; align-items:center; gap:12px; margin-bottom:9px;}
+.bar-label{width:130px; flex-shrink:0; font-size:13px; color:var(--cream); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.bar-track{flex:1; height:14px; background:var(--card); border-radius:8px; overflow:hidden;}
+.bar-fill{height:100%; background:var(--grad); border-radius:8px; transition:width .5s ease;}
+.bar-val{width:34px; text-align:right; font-size:12.5px; color:var(--dim); font-weight:700;}
+
+/* ---------- Roulette modal ---------- */
+.roulette-modal{max-width:420px; text-align:center; padding:44px 34px;}
+.roulette-modal h2{font-family:'Sora',sans-serif; font-weight:800; margin-top:0;}
+.roulette-poster{width:180px; height:266px; margin:18px auto; border-radius:16px; overflow:hidden; box-shadow:var(--shadow);}
+.roulette-poster img{width:100%; height:100%; object-fit:cover;}
+.roulette-title{font-family:'Sora',sans-serif; font-weight:700; font-size:20px; margin:8px 0 4px;}
+.roulette-meta{color:var(--dim); font-size:13px; margin-bottom:18px;}
+.roulette-actions{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow"><span class="dot"></span> Il tuo catalogo, sempre a portata di mano</div>
+  <h1 class="brand">My Physical <span>Movie</span> Library</h1>
+  <div class="tagline">Collezione fisica &amp; digitale · dati automatici da Wikidata/Wikipedia, zero chiavi API</div>
+  <div class="stats-row" id="statsRow"></div>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-group">
+    <input type="text" id="search" placeholder="Cerca titolo…">
+    <select id="filterFormato"><option value="">Tutti i formati</option></select>
+    <select id="filterCustodia"><option value="">Tutte le custodie</option></select>
+    <select id="filterTag"><option value="">Tutti i tag</option></select>
+    <select id="filterStato">
+      <option value="">Visti e da vedere</option>
+      <option value="da_vedere">Da vedere</option>
+      <option value="visto">Già visti</option>
+    </select>
+    <select id="sortBy">
+      <option value="az">Titolo A–Z</option>
+      <option value="za">Titolo Z–A</option>
+      <option value="voto">Voto personale</option>
+      <option value="votoImdb">Voto IMDb</option>
+      <option value="votoRT">Voto Rotten Tomatoes (critica)</option>
+      <option value="votoRTPubblico">Voto Rotten Tomatoes (pubblico)</option>
+      <option value="votoMeta">Voto Metacritic</option>
+      <option value="anno">Anno</option>
+    </select>
+  </div>
+  <div class="toolbar-group">
+    <button class="btn ghost" id="watchlistBtn">🌙 Watchlist stasera</button>
+    <button class="btn ghost" id="rouletteBtn">🎲 Cosa guardo?</button>
+    <button class="btn ghost" id="statsBtn">📊 Statistiche</button>
+    <button class="btn ghost" id="viewToggleBtn">☰ Vista lista</button>
+  </div>
+  <div class="toolbar-group">
+    <button class="btn" onclick="document.getElementById('fileInput').click()">Importa Excel</button>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+    <button class="btn ghost" id="exportBtn">Esporta Excel</button>
+    <button class="btn ghost" id="exportCsvBtn">Esporta CSV</button>
+    <button class="btn ghost" id="backupBtn" title="Scarica subito un file di sicurezza con tutta la libreria">💾 Backup</button>
+    <button class="btn ghost" onclick="document.getElementById('restoreInput').click()" title="Ripristina da un file di backup .json">📤 Ripristina backup</button>
+    <input type="file" id="restoreInput" accept=".json" style="display:none;">
+    <button class="btn ghost" id="integrityBtn" title="Controlla film senza poster, genere o anno, e titoli duplicati">🔍 Controlla libreria</button>
+    <button class="btn ghost" id="bulkEnrichBtn">🍅 Arricchisci con Rotten Tomatoes</button>
+    <button class="btn solid" id="addBtn">+ Aggiungi film</button>
+    <span class="results-count" id="resultsCount"></span>
+    <span class="save-indicator saved" id="saveIndicator" title="Stato del salvataggio automatico"><span class="sdot"></span><span class="stext">Salvato</span></span>
+  </div>
+</div>
+
+<div class="progress-wrap" id="progressWrap">
+  <div class="progress-head">
+    <div class="progress-text" id="progressText">Arricchimento in corso…</div>
+    <button class="btn danger mini" id="bulkCancelBtn">✕ Interrompi</button>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<div class="grid-wrap">
+  <div id="grid"></div>
+  <div class="table-wrap" id="tableWrap">
+    <table class="movie-table">
+      <thead><tr>
+        <th></th><th>Titolo</th><th>Formato</th><th>Custodia</th><th>Anno</th><th>Genere</th><th>Voto</th><th>🍅 RT critica</th><th>🍿 RT pubblico</th><th>Ⓜ️ Meta</th><th>IMDb</th><th>Tag</th><th>Stato</th>
+      </tr></thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+  <div id="empty">— Nessun film trovato —</div>
+</div>
+
+<!-- Confirm modal (sostituisce window.confirm, bloccato negli iframe sandbox) -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal settings-modal" style="max-width:480px;">
+    <h2 style="margin-top:0; font-family:'Sora',sans-serif; font-size:20px;">Conferma</h2>
+    <p id="confirmMsg" style="color:var(--dim); font-size:14.5px; line-height:1.7;"></p>
+    <div class="modal-actions" style="margin-top:20px; display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn ghost" id="confirmNoBtn">Annulla</button>
+      <button class="btn solid" id="confirmYesBtn">Conferma</button>
+    </div>
+  </div>
+</div>
+
+<!-- Movie modal -->
+<div class="overlay" id="infoOverlay">
+  <div class="modal settings-modal" style="max-width:640px;">
+    <h2 id="infoTitle"></h2>
+    <div id="infoBody" style="color:var(--dim); font-size:14.5px; line-height:1.7; max-height:55vh; overflow-y:auto;"></div>
+    <div class="modal-actions" style="margin-top:20px;">
+      <button class="btn solid" id="infoCloseBtn">Chiudi</button>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="movieOverlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <div class="modal-body">
+      <div class="modal-poster">
+        <div id="posterView"></div>
+        <div class="modal-poster-tools">
+          <label>URL Locandina</label>
+          <input type="text" id="f_poster" placeholder="https://…">
+          <div class="tmdb-box">
+            <button class="btn ghost" id="tmdbSearchBtn" style="width:100%">🔎 Cerca film</button>
+            <div class="tmdb-results" id="tmdbResults"></div>
+            <div id="imdbLinkWrap" style="margin-top:10px;"></div>
+            <div id="rtLinkWrap" style="margin-top:8px;"></div>
+            <button class="btn ghost" id="retryFullDetailsBtn" style="width:100%; margin-top:8px; display:none;">🔄 Riprova dati completi</button>
+            <button class="btn ghost" id="trailerBtn" style="width:100%; margin-top:8px;">▶ Cerca trailer su YouTube</button>
+            <p style="font-size:11.5px;color:var(--dim2);line-height:1.5;margin:10px 0 0;">Nessuna chiave o registrazione richiesta, in nessun caso. Locandina, anno, trama, genere, regista, cast e tag arrivano da Wikidata/Wikipedia (infrastruttura ufficiale Wikimedia, stabile e gratuita); quando disponibile, arriva anche il voto della critica di Rotten Tomatoes (Tomatometer) e quello di Metacritic. Il voto del pubblico di Rotten Tomatoes (Popcornmeter) e il voto IMDb restano manuali — non sono ridistribuibili liberamente — ma con il link diretto qui sopra li trovi e li copi in pochi secondi. 🍅 rosso = "Fresh" (60% o più), 🟢 splat verde = "Rotten" (sotto 60%), come sul sito originale. Trama e cast possono arrivare in inglese se la voce italiana non esiste: modificali pure a mano. Curiosità e tag restano un recupero "best effort".</p>
+            <p style="font-size:11px;color:var(--dim2);line-height:1.5;margin:6px 0 0;">Nota: il "voto Rotten Tomatoes" qui è quello dei critici (Tomatometer). Wikidata quasi mai registra separatamente il voto del pubblico (Popcornmeter): per questo va inserito a mano, come il voto IMDb.</p>
+          </div>
+        </div>
+      </div>
+      <div class="modal-fields">
+        <input type="text" id="f_titolo" class="modal-title-input" placeholder="Titolo del film">
+        <div class="badge-row" id="badgeRow"></div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Formato</label>
+            <select id="f_formato">
+              <option value="4k">4K Ultra HD</option>
+              <option value="Bluray">Blu-ray</option>
+              <option value="DVD">DVD</option>
+              <option value="Apple tv">Digitale (Apple TV)</option>
+              <option value="Digitale">Digitale (altro)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Custodia</label>
+            <select id="f_custodia">
+              <option value="amaray">Amaray</option>
+              <option value="steelbook">Steelbook</option>
+              <option value="slipcover">Slipcover</option>
+              <option value="cofanetto">Cofanetto</option>
+              <option value="digitale">Digitale</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>N° film nel cofanetto</label>
+            <input type="number" id="f_numero" min="1" value="1">
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field"><label>Anno</label><input type="text" id="f_anno"></div>
+          <div class="field"><label>Durata</label><input type="text" id="f_durata" placeholder="es. 148 min"></div>
+          <div class="field"><label>Regista</label><textarea id="f_regista" class="compact" rows="2"></textarea></div>
+          <div class="field"><label>Genere</label><textarea id="f_genere" class="compact" rows="2"></textarea></div>
+        </div>
+
+        <div class="field-row">
+          <div class="field full">
+            <label>Tag / collezioni personalizzate</label>
+            <textarea id="f_tags" class="compact" rows="2" placeholder="es. Natale, Saga Marvel, Serata horror (separati da virgola)"></textarea>
+          </div>
+          <div class="field">
+            <label>Stato</label>
+            <select id="f_stato">
+              <option value="da_vedere">Da vedere</option>
+              <option value="visto">Già visto</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>Voto personale (1–10)</label>
+            <div class="stars-input" id="starsInput"></div>
+          </div>
+          <div class="field">
+            <label>Voto IMDb (0,00–10,00) — inseriscilo tu dal link qui a sinistra</label>
+            <div class="imdb-vote-row">
+              <div class="imdb-stars" id="imdbStarsDisplay" title="Voto IMDb">
+                <div class="imdb-stars-bg">★★★★★</div>
+                <div class="imdb-stars-fg" id="imdbStarsFg">★★★★★</div>
+              </div>
+              <input type="text" id="f_votoTmdb" placeholder="es. 7,70" inputmode="decimal">
+            </div>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>🍅 Voto critica RT (0–100%) — automatico</label>
+            <input type="text" id="f_votoRT" placeholder="es. 87" inputmode="numeric">
+          </div>
+          <div class="field">
+            <label>🍿 Voto pubblico RT (0–100%) — automatico se trovato, altrimenti dal link qui a sinistra</label>
+            <input type="text" id="f_votoRTPubblico" placeholder="es. 92" inputmode="numeric">
+          </div>
+        </div>
+        <div class="rating-badges" id="ratingBadges"></div>
+
+        <div class="field-row">
+          <div class="field"><label>Qualità Video</label><input type="text" id="f_qvideo" placeholder="es. HDR10, Dolby Vision"></div>
+          <div class="field"><label>Qualità Audio</label><input type="text" id="f_qaudio" placeholder="es. Dolby Atmos, DTS-HD"></div>
+        </div>
+
+        <div class="field-row">
+          <div class="field full"><label>Cast principale</label><textarea id="f_cast" class="compact" rows="2" placeholder="Separati da virgola"></textarea></div>
+        </div>
+        <div class="field-row">
+          <div class="field full"><label>Trama</label><textarea id="f_trama"></textarea></div>
+        </div>
+        <div class="field-row">
+          <div class="field full"><label>Riconoscimenti</label><textarea id="f_premi" class="compact" rows="2" placeholder="es. Vincitore di 4 premi Oscar"></textarea></div>
+        </div>
+        <div class="field-row">
+          <div class="field full"><label>Curiosità</label><textarea id="f_curiosita" placeholder="Aneddoti, dietro le quinte…"></textarea></div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn danger" id="deleteBtn">Elimina film</button>
+          <button class="btn solid" id="saveBtn">Salva scheda</button>
+        </div>
+        <div class="confirm-box" id="confirmDelete">
+          Eliminare definitivamente questo film?
+          <button class="btn danger" id="confirmDeleteYes">Sì, elimina</button>
+          <button class="btn ghost" id="confirmDeleteNo">Annulla</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Stats modal -->
+<div class="overlay" id="statsOverlay">
+  <div class="modal stats-modal">
+    <button class="modal-close" onclick="document.getElementById('statsOverlay').classList.remove('open')">&times;</button>
+    <h2>Statistiche della collezione</h2>
+    <div class="stats-section">
+      <h3>Per decennio</h3>
+      <div id="statsDecades"></div>
+    </div>
+    <div class="stats-section">
+      <h3>Registi più presenti</h3>
+      <div id="statsRegisti"></div>
+    </div>
+    <div class="stats-section">
+      <h3>Generi più comuni</h3>
+      <div id="statsGeneri"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Roulette modal -->
+<div class="overlay" id="rouletteOverlay">
+  <div class="modal roulette-modal">
+    <button class="modal-close" onclick="document.getElementById('rouletteOverlay').classList.remove('open')">&times;</button>
+    <h2>🎲 Cosa guardo stasera?</h2>
+    <div id="rouletteContent"></div>
+    <div class="roulette-actions">
+      <button class="btn ghost" id="rouletteAgainBtn">🎲 Rigira</button>
+      <button class="btn solid" id="rouletteOpenBtn">Apri scheda</button>
+    </div>
+    <p style="font-size:11.5px;color:var(--dim2);margin-top:16px;">Sceglie a caso tra i film attualmente visibili con i filtri impostati nella toolbar.</p>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'app-data';
+let state = { movies: [] };
+let currentId = null;
+
+const storageAdapter = (function(){
+  const hasWS = (typeof window.storage !== 'undefined') && window.storage && typeof window.storage.get === 'function';
+  return {
+    mode: hasWS ? 'claude' : 'local',
+    async get(key){
+      if(hasWS){
+        try{ return await window.storage.get(key, false); }
+        catch(e){ return null; }
+      }
+      try{
+        const v = localStorage.getItem('mpml_'+key);
+        return v ? {key, value:v, shared:false} : null;
+      }catch(e){ return null; }
+    },
+    async set(key, value){
+      if(hasWS){
+        try{ return await window.storage.set(key, value, false); }
+        catch(e){ console.error('storage save failed', e); return null; }
+      }
+      try{
+        localStorage.setItem('mpml_'+key, value);
+        return {key, value, shared:false};
+      }catch(e){ console.error('storage save failed', e); return null; }
+    },
+    async delete(key){
+      if(hasWS){
+        try{ return await window.storage.delete(key, false); }
+        catch(e){ return null; }
+      }
+      try{ localStorage.removeItem('mpml_'+key); return {key, deleted:true}; }
+      catch(e){ return null; }
+    }
+  };
+})();
+
+const seed = [{"titolo": "007 No time to Die", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "007 Skyfall", "formato": "Bluray", "custodia": "slip cover", "numero film": 1}, {"titolo": "48 ore ancora", "formato": "4k", "custodia": "slipcover", "numero film": 1}, {"titolo": "Animali Fantastici Trilogia", "formato": "4k", "custodia": "cofanetto", "numero film": 3}, {"titolo": "Apollo 13", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Arma Letale", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Avatar", "formato": "Bluray", "custodia": "slip cover", "numero film": 1}, {"titolo": "Avatar 2", "formato": "4k", "custodia": "slipcover", "numero film": 1}, {"titolo": "Bastardi senza Gloria", "formato": "Bluray", "custodia": "slip cover", "numero film": 1}, {"titolo": "Batman v Superman", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Beverly Hills Cop", "formato": "4k", "custodia": "slipcover", "numero film": 1}, {"titolo": "Black Hawk Down", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Blade Runner 2049", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Bullet Train", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "C'era una volta a Hollywood", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "C'era una volta in America", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Django Unchained", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Edge of Tomorrow", "formato": "Apple tv", "custodia": "digitale", "numero film": 1}, {"titolo": "F1 the movie", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Fast 4", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Fast 5", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Fast 6", "formato": "Bluray", "custodia": "slip cover", "numero film": 1}, {"titolo": "Fast and furious", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Fast and Furiuos Tokyo Drift", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Fight Club", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Foo Fighters", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Fuori in 60 secondi", "formato": "Bluray", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Furiosa", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Gran Turismo", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Harry Potter 8 film", "formato": "4k", "custodia": "Cofanetto", "numero film": 8}, {"titolo": "Il gladiatore", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Il grande Lebowski", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Il miglio verde", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Il Padrino Trilogia", "formato": "4k", "custodia": "Cofanetto", "numero film": 3}, {"titolo": "Il signore degli Anelli Trilogia", "formato": "4k", "custodia": "Cofanetto", "numero film": 3}, {"titolo": "Indiana Jones 4 film Collection", "formato": "Apple tv", "custodia": "digitale", "numero film": 4}, {"titolo": "Interstellar", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Into the Wild", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Joker", "formato": "4k", "custodia": "slip cover", "numero film": 1}, {"titolo": "Jurassic Park", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Jurassic Park 2", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Jurassic World Dominion", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Justice League Z. Snyder", "formato": "4k", "custodia": "slip cover", "numero film": 1}, {"titolo": "L'uomo d'acciaio", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Last Action Hero", "formato": "Apple tv", "custodia": "digitale", "numero film": 1}, {"titolo": "Lo hobbit Trilogia", "formato": "4k", "custodia": "cofanetto", "numero film": 3}, {"titolo": "Mad Max Fury Road", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Mission Impossible 1", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Mission Impossible 4", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Mission Impossible 5", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Mission Impossible 6", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Mission Impossible 7", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Mission Impossible 8", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Pirati dei Caraibi 5 film", "formato": "Bluray", "custodia": "Cofanetto", "numero film": 5}, {"titolo": "Salvate il Soldato Ryan", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Shazam 1-2", "formato": "4k ", "custodia": "Cofanetto", "numero film": 2}, {"titolo": "Sonic", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Spiderman 6 Film Collection", "formato": "Bluray", "custodia": "cofanetto", "numero film": 6}, {"titolo": "Star Wars I-VI", "formato": "Bluray", "custodia": "Cofanetto", "numero film": 6}, {"titolo": "Star Wars VII-IX", "formato": "4k", "custodia": "Cofanetto", "numero film": 3}, {"titolo": "Suicide  Squad", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Terminator", "formato": "Apple tv", "custodia": "digitale", "numero film": 1}, {"titolo": "Terminator 2", "formato": "Bluray", "custodia": "slip cover", "numero film": 1}, {"titolo": "The Batman", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "The Hateful eight", "formato": "Bluray", "custodia": "slip cover", "numero film": 1}, {"titolo": "Thor Love and Thunder", "formato": "4k", "custodia": "steelbook", "numero film": 1}, {"titolo": "Top Gun Collection", "formato": "4k", "custodia": "Cofanetto", "numero film": 2}, {"titolo": "Trilogia Cavaliere Oscuro", "formato": "4k", "custodia": "Cofanetto", "numero film": 3}, {"titolo": "Trilogia Ritorno al Futuro", "formato": "4k", "custodia": "Cofanetto", "numero film": 3}, {"titolo": "Twisters", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "V for Vendetta", "formato": "4k", "custodia": "steelbook", "numero film": 1}, {"titolo": "Wonder Woman", "formato": "4k ", "custodia": "slip cover", "numero film": 1}, {"titolo": "Wonka", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Spiderman Trilogia Raimi", "formato": "4k", "custodia": "cofanetto", "numero film": 3}, {"titolo": "indiana jones 4 movie collection", "formato": "4k", "custodia": "cofanetto", "numero film": 4}, {"titolo": "indiana jones il quadrante del destino", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "star wars rogue one", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "i fantastici 4 - 2025", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "baby driver", "formato": "4k", "custodia": "amaray", "numero film": 1}]
+;
+
+function slug(t){ return (t||'').toLowerCase().trim().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,''); }
+function uid(){ return 'm_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); }
+function norm(t){ return (t||'').toLowerCase().trim().replace(/\s+/g,' '); }
+
+function seedToMovie(r){
+  return {
+    id: uid(),
+    titolo: (r.titolo||'').toString().trim(),
+    formato: (r.formato||'').toString().trim(),
+    custodia: (r.custodia||'').toString().trim(),
+    numero_film: parseInt(r['numero film']) || 1,
+    anno:'', regista:'', genere:'', cast:'', trama:'', curiosita:'',
+    votoPersonale:null, votoImdb:null, votoRT:null, votoRTPubblico:null, votoMeta:null, imdbVotes:'',
+    durata:'', premi:'',
+    poster:'', qaudio:'', qvideo:'', imdbId:null,
+    tags:'', stato:'da_vedere'
+  };
+}
+
+async function loadState(){
+  try{
+    const res = await storageAdapter.get(STORAGE_KEY);
+    if(res && res.value){
+      state = JSON.parse(res.value);
+      if(!state.movies) state.movies = [];
+      cleanupMovies();
+      return;
+    }
+  }catch(e){ /* no existing data */ }
+  state = { movies: seed.map(seedToMovie) };
+  cleanupMovies();
+  await saveState();
+}
+/* Normalizza in modo sicuro i dati salvati: compattazione spazi doppi nei
+   titoli ("Suicide  Squad"), rimozione spazi finali nel formato ("4k "),
+   trim generale. Non riscrive i titoli (solo la visualizzazione lo fa). */
+function canonicalCustodia(c){
+  const k = (c||'').toLowerCase().replace(/\s+/g,'').trim();
+  if(k.startsWith('amaray')) return 'amaray';
+  if(k.startsWith('steel')) return 'steelbook';
+  if(k.startsWith('slip')) return 'slipcover';
+  if(k.startsWith('cofanetto')) return 'cofanetto';
+  if(k.startsWith('digital')) return 'digitale';
+  return (c||'').trim();
+}
+function cleanupMovies(){
+  state.movies.forEach(m=>{
+    if(m.titolo) m.titolo = m.titolo.replace(/\s+/g,' ').trim();
+    if(m.formato) m.formato = m.formato.trim();
+    m.custodia = canonicalCustodia(m.custodia);
+    m.numero_film = parseInt(m.numero_film) || 1;
+  });
+}
+
+/* ---------- Salvataggio affidabile ----------
+   - Le scritture non si sovrappongono mai (coda a coalescenza: se arrivano
+     10 richieste mentre una è in corso, alla fine si scrive UNA volta lo
+     stato più recente).
+   - Ogni scrittura viene ritentata 3 volte con attesa crescente.
+   - L'indicatore in toolbar mostra sempre lo stato reale: Salvato /
+     Salvataggio… / ERRORE (cliccabile → scarica subito un backup).
+   - Se ci sono salvataggi in corso o falliti, la chiusura della pagina
+     chiede conferma per non perdere dati. */
+let _saveInFlight = false, _saveDirty = false, _saveFailed = false;
+function setSaveStatus(st){
+  const el = document.getElementById('saveIndicator');
+  if(!el) return;
+  el.classList.remove('saved','saving','error');
+  el.classList.add(st);
+  el.querySelector('.stext').textContent = st==='saving' ? 'Salvataggio…' : (st==='error' ? 'ERRORE — clicca per backup' : 'Salvato');
+}
+async function saveState(){
+  _saveDirty = true;
+  if(_saveInFlight) return;
+  _saveInFlight = true;
+  setSaveStatus('saving');
+  while(_saveDirty){
+    _saveDirty = false;
+    const payload = JSON.stringify(state); // serializza lo stato PIÙ recente
+    let ok = false;
+    for(let att=0; att<3 && !ok; att++){
+      const res = await storageAdapter.set(STORAGE_KEY, payload);
+      if(res) ok = true;
+      else await new Promise(r=>setTimeout(r, 350*(att+1)));
+    }
+    if(!ok){
+      _saveInFlight = false; _saveFailed = true;
+      setSaveStatus('error');
+      toast('⚠️ Salvataggio non riuscito. I dati sono ancora in pagina: scarica SUBITO un backup', {
+        label:'💾 Backup ora', onClick: downloadBackupNow
+      });
+      return;
+    }
+  }
+  _saveInFlight = false; _saveFailed = false;
+  setSaveStatus('saved');
+  maybeBackup(); // non bloccante
+}
+function downloadBackupNow(){
+  const today = new Date().toISOString().slice(0,10);
+  downloadJson(state, `my_physical_movie_library_backup_${today}.json`);
+  toast(`Backup scaricato ✓ (${state.movies.length} film)`);
+}
+window.addEventListener('beforeunload', e=>{
+  if(_saveInFlight || _saveDirty || _saveFailed){ e.preventDefault(); e.returnValue = ''; }
+});
+/* ---------- Backup automatico ----------
+   Ogni giorno (al primo salvataggio della giornata) viene scritta una copia
+   di sicurezza separata dai dati principali. Se ne tengono le ultime 5,
+   così un problema notato con qualche giorno di ritardo (dati cancellati,
+   import sbagliato...) resta comunque recuperabile. È tutto automatico e
+   silenzioso: se fallisce non blocca né avvisa, perché non è un'operazione
+   critica per l'uso dell'app in quel momento. */
+async function maybeBackup(){
+  try{
+    const today = new Date().toISOString().slice(0,10);
+    if(window._lastBackupDay === today) return;
+    window._lastBackupDay = today;
+    await storageAdapter.set('backup-'+today, JSON.stringify(state));
+    let idx = [];
+    try{
+      const idxRes = await storageAdapter.get('backup-index');
+      idx = idxRes && idxRes.value ? JSON.parse(idxRes.value) : [];
+    }catch(e){ idx = []; }
+    if(!idx.includes(today)) idx.push(today);
+    while(idx.length > 5){
+      const old = idx.shift();
+      try{ await storageAdapter.delete('backup-'+old); }catch(e){}
+    }
+    await storageAdapter.set('backup-index', JSON.stringify(idx));
+  }catch(e){ console.error('backup automatico non riuscito (non bloccante):', e); }
+}
+async function listAutoBackups(){
+  try{
+    const idxRes = await storageAdapter.get('backup-index');
+    const idx = idxRes && idxRes.value ? JSON.parse(idxRes.value) : [];
+    return idx.sort().reverse();
+  }catch(e){ return []; }
+}
+function downloadJson(obj, filename){
+  const blob = new Blob([JSON.stringify(obj, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- Conferma interna (sandbox-safe) ----------
+   window.confirm() è bloccato dentro gli iframe sandbox (es. artifact di
+   Claude): questo modale interno funziona ovunque e restituisce una
+   Promise<boolean>. */
+let _confirmResolve = null;
+function askConfirm(message){
+  return new Promise(resolve=>{
+    _confirmResolve = resolve;
+    document.getElementById('confirmMsg').textContent = message;
+    document.getElementById('confirmOverlay').classList.add('open');
+  });
+}
+function closeConfirm(val){
+  document.getElementById('confirmOverlay').classList.remove('open');
+  if(_confirmResolve){ const r = _confirmResolve; _confirmResolve = null; r(val); }
+}
+document.getElementById('confirmYesBtn').addEventListener('click', ()=>closeConfirm(true));
+document.getElementById('confirmNoBtn').addEventListener('click', ()=>closeConfirm(false));
+document.getElementById('confirmOverlay').addEventListener('click', e=>{ if(e.target.id==='confirmOverlay') closeConfirm(false); });
+
+function toast(msg, action){
+  const t = document.getElementById('toast');
+  t.innerHTML = escapeHtml(msg) + (action ? ` <button id="toastActionBtn" style="margin-left:10px; background:none; border:1px solid currentColor; color:inherit; border-radius:14px; padding:3px 12px; font:inherit; font-weight:700; cursor:pointer;">${escapeHtml(action.label)}</button>` : '');
+  t.classList.add('show');
+  t.style.pointerEvents = action ? 'auto' : 'none';
+  clearTimeout(window._toastTO);
+  window._toastTO = setTimeout(()=>{ t.classList.remove('show'); t.style.pointerEvents='none'; }, action ? 6000 : 2600);
+  if(action){
+    const btn = document.getElementById('toastActionBtn');
+    if(btn) btn.onclick = ()=>{
+      clearTimeout(window._toastTO);
+      t.classList.remove('show'); t.style.pointerEvents='none';
+      action.onClick();
+    };
+  }
+}
+
+/* ---------- rendering ---------- */
+function posterFallbackHTML(titolo){
+  const hues = [8,28,42,160,200,260,320];
+  let h = 0; for(const c of (titolo||'')) h += c.charCodeAt(0);
+  const hue = hues[h % hues.length];
+  return `<div class="poster-fallback" style="background:linear-gradient(150deg, hsl(${hue} 40% 12%), hsl(${hue} 30% 6%));">
+    <div class="reel">🎞️</div>
+    <div class="ftitle">${escapeHtml(titolo)}</div>
+  </div>`;
+}
+function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+/* ---------- Icone Rotten Tomatoes ----------
+   Soglia reale usata da Rotten Tomatoes: 60% (non 50%). Da 60% in su è
+   "Fresh" (pomodoro rosso); sotto 60% è "Rotten" (splat verde). Stessa
+   soglia sia per il Tomatometer (critica) sia per il Popcornmeter
+   (pubblico) — l'unica differenza è l'icona (pomodoro vs secchiello di
+   popcorn), che qui semplifichiamo con lo stesso pomodoro/splat per
+   coerenza visiva nella scheda. */
+const RT_SPLAT_SVG = '<svg width="13" height="13" viewBox="0 0 24 24" style="vertical-align:-2px;"><path fill="#6fbf3f" d="M12 2c1 3-2 3-1 6 3-1 5 1 4 4 3 0 4 3 2 5-2 3-6 3-8 1-3 2-7 0-7-4 0-3 2-4 1-7-3 1-5-2-3-4 1-2 4-2 5 0 0-3 3-3 4-1z"/></svg>';
+function rtScoreIcon(scoreStr){
+  const v = parseInt(scoreStr);
+  if(isNaN(v)) return '';
+  return v >= 60 ? '🍅' : RT_SPLAT_SVG;
+}
+function posterLoadError(img){
+  // il fallback precedente non funzionava (riassegnava lo stesso HTML rotto):
+  // ora sostituisce davvero l'immagine con il placeholder "a bobina".
+  img.outerHTML = posterFallbackHTML(img.dataset.titolo || '');
+}
+function posterCellError(img){
+  img.outerHTML = '<div class="ph">🎞️</div>';
+}
+
+function formatoLabel(f){
+  const k = (f||'').toLowerCase().trim();
+  if(k.startsWith('4k')) return '4K';
+  if(k.startsWith('blu')) return 'Blu-ray';
+  if(k.startsWith('dvd')) return 'DVD';
+  if(k.includes('apple') || k.includes('digital')) return 'Digitale';
+  return f || '—';
+}
+
+function tagList(m){ return (m.tags||'').split(',').map(t=>t.trim()).filter(Boolean); }
+
+/* ---------- Formattazione testo corretta ----------
+   I dati restano come nell'Excel; qui si corregge solo la VISUALIZZAZIONE:
+   - titoli in Title Case (con articoli/preposizioni italiane minuscole,
+     numeri romani e sigle in maiuscolo)
+   - custodie normalizzate (slip cover / slipcover → Slipcover, ecc.)
+   - spazi doppi compattati */
+const MINOR_WORDS = new Set(['di','a','da','in','con','su','per','tra','fra','e','ed','il','lo','la','i','gli','le','un','uno','una','del','dello','della','dei','degli','delle','al','allo','alla','ai','agli','alle','the','of','and','or','to','vs','v']);
+const FORCE_UPPER = /^(i{1,3}|iv|v|vi{0,3}|ix|x|xi{0,3}|4k|dc|f1|rt|ii|iii)$/i;
+function displayTitle(t){
+  const words = (t||'').replace(/\s+/g,' ').trim().split(' ');
+  return words.map((w,idx)=>{
+    const lower = w.toLowerCase();
+    if(FORCE_UPPER.test(lower.replace(/[^a-z0-9]/g,''))) return w.toUpperCase();
+    if(idx>0 && MINOR_WORDS.has(lower)) return lower;
+    // conserva parole già scritte con maiuscole interne (McQueen, IMAX…)
+    if(/[A-Z]/.test(w.slice(1))) return w;
+    return w.charAt(0).toUpperCase() + w.slice(1);
+  }).join(' ');
+}
+function custodiaLabel(c){
+  const k = (c||'').toLowerCase().replace(/\s+/g,'').trim();
+  if(k.startsWith('amaray')) return 'Amaray';
+  if(k.startsWith('steel')) return 'Steelbook';
+  if(k.startsWith('slip')) return 'Slipcover';
+  if(k.startsWith('cofanetto')) return 'Cofanetto';
+  if(k.startsWith('digital')) return 'Digitale';
+  return c ? c.charAt(0).toUpperCase()+c.slice(1) : '—';
+}
+function debounce(fn, ms){
+  let to;
+  return function(...args){ clearTimeout(to); to = setTimeout(()=>fn.apply(this,args), ms); };
+}
+
+function populateFilters(){
+  const fF = document.getElementById('filterFormato');
+  const fC = document.getElementById('filterCustodia');
+  const fT = document.getElementById('filterTag');
+  const formats = [...new Set(state.movies.map(m=>formatoLabel(m.formato)))].sort();
+  const custodie = [...new Set(state.movies.map(m=>norm(m.custodia)).filter(Boolean))].sort();
+  const tags = [...new Set(state.movies.flatMap(m=>tagList(m)))].sort((a,b)=>a.localeCompare(b));
+  fF.innerHTML = '<option value="">Tutti i formati</option>' + formats.map(f=>`<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join('');
+  fC.innerHTML = '<option value="">Tutte le custodie</option>' + custodie.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c.charAt(0).toUpperCase()+c.slice(1))}</option>`).join('');
+  const prevTag = fT.value;
+  fT.innerHTML = '<option value="">Tutti i tag</option>' + tags.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  if(tags.includes(prevTag)) fT.value = prevTag;
+}
+
+function renderStats(){
+  const total = state.movies.length;
+  const totalFilms = state.movies.reduce((a,m)=>a+(parseInt(m.numero_film)||1),0);
+  const rated = state.movies.filter(m=>m.votoPersonale);
+  const avg = rated.length ? (rated.reduce((a,m)=>a+Number(m.votoPersonale),0)/rated.length).toFixed(1) : '—';
+  const ratedImdb = state.movies.filter(m=>parseVotoNumber(m.votoImdb)!==null);
+  const avgImdb = ratedImdb.length ? (ratedImdb.reduce((a,m)=>a+parseVotoNumber(m.votoImdb),0)/ratedImdb.length).toFixed(2).replace('.', ',') : '—';
+  const enriched = state.movies.filter(m=>m.poster).length;
+  const daVedere = state.movies.filter(m=>(m.stato||'da_vedere')==='da_vedere').length;
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat"><b>${total}</b><small>Titoli</small></div>
+    <div class="stat"><b>${totalFilms}</b><small>Film totali</small></div>
+    <div class="stat"><b>${avg}</b><small>Voto medio</small></div>
+    <div class="stat"><b>${avgImdb}</b><small>Voto IMDb medio</small></div>
+    <div class="stat"><b>${enriched}</b><small>Con locandina</small></div>
+    <div class="stat"><b>${daVedere}</b><small>Da vedere</small></div>
+  `;
+}
+
+function getFiltered(){
+  const q = norm(document.getElementById('search').value);
+  const ff = document.getElementById('filterFormato').value;
+  const fc = document.getElementById('filterCustodia').value;
+  const ft = document.getElementById('filterTag').value;
+  const fs = document.getElementById('filterStato').value;
+  const sb = document.getElementById('sortBy').value;
+  let list = state.movies.filter(m=>{
+    if(q && !norm(m.titolo).includes(q)) return false;
+    if(ff && formatoLabel(m.formato) !== ff) return false;
+    if(fc && norm(m.custodia) !== fc) return false;
+    if(ft && !tagList(m).includes(ft)) return false;
+    if(fs && (m.stato||'da_vedere') !== fs) return false;
+    return true;
+  });
+  list.sort((a,b)=>{
+    if(sb==='az') return a.titolo.localeCompare(b.titolo, 'it', {numeric:true, sensitivity:'base'});
+    if(sb==='za') return b.titolo.localeCompare(a.titolo, 'it', {numeric:true, sensitivity:'base'});
+    if(sb==='voto') return (b.votoPersonale||0)-(a.votoPersonale||0);
+    if(sb==='votoImdb') return (parseVotoNumber(b.votoImdb)||0)-(parseVotoNumber(a.votoImdb)||0);
+    if(sb==='votoRT') return (parseInt(b.votoRT)||0)-(parseInt(a.votoRT)||0);
+    if(sb==='votoRTPubblico') return (parseInt(b.votoRTPubblico)||0)-(parseInt(a.votoRTPubblico)||0);
+    if(sb==='votoMeta') return (parseInt(b.votoMeta)||0)-(parseInt(a.votoMeta)||0);
+    if(sb==='anno') return (parseInt(b.anno)||0)-(parseInt(a.anno)||0);
+    return 0;
+  });
+  return list;
+}
+
+let viewMode = 'grid';
+
+function cardHTML(m){
+  const stars = m.votoPersonale ? `★ ${m.votoPersonale}/10` : '';
+  const imdbVal = parseVotoNumber(m.votoImdb);
+  const qty = (parseInt(m.numero_film)||1) > 1 ? `<div class="card-badge qty">x${m.numero_film}</div>` : '';
+  const seen = (m.stato||'da_vedere') === 'visto' ? `<div class="card-badge seen">✓ Visto</div>` : '';
+  // Riga dettagli: anno · durata · genere (prima voce)
+  const genPrimo = (m.genere||'').split(',')[0].trim();
+  const metaBits = [m.anno, m.durata, genPrimo].filter(Boolean).map(escapeHtml);
+  const meta = metaBits.length ? `<div class="meta">${metaBits.join(' · ')}</div>` : '';
+  const regia = m.regista ? `<div class="sub">🎬 ${escapeHtml(m.regista.split(',')[0].trim())}</div>` : '';
+  // Voti compatti sotto il titolo
+  const votes = [];
+  if(imdbVal!==null) votes.push(`<span>⭐ ${formatVoto10(m.votoImdb)}</span>`);
+  if(m.votoRT) votes.push(`<span>${rtScoreIcon(m.votoRT)} ${escapeHtml(m.votoRT)}</span>`);
+  if(m.votoRTPubblico) votes.push(`<span>🍿 ${escapeHtml(m.votoRTPubblico)}</span>`);
+  if(m.votoMeta) votes.push(`<span>Ⓜ️ ${escapeHtml(m.votoMeta)}</span>`);
+  const votesRow = votes.length ? `<div class="votes">${votes.join('')}</div>` : '';
+  return `<div class="card" data-id="${m.id}">
+    ${m.poster ? `<img src="${escapeHtml(m.poster)}" loading="lazy" referrerpolicy="no-referrer" data-titolo="${escapeHtml(displayTitle(m.titolo))}" onerror="posterLoadError(this)">` : posterFallbackHTML(displayTitle(m.titolo))}
+    <div class="card-badge">${escapeHtml(formatoLabel(m.formato))} · ${escapeHtml(custodiaLabel(m.custodia))}</div>
+    ${qty}
+    ${seen}
+    <div class="card-bottom">
+      <div class="t">${escapeHtml(displayTitle(m.titolo))}</div>
+      ${meta}
+      ${regia}
+      ${votesRow}
+      <div class="stars">${stars}</div>
+    </div>
+  </div>`;
+}
+
+function renderGrid(){
+  const list = getFiltered();
+  document.getElementById('empty').style.display = list.length ? 'none' : 'block';
+  const rc = document.getElementById('resultsCount');
+  if(rc) rc.textContent = list.length === state.movies.length
+    ? `${state.movies.length} titoli`
+    : `${list.length} di ${state.movies.length} titoli`;
+  // Renderizza SOLO la vista attiva: dimezza il lavoro a ogni filtro/ricerca
+  if(viewMode === 'list'){
+    renderTable(list);
+  } else {
+    document.getElementById('grid').innerHTML = list.map(cardHTML).join('');
+  }
+  renderStats();
+}
+
+function renderTable(list){
+  list = list || getFiltered();
+  const tbody = document.getElementById('tableBody');
+  tbody.innerHTML = list.map(m=>{
+    const posterCell = m.poster ? `<img src="${escapeHtml(m.poster)}" loading="lazy" referrerpolicy="no-referrer" onerror="posterCellError(this)">` : `<div class="ph">🎞️</div>`;
+    const tags = tagList(m).map(t=>`<span class="chip">${escapeHtml(t)}</span>`).join(' ');
+    const stato = (m.stato||'da_vedere')==='visto' ? `<span class="chip watch">✓ Visto</span>` : `<span class="chip">Da vedere</span>`;
+    const imdbVal = parseVotoNumber(m.votoImdb);
+    return `<tr data-id="${m.id}">
+      <td class="poster-cell">${posterCell}</td>
+      <td>${escapeHtml(displayTitle(m.titolo))}</td>
+      <td>${escapeHtml(formatoLabel(m.formato))}</td>
+      <td>${escapeHtml(custodiaLabel(m.custodia))}</td>
+      <td>${escapeHtml(m.anno||'—')}</td>
+      <td>${escapeHtml(m.genere||'—')}</td>
+      <td>${m.votoPersonale ? '★ '+m.votoPersonale : '—'}</td>
+      <td>${m.votoRT ? rtScoreIcon(m.votoRT)+' '+escapeHtml(m.votoRT) : '—'}</td>
+      <td>${m.votoRTPubblico ? '🍿 '+escapeHtml(m.votoRTPubblico) : '—'}</td>
+      <td>${m.votoMeta ? escapeHtml(m.votoMeta) : '—'}</td>
+      <td>${imdbVal!==null ? formatVoto10(m.votoImdb) : '—'}</td>
+      <td>${tags||'—'}</td>
+      <td>${stato}</td>
+    </tr>`;
+  }).join('');
+}
+
+/* Delegazione eventi: UN solo listener per griglia e tabella invece di
+   uno per ogni card/riga — meno memoria e rendering molto più rapido */
+document.getElementById('grid').addEventListener('click', e=>{
+  const card = e.target.closest('.card');
+  if(card) openModal(card.dataset.id);
+});
+document.getElementById('tableBody').addEventListener('click', e=>{
+  const tr = e.target.closest('tr');
+  if(tr) openModal(tr.dataset.id);
+});
+
+function setViewMode(mode){
+  viewMode = mode;
+  const grid = document.getElementById('grid');
+  const tableWrap = document.getElementById('tableWrap');
+  const btn = document.getElementById('viewToggleBtn');
+  if(mode==='list'){
+    grid.classList.add('hide');
+    tableWrap.classList.add('show');
+    btn.textContent = '▦ Vista griglia';
+  } else {
+    grid.classList.remove('hide');
+    tableWrap.classList.remove('show');
+    btn.textContent = '☰ Vista lista';
+  }
+  renderGrid(); // popola la vista appena attivata
+}
+
+function renderAll(){ populateFilters(); renderGrid(); }
+
+/* ---------- Modal (view/edit movie) ---------- */
+function renderRatingBadges(m){
+  const box = document.getElementById('ratingBadges');
+  if(!box) return;
+  const parts = [];
+  if(m.votoRT) parts.push(`<span class="rbadge rt"><span class="ic">${rtScoreIcon(m.votoRT)}</span>Critica ${escapeHtml(m.votoRT)}</span>`);
+  if(m.votoRTPubblico) parts.push(`<span class="rbadge rt"><span class="ic">🍿</span>Pubblico ${escapeHtml(m.votoRTPubblico)}</span>`);
+  if(m.votoMeta) parts.push(`<span class="rbadge meta"><span class="ic">Ⓜ️</span>${escapeHtml(m.votoMeta)}</span>`);
+  const imdbVal = parseVotoNumber(m.votoImdb);
+  if(imdbVal!==null) parts.push(`<span class="rbadge imdb"><span class="ic">⭐</span>IMDb ${formatVoto10(m.votoImdb)}${m.imdbVotes ? ' ('+escapeHtml(m.imdbVotes)+' voti)' : ''}</span>`);
+  box.innerHTML = parts.join('');
+}
+function openModal(id){
+  currentId = id;
+  const m = state.movies.find(x=>x.id===id);
+  if(!m) return;
+  document.getElementById('f_titolo').value = m.titolo||'';
+  document.getElementById('f_poster').value = m.poster||'';
+  document.getElementById('f_formato').value = normalizeSelectVal(m.formato, ['4k','Bluray','DVD','Apple tv','Digitale']);
+  document.getElementById('f_custodia').value = normalizeSelectVal(m.custodia, ['amaray','steelbook','slipcover','cofanetto','digitale']);
+  document.getElementById('f_numero').value = m.numero_film || 1;
+  document.getElementById('f_anno').value = m.anno||'';
+  document.getElementById('f_durata').value = m.durata||'';
+  document.getElementById('f_regista').value = m.regista||'';
+  document.getElementById('f_genere').value = m.genere||'';
+  document.getElementById('f_tags').value = m.tags||'';
+  document.getElementById('f_stato').value = m.stato||'da_vedere';
+  document.getElementById('f_votoTmdb').value = formatVoto10(m.votoImdb);
+  document.getElementById('f_votoRT').value = m.votoRT ? String(parseInt(m.votoRT)) : '';
+  document.getElementById('f_votoRTPubblico').value = m.votoRTPubblico ? String(parseInt(m.votoRTPubblico)) : '';
+  updateImdbStars(m.votoImdb);
+  renderRatingBadges(m);
+  document.getElementById('f_qvideo').value = m.qvideo||'';
+  document.getElementById('f_qaudio').value = m.qaudio||'';
+  document.getElementById('f_cast').value = m.cast||'';
+  document.getElementById('f_trama').value = m.trama||'';
+  document.getElementById('f_premi').value = m.premi||'';
+  document.getElementById('f_curiosita').value = m.curiosita||'';
+  renderStarsInput(m.votoPersonale||0);
+  renderPosterView(m);
+  document.getElementById('tmdbResults').innerHTML='';
+  renderImdbLink(m);
+  window._draftRtUrl = null;
+  renderRtLink(m);
+  document.getElementById('confirmDelete').classList.remove('show');
+  document.getElementById('badgeRow').innerHTML = `<span class="tag">${escapeHtml(formatoLabel(m.formato))}</span><span class="tag">${escapeHtml(custodiaLabel(m.custodia))}</span>${(m.numero_film>1)?`<span class="tag">${m.numero_film} film</span>`:''}`;
+  document.getElementById('movieOverlay').classList.add('open');
+}
+function normalizeSelectVal(val, options){
+  // Confronto senza spazi: "slip cover" ≡ "slipcover", "4k " ≡ "4k", "apple tv" ≡ "Apple tv"
+  const v = (val||'').toLowerCase().replace(/\s+/g,'').trim();
+  const found = options.find(o=>{
+    const ok = o.toLowerCase().replace(/\s+/g,'');
+    return ok===v || v.startsWith(ok);
+  });
+  return found || options[0];
+}
+function renderPosterView(m){
+  const box = document.getElementById('posterView');
+  box.innerHTML = m.poster ? `<img src="${escapeHtml(m.poster)}" referrerpolicy="no-referrer" onerror="posterLoadError(this)" data-titolo="${escapeHtml(displayTitle(m.titolo))}">` : posterFallbackHTML(displayTitle(m.titolo));
+}
+function renderImdbLink(m){
+  const box = document.getElementById('imdbLinkWrap');
+  box.innerHTML = m.imdbId ? `<a href="https://www.imdb.com/title/${escapeHtml(m.imdbId)}/" target="_blank" class="btn ghost" style="width:100%; display:block; text-align:center; box-sizing:border-box; text-decoration:none;">↗ Apri scheda completa su IMDb</a>` : '';
+  const retryBtn = document.getElementById('retryFullDetailsBtn');
+  const mancano = m.imdbId && (!m.trama || !m.genere || !m.regista || !m.votoImdb);
+  retryBtn.style.display = mancano ? 'block' : 'none';
+}
+function renderStarsInput(val){
+  const box = document.getElementById('starsInput');
+  let html='';
+  for(let i=1;i<=10;i++){ html += `<span data-v="${i}" class="${i<=val?'on':''}">★</span>`; }
+  box.innerHTML = html;
+  box.dataset.value = val;
+  box.querySelectorAll('span').forEach(s=>{
+    s.addEventListener('click', ()=>{
+      box.dataset.value = s.dataset.v;
+      renderStarsInput(parseInt(s.dataset.v));
+    });
+  });
+}
+/* Voto IMDb: numero 0,00–10,00 (virgola italiana) + barra di 5 stelle
+   frazionaria. parseVotoNumber legge sia "7.7" che "7,7" che "7,7/10". */
+function parseVotoNumber(raw){
+  if(raw===undefined || raw===null || raw==='') return null;
+  const s = String(raw).trim().replace(',', '.');
+  const m = s.match(/\d+(\.\d+)?/);
+  if(!m) return null;
+  const n = parseFloat(m[0]);
+  if(isNaN(n)) return null;
+  return Math.max(0, Math.min(10, n));
+}
+function formatVoto10(raw){
+  const n = parseVotoNumber(raw);
+  if(n===null) return '';
+  return n.toFixed(2).replace('.', ',');
+}
+function updateImdbStars(raw){
+  const fg = document.getElementById('imdbStarsFg');
+  if(!fg) return;
+  const n = parseVotoNumber(raw);
+  const pct = n===null ? 0 : (n/10*100);
+  fg.style.width = pct + '%';
+}
+function closeModal(){
+  document.getElementById('movieOverlay').classList.remove('open');
+  currentId = null;
+}
+document.getElementById('f_votoTmdb').addEventListener('input', e=>{
+  updateImdbStars(e.target.value);
+});
+document.getElementById('f_votoTmdb').addEventListener('blur', e=>{
+  const formatted = formatVoto10(e.target.value);
+  e.target.value = formatted;
+  updateImdbStars(formatted);
+});
+document.getElementById('movieOverlay').addEventListener('click', e=>{ if(e.target.id==='movieOverlay') closeModal(); });
+
+document.getElementById('f_poster').addEventListener('input', e=>{
+  renderPosterView({poster:e.target.value, titolo:document.getElementById('f_titolo').value});
+});
+
+document.getElementById('saveBtn').addEventListener('click', async ()=>{
+  let m = state.movies.find(x=>x.id===currentId);
+  const isNew = !m;
+  if(isNew){
+    // Protezione dai doppioni: stesso titolo già in libreria → chiedi conferma
+    const nuovoTitolo = document.getElementById('f_titolo').value.trim();
+    const doppione = nuovoTitolo && state.movies.find(x=>norm(x.titolo)===norm(nuovoTitolo));
+    if(doppione && !(await askConfirm(`"${displayTitle(nuovoTitolo)}" è già in libreria. Aggiungerlo comunque come seconda copia?`))) return;
+    m = { id: uid() }; state.movies.push(m);
+  }
+  m.titolo = document.getElementById('f_titolo').value.trim() || 'Senza titolo';
+  m.poster = document.getElementById('f_poster').value.trim();
+  m.formato = document.getElementById('f_formato').value;
+  m.custodia = document.getElementById('f_custodia').value;
+  m.numero_film = parseInt(document.getElementById('f_numero').value)||1;
+  m.anno = document.getElementById('f_anno').value.trim();
+  m.durata = document.getElementById('f_durata').value.trim();
+  m.regista = document.getElementById('f_regista').value.trim();
+  m.genere = document.getElementById('f_genere').value.trim();
+  m.tags = document.getElementById('f_tags').value.trim();
+  m.stato = document.getElementById('f_stato').value;
+  m.qvideo = document.getElementById('f_qvideo').value.trim();
+  m.qaudio = document.getElementById('f_qaudio').value.trim();
+  m.cast = document.getElementById('f_cast').value.trim();
+  m.trama = document.getElementById('f_trama').value.trim();
+  m.premi = document.getElementById('f_premi').value.trim();
+  m.curiosita = document.getElementById('f_curiosita').value.trim();
+  m.votoPersonale = parseInt(document.getElementById('starsInput').dataset.value)||null;
+  m.votoImdb = formatVoto10(document.getElementById('f_votoTmdb').value);
+  const rtCriticaVal = document.getElementById('f_votoRT').value.trim();
+  const rtPubblicoVal = document.getElementById('f_votoRTPubblico').value.trim();
+  m.votoRT = rtCriticaVal ? rtCriticaVal.replace('%','').trim() + '%' : '';
+  m.votoRTPubblico = rtPubblicoVal ? rtPubblicoVal.replace('%','').trim() + '%' : '';
+  if(!m.rtUrl && window._draftRtUrl) m.rtUrl = window._draftRtUrl;
+  await saveState();
+  renderAll();
+  closeModal();
+  toast('Scheda salvata ✓');
+});
+
+document.getElementById('deleteBtn').addEventListener('click', ()=>{
+  document.getElementById('confirmDelete').classList.add('show');
+});
+document.getElementById('confirmDeleteNo').addEventListener('click', ()=>{
+  document.getElementById('confirmDelete').classList.remove('show');
+});
+document.getElementById('confirmDeleteYes').addEventListener('click', async ()=>{
+  const idx = state.movies.findIndex(x=>x.id===currentId);
+  if(idx === -1) return;
+  const removed = state.movies[idx];
+  state.movies.splice(idx, 1);
+  await saveState();
+  renderAll();
+  closeModal();
+  toast(`"${removed.titolo}" eliminato`, {
+    label: 'Annulla',
+    onClick: async ()=>{
+      state.movies.splice(Math.min(idx, state.movies.length), 0, removed);
+      await saveState();
+      renderAll();
+      toast('Ripristinato ✓');
+    }
+  });
+});
+
+document.getElementById('addBtn').addEventListener('click', ()=>{
+  currentId = null;
+  document.getElementById('f_titolo').value='';
+  document.getElementById('f_poster').value='';
+  document.getElementById('f_formato').value='4k';
+  document.getElementById('f_custodia').value='amaray';
+  document.getElementById('f_numero').value=1;
+  document.getElementById('f_anno').value='';
+  document.getElementById('f_durata').value='';
+  document.getElementById('f_regista').value='';
+  document.getElementById('f_genere').value='';
+  document.getElementById('f_tags').value='';
+  document.getElementById('f_stato').value='da_vedere';
+  document.getElementById('f_votoTmdb').value='';
+  document.getElementById('f_votoRT').value='';
+  document.getElementById('f_votoRTPubblico').value='';
+  updateImdbStars('');
+  renderRatingBadges({});
+  document.getElementById('f_qvideo').value='';
+  document.getElementById('f_qaudio').value='';
+  document.getElementById('f_cast').value='';
+  document.getElementById('f_trama').value='';
+  document.getElementById('f_premi').value='';
+  document.getElementById('f_curiosita').value='';
+  renderStarsInput(0);
+  renderPosterView({poster:'', titolo:'Nuovo film'});
+  renderImdbLink({});
+  window._draftRtUrl = null;
+  renderRtLink({titolo:''});
+  document.getElementById('tmdbResults').innerHTML='';
+  document.getElementById('confirmDelete').classList.remove('show');
+  document.getElementById('badgeRow').innerHTML='';
+  document.getElementById('movieOverlay').classList.add('open');
+});
+
+/* ---------- filters/search ---------- */
+const debouncedRender = debounce(renderGrid, 130);
+document.getElementById('search').addEventListener('input', debouncedRender);
+['input','change'].forEach(evt=>{
+  document.getElementById('filterFormato').addEventListener(evt, renderGrid);
+  document.getElementById('filterCustodia').addEventListener(evt, renderGrid);
+  document.getElementById('filterTag').addEventListener(evt, renderGrid);
+  document.getElementById('filterStato').addEventListener(evt, ()=>{
+    document.getElementById('watchlistBtn').classList.toggle('toggle-on', document.getElementById('filterStato').value==='da_vedere');
+    renderGrid();
+  });
+  document.getElementById('sortBy').addEventListener(evt, renderGrid);
+});
+
+/* ---------- Excel import ---------- */
+/* Se il CDN della libreria Excel non è raggiungibile (offline, rete
+   filtrata…), import/export mostrano un avviso chiaro invece di far
+   fallire silenziosamente la pagina con un errore JS. */
+function xlsxReady(){
+  if(typeof XLSX === 'undefined'){
+    toast('⚠️ Libreria Excel non caricata: verifica la connessione e ricarica la pagina');
+    return false;
+  }
+  return true;
+}
+/* Import SENZA perdita di dati: legge TUTTE le colonne che l'export
+   scrive (anno, regista, genere, trama, voti, locandina, link IMDb…),
+   quindi il ciclo esporta CSV → modifichi fuori → reimporti è completo
+   e reversibile. I film esistenti vengono agganciati prima per ID IMDb,
+   poi per titolo; i campi vuoti nel file NON sovrascrivono mai i dati
+   già presenti in libreria. */
+function rowToImportedFields(obj){
+  const S = k => (obj[k]===undefined || obj[k]===null) ? '' : String(obj[k]).replace(/\s+/g,' ').trim();
+  const linkImdb = S('link imdb');
+  const idm = linkImdb.match(/tt\d+/) || S('imdb id').match(/tt\d+/) || [];
+  const statoRaw = S('stato').toLowerCase();
+  const f = {
+    titolo: S('titolo'),
+    formato: S('formato'),
+    custodia: S('custodia'),
+    numero_film: parseInt(S('numero film')) || 0,
+    anno: S('anno'), durata: S('durata'), regista: S('regista'),
+    genere: S('genere'), cast: S('cast'), trama: S('trama'),
+    premi: S('riconoscimenti') || S('premi'),
+    curiosita: S('curiosita') || S('curiosità'),
+    poster: S('locandina') || S('poster'),
+    qvideo: S('qualita video') || S('qualità video'),
+    qaudio: S('qualita audio') || S('qualità audio'),
+    votoPersonale: parseInt(S('voto personale')) || 0,
+    votoImdb: S('voto imdb'), imdbVotes: S('voti imdb'),
+    votoRT: S('voto rotten tomatoes critica') || S('voto rt'),
+    votoRTPubblico: S('voto rotten tomatoes pubblico'),
+    votoMeta: S('voto metacritic'),
+    tags: S('tag') || S('tags'),
+    imdbId: idm[0] || '',
+    rtUrl: S('link rotten tomatoes'),
+    stato: statoRaw ? (statoRaw.startsWith('vist') ? 'visto' : 'da_vedere') : ''
+  };
+  return f;
+}
+function mergeImportedInto(m, f){
+  // Solo i valori NON vuoti del file sovrascrivono; i vuoti non toccano nulla
+  ['formato','custodia','anno','durata','regista','genere','cast','trama','premi','curiosita',
+   'poster','qvideo','qaudio','votoImdb','imdbVotes','votoRT','votoRTPubblico','votoMeta','tags','imdbId','rtUrl','stato']
+    .forEach(k=>{ if(f[k]) m[k] = f[k]; });
+  if(f.numero_film) m.numero_film = f.numero_film;
+  if(f.votoPersonale) m.votoPersonale = f.votoPersonale;
+}
+async function importLibraryFile(file){
+  if(!file) return;
+  if(!xlsxReady()) return;
+  const reader = new FileReader();
+  reader.onload = async function(ev){
+    try{
+      const wb = XLSX.read(ev.target.result, {type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
+      let headerIdx = rows.findIndex(r => r.some(c => (c+'').toLowerCase().trim()==='titolo'));
+      if(headerIdx === -1) headerIdx = 0;
+      const headers = rows[headerIdx].map(h => (h+'').toLowerCase().trim());
+      const dataRows = rows.slice(headerIdx+1).filter(r=>r.some(c=>c!==''));
+      let added=0, updated=0;
+      dataRows.forEach(r=>{
+        const obj = {};
+        headers.forEach((h,i)=>{ obj[h] = r[i]; });
+        const f = rowToImportedFields(obj);
+        if(!f.titolo) return;
+        let existing = (f.imdbId && state.movies.find(m => m.imdbId === f.imdbId))
+                    || state.movies.find(m => norm(m.titolo) === norm(f.titolo));
+        if(existing){
+          mergeImportedInto(existing, f);
+          updated++;
+        } else {
+          const nm = seedToMovie({titolo:f.titolo, formato:f.formato, custodia:f.custodia, 'numero film': f.numero_film || 1});
+          mergeImportedInto(nm, f);
+          state.movies.push(nm);
+          added++;
+        }
+      });
+      cleanupMovies();
+      await saveState();
+      renderAll();
+      toast(`Importato: ${added} nuovi, ${updated} aggiornati`);
+    }catch(err){
+      console.error(err);
+      toast('Errore nella lettura del file');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+document.getElementById('fileInput').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  importLibraryFile(file);
+  e.target.value = '';
+});
+/* Trascina un CSV / Excel in qualunque punto della pagina per importarlo */
+document.addEventListener('dragover', e=>{ e.preventDefault(); });
+document.addEventListener('drop', e=>{
+  e.preventDefault();
+  const file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if(!file) return;
+  if(/\.(csv|xlsx|xls)$/i.test(file.name)) importLibraryFile(file);
+  else if(/\.json$/i.test(file.name)) toast('Per i backup .json usa il pulsante "Ripristina backup"');
+});
+
+/* ---------- Excel export ---------- */
+function buildExportRows(){
+  return state.movies.map(m=>({
+    titolo:m.titolo, formato:m.formato, custodia:m.custodia, 'numero film':m.numero_film,
+    anno:m.anno, durata:m.durata, regista:m.regista, genere:m.genere, cast:m.cast,
+    'voto personale':m.votoPersonale, 'voto imdb':m.votoImdb, 'voti imdb':m.imdbVotes,
+    'voto rotten tomatoes critica':m.votoRT, 'voto rotten tomatoes pubblico':m.votoRTPubblico, 'voto metacritic':m.votoMeta,
+    'qualita video':m.qvideo, 'qualita audio':m.qaudio, trama:m.trama, riconoscimenti:m.premi, curiosita:m.curiosita, locandina:m.poster,
+    'link imdb': m.imdbId ? `https://www.imdb.com/title/${m.imdbId}/` : '',
+    'link rotten tomatoes': m.rtUrl || '',
+    tag: m.tags||'', stato: (m.stato||'da_vedere')==='visto' ? 'Visto' : 'Da vedere'
+  }));
+}
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  if(!xlsxReady()) return;
+  const ws = XLSX.utils.json_to_sheet(buildExportRows());
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Libreria');
+  XLSX.writeFile(wb, 'my_physical_movie_library.xlsx');
+  toast('Excel esportato ✓');
+});
+document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
+  if(!xlsxReady()) return;
+  const ws = XLSX.utils.json_to_sheet(buildExportRows());
+  const csv = XLSX.utils.sheet_to_csv(ws);
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'my_physical_movie_library.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('CSV esportato ✓');
+});
+
+/* ---------- Info modal generico (usato per il report di controllo libreria) ---------- */
+function showInfoModal(title, bodyHtml){
+  document.getElementById('infoTitle').textContent = title;
+  document.getElementById('infoBody').innerHTML = bodyHtml;
+  document.getElementById('infoOverlay').classList.add('open');
+}
+document.getElementById('infoCloseBtn').addEventListener('click', ()=>{
+  document.getElementById('infoOverlay').classList.remove('open');
+});
+document.getElementById('infoOverlay').addEventListener('click', (e)=>{
+  if(e.target.id === 'infoOverlay') document.getElementById('infoOverlay').classList.remove('open');
+});
+
+/* ---------- Backup di sicurezza (manuale, istantaneo) ---------- */
+document.getElementById('backupBtn').addEventListener('click', downloadBackupNow);
+document.getElementById('saveIndicator').addEventListener('click', ()=>{
+  if(document.getElementById('saveIndicator').classList.contains('error')) downloadBackupNow();
+});
+
+/* ---------- Ripristino da backup (.json) ----------
+   Il ripristino è sempre "unisci": aggiorna i film già presenti (per
+   titolo) e aggiunge quelli mancanti, senza mai cancellare film che hai
+   già in libreria adesso. Così un ripristino non può mai far perdere dati
+   per sbaglio. */
+document.getElementById('restoreInput').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(ev){
+    try{
+      const backup = JSON.parse(ev.target.result);
+      const incoming = Array.isArray(backup) ? backup : (backup.movies || []);
+      if(!incoming.length){ toast('Il file non contiene film validi'); return; }
+      const conferma = await askConfirm(`Ripristinare ${incoming.length} film da questo backup? Verranno aggiornati i film già presenti (per titolo) e aggiunti quelli mancanti — nessun film attuale verrà cancellato.`);
+      if(!conferma) return;
+      let added = 0, updated = 0;
+      incoming.forEach(inc=>{
+        if(!inc || !inc.titolo) return;
+        const existing = state.movies.find(m => norm(m.titolo) === norm(inc.titolo));
+        if(existing){
+          Object.assign(existing, inc, { id: existing.id });
+          updated++;
+        } else {
+          state.movies.push(Object.assign(seedToMovie({titolo:inc.titolo, formato:inc.formato, custodia:inc.custodia, 'numero film':inc.numero_film}), inc, { id: uid() }));
+          added++;
+        }
+      });
+      await saveState();
+      renderAll();
+      toast(`Ripristino completato: ${added} aggiunti, ${updated} aggiornati`);
+    }catch(err){
+      console.error(err);
+      toast('File di backup non valido o danneggiato');
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+
+/* ---------- Controllo integrità libreria ---------- */
+document.getElementById('integrityBtn').addEventListener('click', ()=>{
+  const senzaPoster = state.movies.filter(m=>!m.poster);
+  const senzaGenere = state.movies.filter(m=>!m.genere);
+  const senzaAnno = state.movies.filter(m=>!m.anno);
+  const senzaTrama = state.movies.filter(m=>!m.trama);
+  const contaTitoli = {};
+  state.movies.forEach(m=>{ const k = norm(m.titolo); contaTitoli[k] = (contaTitoli[k]||0)+1; });
+  const duplicati = Object.keys(contaTitoli).filter(k=>contaTitoli[k]>1);
+  const riga = (etichetta, lista) => lista.length
+    ? `<p style="margin:14px 0 6px;"><strong style="color:var(--cream);">${etichetta} (${lista.length})</strong><br>${lista.slice(0,12).map(m=>escapeHtml(m.titolo)).join(', ')}${lista.length>12 ? '…' : ''}</p>`
+    : '';
+  let html = `<p style="margin-top:0;">Libreria totale: <strong style="color:var(--cream);">${state.movies.length} film</strong>.</p>`;
+  html += riga('🖼️ Senza locandina', senzaPoster);
+  html += riga('🎭 Senza genere', senzaGenere);
+  html += riga('📅 Senza anno', senzaAnno);
+  html += riga('📝 Senza trama', senzaTrama);
+  if(duplicati.length){
+    html += `<p style="margin:14px 0 6px;"><strong style="color:var(--cream);">📎 Titoli duplicati (${duplicati.length})</strong><br>${duplicati.map(k=>escapeHtml(k)).join(', ')}</p>`;
+  }
+  if(!senzaPoster.length && !senzaGenere.length && !senzaAnno.length && !senzaTrama.length && !duplicati.length){
+    html += `<p>Tutto a posto ✓ nessun problema rilevato.</p>`;
+  }
+  showInfoModal('🔍 Controllo libreria', html);
+});
+
+/* ---------- Arricchimento senza chiavi API: IMDb (solo ricerca) + Wikidata + Wikipedia ----------
+   Nessuna chiave, nessuna registrazione, in nessun caso.
+   Fase 1) L'endpoint pubblico di autocompletamento di IMDb (lo stesso della
+   barra di ricerca su imdb.com) restituisce JSON liberamente: dà subito
+   l'ID IMDb, la locandina, l'anno e un breve elenco cast.
+   Fase 2) Da quell'ID IMDb si interroga Wikidata (proprietà P345), che è
+   infrastruttura ufficiale Wikimedia con CORS nativo e stabile — non un
+   proxy di terzi. Da lì arrivano genere, regista, cast esteso, tag
+   suggeriti (saga/collana) e — quando disponibili — i voti di Rotten
+   Tomatoes e Metacritic (proprietà P444/P447). La trama e, quando
+   presente, una nota di produzione usata come curiosità, arrivano da
+   Wikipedia (prima la voce italiana, poi quella inglese come riserva).
+   Il voto IMDb non viene mai estratto in automatico: IMDb non permette la
+   redistribuzione dei propri voti senza un accordo commerciale, quindi
+   l'unico modo corretto e stabile per averlo senza chiave è copiarlo a
+   mano dalla scheda ufficiale — il pulsante "Apri su IMDb" qui sotto ci
+   porta dritti lì. */
+function cleanText(s){
+  return String(s).replace(/[ \t]+/g,' ').replace(/\s*\n\s*/g,'\n').replace(/\s*,\s*/g,', ').trim();
+}
+function decodeHtmlEntities(str){
+  const ta = document.createElement('textarea');
+  ta.innerHTML = str;
+  return ta.value;
+}
+async function fetchWithTimeout(url, ms, opts){
+  const ctrl = new AbortController();
+  const timer = setTimeout(()=>ctrl.abort(), ms || 7000);
+  try{
+    return await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
+  } finally {
+    clearTimeout(timer);
+  }
+}
+function imdbSuggestUrl(query){
+  const q = encodeURIComponent(query.trim());
+  let first = (query.trim()[0] || 'x').toLowerCase();
+  if(!/[a-z0-9]/.test(first)) first = 'x';
+  return `https://v3.sg.media-imdb.com/suggestion/${first}/${q}.json`;
+}
+async function imdbSearch(title){
+  if(!title) return [];
+  const url = imdbSuggestUrl(title);
+  const attempts = [
+    () => fetchWithTimeout(url, 5000),
+    () => fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(url), 6000),
+    () => fetchWithTimeout('https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(url), 6000)
+  ];
+  let lastErr;
+  for(const attempt of attempts){
+    try{
+      const res = await attempt();
+      if(!res.ok) throw new Error('IMDb non raggiungibile');
+      const data = await res.json();
+      return (data.d || []).filter(r => (r.id||'').startsWith('tt'));
+    }catch(e){ lastErr = e; }
+  }
+  throw lastErr || new Error('IMDb non raggiungibile');
+}
+function applyImdbBasic(m, r){
+  m.imdbId = r.id;
+  if(r.i && r.i.imageUrl) m.poster = r.i.imageUrl;
+  if(r.y) m.anno = String(r.y);
+  if(r.s) m.cast = cleanText(r.s);
+}
+
+/* ---------- Wikidata + Wikipedia (fonte principale per i dettagli, keyless) ---------- */
+function isQidFallback(s){ return /^Q\d+$/.test(String(s).trim()); }
+function cleanGenreLabel(s){
+  let t = String(s).trim().replace(/^film\s+(d['’]|di\s+)?/i, '').trim();
+  if(!t) t = s;
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+async function fetchWikipediaFullText(lang, title){
+  const url = `https://${lang}.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&exsectionformat=plain&titles=${encodeURIComponent(title)}&format=json&origin=*`;
+  const res = await fetchWithTimeout(url, 6000);
+  if(!res.ok) throw new Error('Wikipedia non raggiungibile');
+  const data = await res.json();
+  const pages = data.query && data.query.pages;
+  if(!pages) return '';
+  const page = Object.values(pages)[0];
+  return (page && page.extract) || '';
+}
+function extractCuriosita(fullText, sezioni){
+  sezioni = sezioni || ['Produzione','Curiosità','Aneddoti'];
+  for(const nome of sezioni){
+    const re = new RegExp('\\n' + nome + '\\s*\\n+([\\s\\S]{30,900}?)(?:\\n\\n|$)');
+    const m = fullText.match(re);
+    if(m && m[1]){
+      const par = m[1].split(/\n\s*\n/)[0].trim();
+      if(par.length > 40) return par;
+    }
+  }
+  return '';
+}
+const SEZIONI_CURIOSITA_IT = ['Produzione','Curiosità','Aneddoti'];
+const SEZIONI_CURIOSITA_EN = ['Production','Development','Trivia','Background'];
+/* QID Wikidata dei siti di recensioni, usati come qualificatore "review score by" (P447) */
+const QID_ROTTEN_TOMATOES = ['Q105584','Q108403393','Q108403540']; // Rotten Tomatoes / Tomatometer score / RT average
+const QID_METACRITIC = ['Q106515043']; // Metascore
+async function fetchWikidataDetails(imdbId, attempt){
+  attempt = attempt || 1;
+  const query = `SELECT ?genreLabel ?directorLabel ?castLabel ?seriesLabel ?articleIt ?articleEn ?score ?scoreBy WHERE {
+    ?film wdt:P345 "${imdbId}" .
+    OPTIONAL { ?film wdt:P136 ?genre. }
+    OPTIONAL { ?film wdt:P57 ?director. }
+    OPTIONAL { ?film wdt:P161 ?cast. }
+    OPTIONAL { ?film wdt:P179 ?series. }
+    OPTIONAL { ?articleIt schema:about ?film ; schema:isPartOf <https://it.wikipedia.org/> . }
+    OPTIONAL { ?articleEn schema:about ?film ; schema:isPartOf <https://en.wikipedia.org/> . }
+    OPTIONAL { ?film p:P444 ?st . ?st ps:P444 ?score . ?st pq:P447 ?scoreByItem . BIND(STRAFTER(STR(?scoreByItem), "entity/") AS ?scoreBy) }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". }
+  } LIMIT 300`;
+  const url = 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(query);
+  let res;
+  try{
+    res = await fetchWithTimeout(url, 7000, { headers: { 'Accept':'application/sparql-results+json' } });
+    if(!res.ok) throw new Error('Wikidata non raggiungibile');
+  }catch(e){
+    if(attempt < 2){
+      await new Promise(r=>setTimeout(r, 900));
+      return fetchWikidataDetails(imdbId, attempt+1);
+    }
+    throw e;
+  }
+  const data = await res.json();
+  const rows = data.results && data.results.bindings || [];
+  const genres = new Set(), directors = new Set(), cast = new Set(), series = new Set();
+  let articleTitleIt = null, articleTitleEn = null, rt = null, meta = null;
+  rows.forEach(r=>{
+    if(r.genreLabel && !isQidFallback(r.genreLabel.value)) genres.add(cleanGenreLabel(r.genreLabel.value));
+    if(r.directorLabel && !isQidFallback(r.directorLabel.value)) directors.add(r.directorLabel.value);
+    if(r.castLabel && !isQidFallback(r.castLabel.value)) cast.add(r.castLabel.value);
+    if(r.seriesLabel && !isQidFallback(r.seriesLabel.value)) series.add(r.seriesLabel.value);
+    if(!articleTitleIt && r.articleIt) articleTitleIt = decodeURIComponent(r.articleIt.value.split('/wiki/')[1]);
+    if(!articleTitleEn && r.articleEn) articleTitleEn = decodeURIComponent(r.articleEn.value.split('/wiki/')[1]);
+    if(r.score && r.scoreBy){
+      if(!rt && QID_ROTTEN_TOMATOES.includes(r.scoreBy.value)) rt = r.score.value;
+      if(!meta && QID_METACRITIC.includes(r.scoreBy.value)) meta = r.score.value;
+    }
+  });
+  const articleTitle = articleTitleIt || articleTitleEn;
+  const lang = articleTitleIt ? 'it' : 'en';
+  const out = {};
+  if(genres.size) out.genere = [...genres].slice(0,5).join(', ');
+  if(directors.size) out.regista = [...directors].join(', ');
+  if(cast.size) out.castCompleto = [...cast].slice(0,10).join(', ');
+  if(series.size) out.tagSuggeriti = [...series].join(', ');
+  if(rt) out.votoRT = /%/.test(rt) ? rt : (rt + (Number(rt)<=10 ? '/10' : '%'));
+  if(meta) out.votoMeta = meta;
+  if(articleTitle){
+    try{
+      const sres = await fetchWithTimeout(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(articleTitle)}`, 6000);
+      if(sres.ok){
+        const sdata = await sres.json();
+        if(sdata.extract) out.trama = sdata.extract;
+      }
+    }catch(e){ /* niente trama disponibile, non è bloccante */ }
+    const [itRes, enRes] = await Promise.allSettled([
+      articleTitleIt ? fetchWikipediaFullText('it', articleTitleIt) : Promise.resolve(''),
+      articleTitleEn ? fetchWikipediaFullText('en', articleTitleEn) : Promise.resolve('')
+    ]);
+    const itFull = itRes.status === 'fulfilled' ? itRes.value : '';
+    const enFull = enRes.status === 'fulfilled' ? enRes.value : '';
+    let cur = itFull ? extractCuriosita(itFull, SEZIONI_CURIOSITA_IT) : '';
+    let curLang = 'it';
+    if(!cur && enFull){ cur = extractCuriosita(enFull, SEZIONI_CURIOSITA_EN); curLang = 'en'; }
+    if(cur) out.curiosita = curLang === 'en' ? ('[EN, da tradurre] ' + cur) : cur;
+  }
+  return out;
+}
+function applyWikidataDetails(m, d){
+  const trovatoQualcosa = !!(d.trama || d.genere || d.regista || d.castCompleto || d.tagSuggeriti || d.curiosita || d.votoRT || d.votoMeta);
+  if(d.trama) m.trama = cleanText(d.trama);
+  if(d.genere) m.genere = cleanText(d.genere);
+  if(d.regista) m.regista = cleanText(d.regista);
+  if(d.castCompleto) m.cast = cleanText(d.castCompleto);
+  if(!m.curiosita && d.curiosita) m.curiosita = cleanText(d.curiosita);
+  if(d.votoRT) m.votoRT = d.votoRT;
+  if(d.votoMeta) m.votoMeta = d.votoMeta;
+  if(d.tagSuggeriti){
+    const esistenti = (m.tags||'').split(',').map(t=>t.trim()).filter(Boolean);
+    const nuovi = d.tagSuggeriti.split(',').map(t=>t.trim()).filter(Boolean);
+    const uniti = [...esistenti];
+    nuovi.forEach(t=>{ if(!uniti.some(x=>x.toLowerCase()===t.toLowerCase())) uniti.push(t); });
+    m.tags = uniti.join(', ');
+  }
+  return trovatoQualcosa;
+}
+async function applyFullDetails(m, imdbId){
+  const d = await fetchWikidataDetails(imdbId);
+  return applyWikidataDetails(m, d);
+}
+
+/* ---------- Voti direttamente da Rotten Tomatoes (best effort, keyless) ----------
+   RT non ha un'API pubblica: qui si interroga l'endpoint di ricerca interno
+   del sito (lo stesso della barra di ricerca su rottentomatoes.com) tramite
+   i proxy CORS già usati per IMDb. Quando risponde, arrivano SUBITO e
+   aggiornati sia il voto critica (Tomatometer) sia quello del pubblico
+   (Popcornmeter), più il link alla scheda esatta. Se non risponde, restano
+   i voti da Wikidata e l'inserimento manuale: nessun errore bloccante. */
+async function rtSearchScores(title, year){
+  if(!title) return null;
+  const q = encodeURIComponent(title.trim());
+  const endpoints = [
+    `https://www.rottentomatoes.com/api/private/v2.0/search/?q=${q}&limit=10`,
+    `https://www.rottentomatoes.com/napi/search/all?searchQuery=${q}`
+  ];
+  const wraps = [
+    u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+    u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u)
+  ];
+  for(const ep of endpoints){
+    for(const wrap of wraps){
+      try{
+        const res = await fetchWithTimeout(wrap(ep), 6000);
+        if(!res.ok) continue;
+        const data = await res.json();
+        const movies = (data && data.movies)
+          || (data && data.movie && data.movie.items)
+          || [];
+        if(!movies.length) continue;
+        const y = parseInt(year);
+        const best = (y && movies.find(mv => parseInt(mv.year || mv.releaseYear) === y)) || movies[0];
+        const critics = best.meterScore != null ? best.meterScore
+          : (best.criticsScore ? (best.criticsScore.score != null ? best.criticsScore.score : best.criticsScore.value) : null);
+        const audience = best.audienceScore ? (best.audienceScore.score != null ? best.audienceScore.score : best.audienceScore.value) : null;
+        const path = best.url || '';
+        const url = path ? (path.startsWith('http') ? path : 'https://www.rottentomatoes.com' + path) : '';
+        if(critics != null || audience != null || url){
+          return {
+            votoRT: (critics != null && critics !== '') ? String(critics).replace('%','').trim() + '%' : '',
+            votoRTPubblico: (audience != null && audience !== '') ? String(audience).replace('%','').trim() + '%' : '',
+            url
+          };
+        }
+      }catch(e){ /* prova la combinazione successiva */ }
+    }
+  }
+  return null;
+}
+function renderRtLink(m){
+  const box = document.getElementById('rtLinkWrap');
+  if(!box) return;
+  const titolo = (m && m.titolo) || document.getElementById('f_titolo').value.trim();
+  const url = (m && m.rtUrl) || (titolo ? 'https://www.rottentomatoes.com/search?search=' + encodeURIComponent(titolo) : '');
+  box.innerHTML = url
+    ? `<a href="${escapeHtml(url)}" target="_blank" class="btn ghost" style="width:100%; display:block; text-align:center; box-sizing:border-box; text-decoration:none;">🍅 ${m && m.rtUrl ? 'Apri scheda su Rotten Tomatoes' : 'Cerca su Rotten Tomatoes'}</a>`
+    : '';
+}
+/* Recupera i voti RT e compila i campi della scheda aperta */
+async function refreshRtScores(m){
+  try{
+    const rt = await rtSearchScores(m.titolo || document.getElementById('f_titolo').value.trim(), m.anno || document.getElementById('f_anno').value.trim());
+    if(!rt) return false;
+    if(rt.votoRT){ m.votoRT = rt.votoRT; document.getElementById('f_votoRT').value = String(parseInt(rt.votoRT)); }
+    if(rt.votoRTPubblico){ m.votoRTPubblico = rt.votoRTPubblico; document.getElementById('f_votoRTPubblico').value = String(parseInt(rt.votoRTPubblico)); }
+    if(rt.url){ m.rtUrl = rt.url; window._draftRtUrl = rt.url; }
+    renderRatingBadges(m);
+    renderRtLink(m);
+    return !!(rt.votoRT || rt.votoRTPubblico);
+  }catch(e){ return false; }
+}
+
+document.getElementById('retryFullDetailsBtn').addEventListener('click', async ()=>{
+  let m = state.movies.find(x=>x.id===currentId);
+  if(!m || !m.imdbId){ toast('Nessun film IMDb collegato'); return; }
+  const btn = document.getElementById('retryFullDetailsBtn');
+  btn.disabled = true; btn.textContent = 'Recupero in corso…';
+  let ok = false;
+  try{ ok = await applyFullDetails(m, m.imdbId); }catch(e){ console.error(e); }
+  if(m.votoRT) document.getElementById('f_votoRT').value = String(parseInt(m.votoRT));
+  if(m.votoRTPubblico) document.getElementById('f_votoRTPubblico').value = String(parseInt(m.votoRTPubblico));
+  const rtOk = await refreshRtScores(m);
+  if(rtOk) ok = true;
+  document.getElementById('f_genere').value = m.genere||'';
+  document.getElementById('f_regista').value = m.regista||'';
+  document.getElementById('f_cast').value = m.cast||'';
+  document.getElementById('f_trama').value = m.trama||'';
+  document.getElementById('f_tags').value = m.tags||'';
+  document.getElementById('f_curiosita').value = m.curiosita||'';
+  renderRatingBadges(m);
+  renderImdbLink(m);
+  btn.disabled = false; btn.textContent = '🔄 Riprova dati completi';
+  toast(ok ? 'Dati completati da Wikidata/Wikipedia ✓ ricordati di salvare' : 'Dati non trovati per questo film su Wikidata, riprova o inseriscili a mano');
+});
+
+document.getElementById('tmdbSearchBtn').addEventListener('click', async ()=>{
+  const title = document.getElementById('f_titolo').value.trim();
+  if(!title){ toast('Inserisci prima un titolo'); return; }
+  document.getElementById('tmdbResults').innerHTML = '<div style="font-size:12px;color:var(--dim2)">Ricerca…</div>';
+  try{
+    const results = await imdbSearch(title);
+    if(!results.length){ document.getElementById('tmdbResults').innerHTML = '<div style="font-size:12px;color:var(--dim2)">Nessun risultato</div>'; return; }
+    document.getElementById('tmdbResults').innerHTML = results.slice(0,6).map(r=>`
+      <div class="tmdb-result" data-id="${r.id}">
+        <img src="${(r.i && r.i.imageUrl) || ''}" referrerpolicy="no-referrer" onerror="this.style.opacity=0">
+        <div class="y">${r.y || '—'}</div>
+      </div>`).join('');
+    document.querySelectorAll('.tmdb-result').forEach(el=>{
+      el.addEventListener('click', async ()=>{
+        const r = results.find(x=>x.id===el.dataset.id);
+        let m = state.movies.find(x=>x.id===currentId);
+        if(!m){ m = {id: uid()}; }
+        applyImdbBasic(m, r);
+        document.getElementById('f_poster').value = m.poster||'';
+        document.getElementById('f_anno').value = m.anno||'';
+        document.getElementById('f_cast').value = m.cast||'';
+        renderPosterView(m);
+        renderImdbLink(m);
+        toast('Poster, anno e cast importati — recupero voti Rotten Tomatoes, trama, genere, regista…');
+        // Prima i dettagli da Wikidata/Wikipedia, POI i voti in diretta da RT:
+        // così i voti freschi del sito hanno sempre la precedenza su quelli
+        // (spesso più vecchi) registrati su Wikidata.
+        const ok = await applyFullDetails(m, r.id).catch(e=>{ console.error(e); return false; });
+        if(m.votoRT) document.getElementById('f_votoRT').value = String(parseInt(m.votoRT));
+        if(m.votoRTPubblico) document.getElementById('f_votoRTPubblico').value = String(parseInt(m.votoRTPubblico));
+        const rtOk = await refreshRtScores(m);
+        document.getElementById('f_genere').value = m.genere||'';
+        document.getElementById('f_regista').value = m.regista||'';
+        document.getElementById('f_cast').value = m.cast||'';
+        document.getElementById('f_trama').value = m.trama||'';
+        document.getElementById('f_tags').value = m.tags||'';
+        document.getElementById('f_curiosita').value = m.curiosita||'';
+        renderRatingBadges(m);
+        renderPosterView(m);
+        renderImdbLink(m);
+        renderRtLink(m);
+        toast(rtOk
+          ? 'Voti Rotten Tomatoes aggiornati in diretta ✓ ricordati di salvare'
+          : (ok ? 'Dati importati da Wikidata/Wikipedia ✓ ricordati di salvare' : 'Importati poster/anno/cast; il resto non è disponibile ora — riprova o inserisci a mano'));
+      });
+    });
+  }catch(err){
+    console.error(err);
+    document.getElementById('tmdbResults').innerHTML = '<div style="font-size:12px;color:#e79aa6">Errore nel contattare IMDb, riprova</div>';
+  }
+});
+
+let _bulkCancelled = false, _bulkRunning = false;
+document.getElementById('bulkCancelBtn').addEventListener('click', ()=>{
+  _bulkCancelled = true;
+  document.getElementById('progressText').textContent = 'Interruzione in corso… (i film già arricchiti restano salvati)';
+});
+document.getElementById('bulkEnrichBtn').addEventListener('click', async ()=>{
+  if(_bulkRunning){ toast('Arricchimento già in corso'); return; }
+  const todo = state.movies.filter(m=>!m.imdbId || !m.trama || (!m.votoRT && !m.votoMeta));
+  if(!todo.length){ toast('Tutti i film sono già arricchiti'); return; }
+  _bulkRunning = true; _bulkCancelled = false;
+  const btn = document.getElementById('bulkEnrichBtn');
+  btn.disabled = true;
+  const pw = document.getElementById('progressWrap');
+  pw.classList.add('show');
+  let done = 0, full = 0;
+  for(const m of todo){
+    if(_bulkCancelled) break;
+    document.getElementById('progressText').textContent = `Arricchimento in corso… ${done+1}/${todo.length}: ${displayTitle(m.titolo)}`;
+    try{
+      if(!m.imdbId){
+        const results = await imdbSearch(m.titolo);
+        if(results.length) applyImdbBasic(m, results[0]);
+      }
+      if(m.imdbId){
+        const ok = await applyFullDetails(m, m.imdbId);
+        if(ok) full++;
+      }
+    }catch(e){ console.error(e); }
+    done++;
+    document.getElementById('progressFill').style.width = (done/todo.length*100)+'%';
+    // Salva e ridisegna ogni 5 film (non a ogni film): interfaccia fluida
+    // e molte meno scritture, senza rischiare più di 5 film di lavoro
+    if(done % 5 === 0){ await saveState(); renderGrid(); }
+    await new Promise(r=>setTimeout(r, 200));
+  }
+  await saveState(); // salvataggio finale sempre, anche dopo interruzione
+  renderGrid();
+  pw.classList.remove('show');
+  document.getElementById('progressFill').style.width = '0%';
+  btn.disabled = false;
+  _bulkRunning = false;
+  toast(_bulkCancelled
+    ? `Interrotto: ${done} film elaborati e salvati (${full} con dati completi)`
+    : `Arricchimento completato: ${done} film aggiornati, ${full} con dati Wikidata/Wikipedia trovati`);
+  _bulkCancelled = false;
+});
+
+/* ---------- Watchlist stasera (quick filter) ---------- */
+document.getElementById('watchlistBtn').addEventListener('click', ()=>{
+  const sel = document.getElementById('filterStato');
+  const isOn = sel.value === 'da_vedere';
+  sel.value = isOn ? '' : 'da_vedere';
+  document.getElementById('watchlistBtn').classList.toggle('toggle-on', !isOn);
+  renderGrid();
+});
+
+/* ---------- Vista lista/griglia ---------- */
+document.getElementById('viewToggleBtn').addEventListener('click', ()=>{
+  setViewMode(viewMode === 'grid' ? 'list' : 'grid');
+});
+
+/* ---------- Trailer YouTube (nessuna API, solo link di ricerca) ---------- */
+document.getElementById('trailerBtn').addEventListener('click', ()=>{
+  const title = document.getElementById('f_titolo').value.trim();
+  if(!title){ toast('Inserisci prima un titolo'); return; }
+  const url = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(title + ' trailer ITA');
+  window.open(url, '_blank');
+});
+
+/* ---------- Statistiche avanzate ---------- */
+function barsHTML(entries, maxCount){
+  return entries.map(([label,count])=>`
+    <div class="bar-row">
+      <div class="bar-label" title="${escapeHtml(label)}">${escapeHtml(label)}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${maxCount ? (count/maxCount*100) : 0}%"></div></div>
+      <div class="bar-val">${count}</div>
+    </div>`).join('');
+}
+function computeStats(){
+  const movies = state.movies;
+  // per decennio
+  const decadeCounts = {};
+  movies.forEach(m=>{
+    const y = parseInt(m.anno);
+    if(!y) return;
+    const dec = Math.floor(y/10)*10 + 's';
+    decadeCounts[dec] = (decadeCounts[dec]||0)+1;
+  });
+  const decadeEntries = Object.entries(decadeCounts).sort((a,b)=>a[0].localeCompare(b[0]));
+  const decadeMax = Math.max(1, ...decadeEntries.map(e=>e[1]));
+
+  // registi
+  const registaCounts = {};
+  movies.forEach(m=>{
+    const r = (m.regista||'').trim();
+    if(!r) return;
+    registaCounts[r] = (registaCounts[r]||0)+1;
+  });
+  const registaEntries = Object.entries(registaCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const registaMax = Math.max(1, ...registaEntries.map(e=>e[1]));
+
+  // generi (campo può contenere più generi separati da virgola)
+  const genereCounts = {};
+  movies.forEach(m=>{
+    (m.genere||'').split(',').map(g=>g.trim()).filter(Boolean).forEach(g=>{
+      genereCounts[g] = (genereCounts[g]||0)+1;
+    });
+  });
+  const genereEntries = Object.entries(genereCounts).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const genereMax = Math.max(1, ...genereEntries.map(e=>e[1]));
+
+  document.getElementById('statsDecades').innerHTML = decadeEntries.length ? barsHTML(decadeEntries, decadeMax) : '<div style="color:var(--dim2);font-size:13px;">Aggiungi l\'anno ai film per vedere questo grafico</div>';
+  document.getElementById('statsRegisti').innerHTML = registaEntries.length ? barsHTML(registaEntries, registaMax) : '<div style="color:var(--dim2);font-size:13px;">Aggiungi il regista ai film per vedere questo grafico</div>';
+  document.getElementById('statsGeneri').innerHTML = genereEntries.length ? barsHTML(genereEntries, genereMax) : '<div style="color:var(--dim2);font-size:13px;">Aggiungi il genere ai film per vedere questo grafico</div>';
+}
+document.getElementById('statsBtn').addEventListener('click', ()=>{
+  computeStats();
+  document.getElementById('statsOverlay').classList.add('open');
+});
+
+/* ---------- Roulette: cosa guardo stasera? ---------- */
+let rouletteId = null;
+function spinRoulette(){
+  const list = getFiltered();
+  const box = document.getElementById('rouletteContent');
+  if(!list.length){
+    rouletteId = null;
+    box.innerHTML = '<p style="color:var(--dim2);">Nessun film corrisponde ai filtri attuali. Prova ad allargare la ricerca.</p>';
+    return;
+  }
+  const pick = list[Math.floor(Math.random()*list.length)];
+  rouletteId = pick.id;
+  box.innerHTML = `
+    <div class="roulette-poster">${pick.poster ? `<img src="${escapeHtml(pick.poster)}" referrerpolicy="no-referrer">` : posterFallbackHTML(displayTitle(pick.titolo))}</div>
+    <div class="roulette-title">${escapeHtml(displayTitle(pick.titolo))}</div>
+    <div class="roulette-meta">${escapeHtml(pick.anno||'')}${pick.anno && pick.genere ? ' · ' : ''}${escapeHtml(pick.genere||'')}</div>
+  `;
+}
+document.getElementById('rouletteBtn').addEventListener('click', ()=>{
+  spinRoulette();
+  document.getElementById('rouletteOverlay').classList.add('open');
+});
+document.getElementById('rouletteAgainBtn').addEventListener('click', spinRoulette);
+document.getElementById('rouletteOpenBtn').addEventListener('click', ()=>{
+  if(!rouletteId){ toast('Nessun film selezionato'); return; }
+  document.getElementById('rouletteOverlay').classList.remove('open');
+  openModal(rouletteId);
+});
+document.getElementById('rouletteOverlay').addEventListener('click', e=>{ if(e.target.id==='rouletteOverlay') e.currentTarget.classList.remove('open'); });
+document.getElementById('statsOverlay').addEventListener('click', e=>{ if(e.target.id==='statsOverlay') e.currentTarget.classList.remove('open'); });
+
+/* ---------- Scorciatoie da tastiera ----------
+   Esc = chiude la finestra aperta · "/" = va subito alla ricerca */
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape'){
+    const open = document.querySelector('.overlay.open');
+    if(open){
+      if(open.id==='confirmOverlay'){ closeConfirm(false); return; }
+      open.classList.remove('open');
+      if(open.id==='movieOverlay') currentId = null;
+    }
+    return;
+  }
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement && document.activeElement.tagName);
+  if(e.key === '/' && !typing){
+    e.preventDefault();
+    const sInput = document.getElementById('search');
+    sInput.focus(); sInput.select();
+  }
+});
+
+/* ---------- init ---------- */
+(async function init(){
+  try{
+    await loadState();
+  }catch(e){
+    // Anche se il caricamento fallisce, l'app parte con la libreria di base
+    console.error('loadState fallito, uso i dati di base:', e);
+    state = { movies: seed.map(seedToMovie) };
+    cleanupMovies();
+  }
+  populateFilters();
+  setViewMode('grid'); // fa già il primo rendering
+  const si = document.getElementById('saveIndicator');
+  if(si) si.title = storageAdapter.mode === 'claude'
+    ? 'Salvataggio automatico attivo — archivio persistente dell\'artifact Claude (i dati restano tra le sessioni)'
+    : 'Salvataggio automatico attivo — localStorage di questo browser';
+  console.info('Persistenza:', storageAdapter.mode === 'claude' ? 'archivio artifact Claude' : 'localStorage del browser');
+})();
+</script>
+</body>
+</html>
