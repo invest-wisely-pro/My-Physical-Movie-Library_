@@ -320,6 +320,25 @@ label{
 .settings-modal h2{font-family:'Sora',sans-serif; font-weight:800; color:var(--cream); margin-top:0;}
 .settings-modal p{color:var(--dim); font-size:15px; line-height:1.6;}
 .settings-modal a{color:var(--accent1);}
+.info-details{margin-top:10px;}
+.info-details summary{
+  cursor:pointer; user-select:none; list-style:none;
+  display:flex; align-items:center; gap:6px;
+  font-family:'Manrope',sans-serif; font-weight:700; font-size:11.5px; color:var(--dim);
+  padding:9px 12px; border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.02);
+  transition:.15s;
+}
+.info-details summary::-webkit-details-marker{display:none;}
+.info-details summary::after{content:'›'; margin-left:auto; font-size:15px; transition:transform .2s;}
+.info-details:hover summary{border-color:var(--dim); color:var(--cream);}
+.info-details[open] summary{border-bottom-left-radius:0; border-bottom-right-radius:0; color:var(--cream);}
+.info-details[open] summary::after{transform:rotate(90deg);}
+.info-details-body{
+  padding:10px 12px; border:1px solid var(--line); border-top:none; border-radius:0 0 10px 10px;
+  background:rgba(255,255,255,.015);
+}
+.info-details-body p{font-size:11.5px; color:var(--dim2); line-height:1.5; margin:0;}
+.info-details-body p + p{margin-top:8px; padding-top:8px; border-top:1px dashed var(--line);}
 .settings-modal input{width:100%; margin:10px 0 18px; padding:11px 14px; background:rgba(255,255,255,.03); border:1px solid var(--line); color:var(--cream); border-radius:10px; font-family:'Manrope',sans-serif; font-size:15px;}
 
 /* toast */
@@ -440,7 +459,9 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
   #grid{grid-template-columns:repeat(auto-fill, minmax(128px, 1fr)); gap:14px;}
   .grid-wrap{padding-left:4vw; padding-right:4vw;}
   .modal{max-width:none; width:100%; height:100dvh; max-height:100dvh; border-radius:0; overflow-y:auto;}
-  .modal-body{display:block;}
+  .modal-body{display:flex; flex-direction:column;}
+  .modal-fields{order:1; padding-top:56px;}
+  .modal-poster{order:2;}
   .modal-poster{max-width:220px; margin:0 auto;}
   .settings-modal{height:auto; max-height:92dvh; border-radius:20px; width:94vw;}
 }
@@ -531,12 +552,16 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
     <div id="scanVideoWrap" style="border-radius:16px; overflow:hidden; background:#000; margin:14px 0; min-height:60px;">
       <video id="scanVideo" playsinline muted style="width:100%; display:block; max-height:320px; object-fit:cover;"></video>
     </div>
-    <p id="scanStatus" style="color:var(--dim); font-size:13.5px; line-height:1.6; margin:0 0 12px;">Inquadra il codice sul retro della custodia…</p>
+    <p id="scanStatus" style="color:var(--dim); font-size:13.5px; line-height:1.6; margin:0 0 10px;">Inquadra il codice sul retro della custodia…</p>
+    <p style="color:var(--dim2); font-size:11.5px; line-height:1.5; margin:0 0 12px;">Il codice del film è l'EAN stampato sulla custodia (quello sull'etichetta del pacco Amazon è un codice interno del corriere). Riempi il riquadro con il codice, a 10–15&nbsp;cm; da uno schermo alza la luminosità.</p>
     <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:6px;">
-      <input type="text" id="scanManual" placeholder="…oppure digitalo qui" inputmode="numeric" style="flex:1; min-width:180px;">
+      <input type="text" id="scanManual" placeholder="…oppure digitalo qui" inputmode="numeric" style="flex:1; min-width:160px;">
       <button class="btn solid" id="scanManualBtn">Cerca</button>
     </div>
-    <div class="modal-actions" style="margin-top:14px;">
+    <div class="modal-actions" style="margin-top:14px; display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+      <button class="btn ghost" id="scanTorchBtn" style="display:none;">🔦 Luce</button>
+      <button class="btn ghost" id="scanPhotoBtn">🖼️ Da foto</button>
+      <input type="file" id="scanPhotoInput" accept="image/*" capture="environment" style="display:none;">
       <button class="btn ghost" id="scanCloseBtn">Chiudi</button>
     </div>
   </div>
@@ -580,8 +605,13 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
             <div id="rtLinkWrap" style="margin-top:8px;"></div>
             <button class="btn ghost" id="retryFullDetailsBtn" style="width:100%; margin-top:8px; display:none;">🔄 Riprova dati completi</button>
             <button class="btn ghost" id="trailerBtn" style="width:100%; margin-top:8px;">▶ Cerca trailer su YouTube</button>
-            <p style="font-size:11.5px;color:var(--dim2);line-height:1.5;margin:10px 0 0;">Nessuna chiave o registrazione richiesta, in nessun caso. Locandina, anno, trama, genere, regista, cast e tag arrivano da Wikidata/Wikipedia (infrastruttura ufficiale Wikimedia, stabile e gratuita); quando disponibile, arriva anche il voto della critica di Rotten Tomatoes (Tomatometer) e quello di Metacritic. Il voto del pubblico di Rotten Tomatoes (Popcornmeter) e il voto IMDb restano manuali — non sono ridistribuibili liberamente — ma con il link diretto qui sopra li trovi e li copi in pochi secondi. 🍅 rosso = "Fresh" (60% o più), 🟢 splat verde = "Rotten" (sotto 60%), come sul sito originale. Trama e cast possono arrivare in inglese se la voce italiana non esiste: modificali pure a mano. Curiosità e tag restano un recupero "best effort".</p>
-            <p style="font-size:11px;color:var(--dim2);line-height:1.5;margin:6px 0 0;">Nota: il "voto Rotten Tomatoes" qui è quello dei critici (Tomatometer). Wikidata quasi mai registra separatamente il voto del pubblico (Popcornmeter): per questo va inserito a mano, come il voto IMDb.</p>
+            <details class="info-details">
+              <summary>ℹ️ Come funzionano i dati automatici</summary>
+              <div class="info-details-body">
+                <p>Nessuna chiave o registrazione richiesta, in nessun caso. Locandina, anno, trama, genere, regista, cast e tag arrivano da Wikidata/Wikipedia (infrastruttura ufficiale Wikimedia, stabile e gratuita); quando disponibile, arriva anche il voto della critica di Rotten Tomatoes (Tomatometer) e quello di Metacritic. Il voto del pubblico di Rotten Tomatoes (Popcornmeter) e il voto IMDb restano manuali — non sono ridistribuibili liberamente — ma con il link diretto qui sopra li trovi e li copi in pochi secondi. 🍅 rosso = "Fresh" (60% o più), 🟢 splat verde = "Rotten" (sotto 60%), come sul sito originale. Trama e cast possono arrivare in inglese se la voce italiana non esiste: modificali pure a mano. Curiosità e tag restano un recupero "best effort".</p>
+                <p>Nota: il "voto Rotten Tomatoes" qui è quello dei critici (Tomatometer). Wikidata quasi mai registra separatamente il voto del pubblico (Popcornmeter): per questo va inserito a mano, come il voto IMDb.</p>
+              </div>
+            </details>
           </div>
         </div>
       </div>
@@ -2245,11 +2275,76 @@ document.getElementById('bulkEnrichBtn').addEventListener('click', async ()=>{
    c'è, si apre la sua scheda ("già in collezione!"); se non c'è, puoi
    aggiungerlo al volo con il barcode precompilato — o metterlo in
    wishlist direttamente dal negozio. */
-let _scanStream = null, _scanLoop = null;
+let _scanStream = null, _scanTimer = null, _scanRaf = null, _scanReads = [];
 function findByBarcode(code){
   const c = String(code||'').replace(/\s+/g,'').trim();
   if(!c) return null;
   return state.movies.find(m => (m.barcode||'').replace(/\s+/g,'') === c) || null;
+}
+/* Checksum EAN-13 / EAN-8 / UPC-A: scarta le letture sbagliate prima che
+   arrivino a te. I formati non numerici (es. Code128) passano senza verifica. */
+function eanChecksumOk(code){
+  const sNum = String(code).replace(/\D/g,'');
+  if(sNum !== String(code).trim() || !/^(\d{8}|\d{12}|\d{13})$/.test(sNum)) return true;
+  const digits = sNum.split('').map(Number);
+  const check = digits.pop();
+  let sum = 0;
+  digits.reverse().forEach((d,i)=>{ sum += d * (i % 2 === 0 ? 3 : 1); });
+  return (10 - (sum % 10)) % 10 === check;
+}
+/* Doppia lettura identica prima di accettare (per il motore JS, più
+   soggetto a errori); il motore nativo, affidabile, passa alla prima. */
+function acceptRead(code, needConfirm){
+  if(!code || !eanChecksumOk(code)) return false;
+  _scanReads.push(String(code));
+  if(_scanReads.length > 4) _scanReads.shift();
+  if(!needConfirm) return true;
+  const n = _scanReads.length;
+  return n >= 2 && _scanReads[n-1] === _scanReads[n-2];
+}
+/* Il motore nativo (BarcodeDetector) esiste come API anche dove NON
+   funziona (Chrome desktop su Windows/Linux non ha il decoder sotto):
+   qui si verifica che dichiari davvero i formati EAN/UPC, non solo che
+   esista. Se non è affidabile, si passa al motore JS (Quagga, caricato
+   solo al bisogno da cdnjs): più lento ma funziona su ogni browser. */
+async function nativeDetectorReady(){
+  if(!('BarcodeDetector' in window)) return null;
+  try{
+    const fmts = await window.BarcodeDetector.getSupportedFormats();
+    const want = ['ean_13','ean_8','upc_a','upc_e','code_128'].filter(f => (fmts||[]).includes(f));
+    if(!want.length) return null;
+    return new window.BarcodeDetector({ formats: want });
+  }catch(e){ return null; }
+}
+function loadQuagga(){
+  return new Promise((resolve, reject)=>{
+    if(window.Quagga) return resolve(window.Quagga);
+    const sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js';
+    sc.onload = ()=> window.Quagga ? resolve(window.Quagga) : reject(new Error('Quagga non inizializzato'));
+    sc.onerror = ()=> reject(new Error('CDN non raggiungibile'));
+    document.head.appendChild(sc);
+  });
+}
+function quaggaDecodeDataUrl(dataUrl, sizeHint){
+  return new Promise(resolve=>{
+    try{
+      window.Quagga.decodeSingle({
+        src: dataUrl, numOfWorkers: 0, locate: true,
+        inputStream: { size: sizeHint || 1280 },
+        decoder: { readers: ['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader'] }
+      }, r => resolve(r && r.codeResult && r.codeResult.code ? r.codeResult.code : null));
+    }catch(e){ resolve(null); }
+  });
+}
+function frameToDataUrl(video, maxW){
+  if(!video.videoWidth) return null;
+  const w = Math.min(video.videoWidth, maxW || 1280);
+  const h = Math.round(video.videoHeight * (w / video.videoWidth));
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c.getContext('2d').drawImage(video, 0, 0, w, h);
+  return c.toDataURL('image/jpeg', 0.85);
 }
 async function handleScannedCode(code){
   stopScanner(false);
@@ -2270,10 +2365,15 @@ async function handleScannedCode(code){
   }
 }
 function stopScanner(closeOverlay){
-  if(_scanLoop){ cancelAnimationFrame(_scanLoop); _scanLoop = null; }
+  if(_scanTimer){ clearTimeout(_scanTimer); _scanTimer = null; }
+  if(_scanRaf){ cancelAnimationFrame(_scanRaf); _scanRaf = null; }
   if(_scanStream){ _scanStream.getTracks().forEach(t=>t.stop()); _scanStream = null; }
+  _scanReads = [];
+  window._torchOn = false;
   const v = document.getElementById('scanVideo');
   if(v) v.srcObject = null;
+  const tb = document.getElementById('scanTorchBtn');
+  if(tb){ tb.style.display = 'none'; tb.textContent = '🔦 Luce'; }
   if(closeOverlay !== false) document.getElementById('scanOverlay').classList.remove('open');
 }
 async function openScanner(){
@@ -2281,44 +2381,115 @@ async function openScanner(){
   const status = document.getElementById('scanStatus');
   const videoWrap = document.getElementById('scanVideoWrap');
   document.getElementById('scanManual').value = '';
+  _scanReads = [];
   overlay.classList.add('open');
-  const hasDetector = 'BarcodeDetector' in window;
   const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
-  if(!hasDetector || !hasCamera){
+  if(!hasCamera){
     videoWrap.style.display = 'none';
-    status.textContent = !hasDetector
-      ? 'La scansione automatica non è supportata da questo browser (funziona su Chrome ed Edge, anche Android). Digita il codice qui sotto: il controllo è identico.'
-      : 'Fotocamera non disponibile in questo contesto. Digita il codice qui sotto: il controllo è identico.';
+    status.textContent = 'Fotocamera non disponibile in questo contesto. Digita il codice qui sotto o usa "🖼️ Da foto": il controllo è identico.';
     document.getElementById('scanManual').focus();
     return;
   }
   videoWrap.style.display = 'block';
   status.textContent = 'Avvio fotocamera…';
   try{
-    _scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    _scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+      audio: false
+    });
     const video = document.getElementById('scanVideo');
     video.srcObject = _scanStream;
     await video.play();
-    status.textContent = 'Inquadra il codice sul retro della custodia…';
-    const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128'] });
-    const tick = async ()=>{
+    // Messa a fuoco continua + torcia, dove la fotocamera le offre
+    const track = _scanStream.getVideoTracks()[0];
+    try{
+      const caps = track.getCapabilities ? track.getCapabilities() : {};
+      if(caps.focusMode && caps.focusMode.includes('continuous')){
+        await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }).catch(()=>{});
+      }
+      if(caps.torch){
+        const tb = document.getElementById('scanTorchBtn');
+        tb.style.display = 'inline-block';
+        tb.onclick = async ()=>{
+          window._torchOn = !window._torchOn;
+          try{ await track.applyConstraints({ advanced: [{ torch: window._torchOn }] }); }catch(e){}
+          tb.textContent = window._torchOn ? '🔦 Spegni luce' : '🔦 Luce';
+        };
+      }
+    }catch(e){ /* capacità non disponibili: si prosegue */ }
+
+    // Motore 1: nativo, solo se dichiara davvero i formati EAN/UPC
+    const detector = await nativeDetectorReady();
+    if(detector){
+      status.textContent = 'Inquadra il codice sul retro della custodia… (scanner nativo)';
+      const tick = async ()=>{
+        if(!_scanStream) return;
+        try{
+          const codes = await detector.detect(video);
+          const raw = codes && codes.length ? codes[0].rawValue : null;
+          if(raw && acceptRead(raw, false)){ handleScannedCode(raw); return; }
+        }catch(e){ /* frame non leggibile: si riprova */ }
+        _scanRaf = requestAnimationFrame(tick);
+      };
+      _scanRaf = requestAnimationFrame(tick);
+      return;
+    }
+    // Motore 2: decodifica JS pura (funziona ovunque, anche Chrome desktop e Firefox)
+    status.textContent = 'Carico il motore di scansione…';
+    try{
+      await loadQuagga();
+    }catch(e){
+      status.textContent = 'Scansione automatica non disponibile ora (motore non caricabile: controlla la connessione). Digita il codice qui sotto o usa "🖼️ Da foto".';
+      document.getElementById('scanManual').focus();
+      return;
+    }
+    status.textContent = 'Inquadra il codice, fermo e ben illuminato… (scanner JS)';
+    const loop = async ()=>{
       if(!_scanStream) return;
-      try{
-        const codes = await detector.detect(video);
-        if(codes && codes.length && codes[0].rawValue){
-          handleScannedCode(codes[0].rawValue);
-          return;
-        }
-      }catch(e){ /* frame non leggibile: si riprova */ }
-      _scanLoop = requestAnimationFrame(tick);
+      const dataUrl = frameToDataUrl(video, 1280);
+      if(dataUrl){
+        const code = await quaggaDecodeDataUrl(dataUrl, 1280);
+        if(code && acceptRead(code, true)){ handleScannedCode(code); return; }
+        if(code) status.textContent = `Letto ${code} — confermo con una seconda lettura…`;
+      }
+      _scanTimer = setTimeout(loop, 280);
     };
-    _scanLoop = requestAnimationFrame(tick);
+    _scanTimer = setTimeout(loop, 300);
   }catch(e){
     console.error(e);
     videoWrap.style.display = 'none';
-    status.textContent = 'Fotocamera negata o non disponibile. Digita il codice qui sotto: il controllo è identico.';
+    status.textContent = 'Fotocamera negata o non disponibile. Digita il codice qui sotto o usa "🖼️ Da foto": il controllo è identico.';
     document.getElementById('scanManual').focus();
   }
+}
+/* Decodifica da una foto: la via più affidabile quando la scansione live
+   fatica (poca luce, fotocamera senza autofocus, codici su schermi). */
+async function decodePhotoFile(file){
+  if(!file) return;
+  const status = document.getElementById('scanStatus');
+  status.textContent = 'Analizzo la foto…';
+  const dataUrl = await new Promise((res, rej)=>{
+    const r = new FileReader();
+    r.onload = ()=>res(r.result); r.onerror = ()=>rej(new Error('lettura foto fallita'));
+    r.readAsDataURL(file);
+  }).catch(()=>null);
+  if(!dataUrl){ status.textContent = 'Non riesco a leggere la foto, riprova.'; return; }
+  // prima il motore nativo (se davvero funzionante), poi quello JS
+  try{
+    const detector = await nativeDetectorReady();
+    if(detector){
+      const img = new Image();
+      await new Promise((res, rej)=>{ img.onload = res; img.onerror = rej; img.src = dataUrl; });
+      const codes = await detector.detect(img);
+      if(codes && codes.length && codes[0].rawValue){ handleScannedCode(codes[0].rawValue); return; }
+    }
+  }catch(e){ /* si passa al motore JS */ }
+  try{
+    await loadQuagga();
+    const code = await quaggaDecodeDataUrl(dataUrl, 1600);
+    if(code && eanChecksumOk(code)){ handleScannedCode(code); return; }
+  }catch(e){ /* CDN assente */ }
+  status.textContent = 'Nessun codice leggibile nella foto: riprova più da vicino, dritto e con più luce — o digita il codice qui sotto.';
 }
 document.getElementById('scanBtn').addEventListener('click', openScanner);
 document.getElementById('scanCloseBtn').addEventListener('click', ()=>stopScanner(true));
@@ -2329,13 +2500,14 @@ document.getElementById('scanManualBtn').addEventListener('click', ()=>{
   handleScannedCode(code);
 });
 document.getElementById('scanManual').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('scanManualBtn').click(); });
+document.getElementById('scanPhotoBtn').addEventListener('click', ()=>document.getElementById('scanPhotoInput').click());
+document.getElementById('scanPhotoInput').addEventListener('change', function(e){
+  const f = e.target.files[0];
+  decodePhotoFile(f);
+  e.target.value = '';
+});
 /* Scan dentro la scheda film: riempie il campo barcode */
-document.getElementById('scanFieldBtn').addEventListener('click', async ()=>{
-  if(!('BarcodeDetector' in window) || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
-    toast('Scansione automatica non supportata qui: digita il codice a mano');
-    document.getElementById('f_barcode').focus();
-    return;
-  }
+document.getElementById('scanFieldBtn').addEventListener('click', ()=>{
   window._fieldScan = true;
   openScanner();
 });
