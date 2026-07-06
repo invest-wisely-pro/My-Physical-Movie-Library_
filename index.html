@@ -3,8 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07080d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2307080d'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2307080d'/%3E%3Ctext x='50' y='68' font-size='52' text-anchor='middle'%3E%F0%9F%8E%AC%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22My%20Physical%20Movie%20Library%22%2C%22short_name%22%3A%22Movie%20Library%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%2307080d%22%2C%22theme_color%22%3A%22%2307080d%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data:image/svg+xml,%253Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%253E%253Crect width='100' height='100' rx='22' fill='%252307080d'/%253E%253Ctext x='50' y='68' font-size='52' text-anchor='middle'%253E%25F0%259F%258E%25AC%253C/text%253E%253C/svg%253E%22%2C%22sizes%22%3A%22any%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
 <title>My Physical Movie Library</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
 
@@ -263,7 +269,7 @@ label{
   display:block; font-family:'Manrope',sans-serif; font-weight:700; font-size:10.5px; letter-spacing:1.2px; text-transform:uppercase;
   color:var(--dim2); margin-bottom:6px;
 }
-.field input[type=text], .field input[type=number], .field select, .field textarea{
+.field input[type=text], .field input[type=number], .field input[type=date], .field select, .field textarea{
   width:100%; background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:10px;
   color:var(--cream); font-family:'Manrope',sans-serif; font-size:15px; padding:9px 12px;
   outline:none; transition:.2s;
@@ -415,6 +421,9 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 .roulette-poster img{width:100%; height:100%; object-fit:cover;}
 .roulette-title{font-family:'Sora',sans-serif; font-weight:700; font-size:20px; margin:8px 0 4px;}
 .roulette-meta{color:var(--dim); font-size:13px; margin-bottom:18px;}
+.card-badge.wish{top:44px; background:rgba(167,139,250,.25); color:#d9ccff; border-color:rgba(167,139,250,.45);}
+.card-badge.loan{top:78px; background:rgba(255,171,64,.22); color:#ffd9a1; border-color:rgba(255,171,64,.45);}
+
 .roulette-actions{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
 
 /* ---------- Mobile (uso "in negozio": ricerca rapida a una mano) ---------- */
@@ -426,7 +435,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
   .toolbar{padding:10px 4vw; gap:8px;}
   #search{min-width:0; flex:1 1 100%;}
   .toolbar-group{gap:8px; width:100%;}
-  input[type=text], select{font-size:16px;} /* evita lo zoom automatico di iOS al focus */
+  input[type=text], input[type=number], input[type=date], select, textarea{font-size:16px;} /* evita lo zoom automatico di iOS al focus */
   .btn{padding:9px 14px; font-size:12.5px;}
   #grid{grid-template-columns:repeat(auto-fill, minmax(128px, 1fr)); gap:14px;}
   .grid-wrap{padding-left:4vw; padding-right:4vw;}
@@ -456,6 +465,8 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
       <option value="">Visti e da vedere</option>
       <option value="da_vedere">Da vedere</option>
       <option value="visto">Già visti</option>
+      <option value="wishlist">💭 Wishlist</option>
+      <option value="prestati">📤 Prestati</option>
     </select>
     <select id="sortBy">
       <option value="az">Titolo A–Z</option>
@@ -466,9 +477,11 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
       <option value="votoRTPubblico">Voto Rotten Tomatoes (pubblico)</option>
       <option value="votoMeta">Voto Metacritic</option>
       <option value="anno">Anno</option>
+      <option value="aggiunto">Aggiunti di recente</option>
     </select>
   </div>
   <div class="toolbar-group">
+    <button class="btn ghost" id="scanBtn" title="Ce l'ho già? Scansiona il codice a barre">📷 Scansiona</button>
     <button class="btn ghost" id="watchlistBtn">🌙 Watchlist stasera</button>
     <button class="btn ghost" id="rouletteBtn">🎲 Cosa guardo?</button>
     <button class="btn ghost" id="statsBtn">📊 Statistiche</button>
@@ -509,6 +522,24 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
     </table>
   </div>
   <div id="empty">— Nessun film trovato —</div>
+</div>
+
+<!-- Scanner codice a barre -->
+<div class="overlay" id="scanOverlay">
+  <div class="modal settings-modal" style="max-width:480px; text-align:center;">
+    <h2 style="margin-top:0; font-family:'Sora',sans-serif; font-size:20px;">📷 Scansiona codice a barre</h2>
+    <div id="scanVideoWrap" style="border-radius:16px; overflow:hidden; background:#000; margin:14px 0; min-height:60px;">
+      <video id="scanVideo" playsinline muted style="width:100%; display:block; max-height:320px; object-fit:cover;"></video>
+    </div>
+    <p id="scanStatus" style="color:var(--dim); font-size:13.5px; line-height:1.6; margin:0 0 12px;">Inquadra il codice sul retro della custodia…</p>
+    <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-bottom:6px;">
+      <input type="text" id="scanManual" placeholder="…oppure digitalo qui" inputmode="numeric" style="flex:1; min-width:180px;">
+      <button class="btn solid" id="scanManualBtn">Cerca</button>
+    </div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="btn ghost" id="scanCloseBtn">Chiudi</button>
+    </div>
+  </div>
 </div>
 
 <!-- Confirm modal (sostituisce window.confirm, bloccato negli iframe sandbox) -->
@@ -590,6 +621,37 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
           <div class="field"><label>Durata</label><input type="text" id="f_durata" placeholder="es. 148 min"></div>
           <div class="field"><label>Regista</label><textarea id="f_regista" class="compact" rows="2"></textarea></div>
           <div class="field"><label>Genere</label><textarea id="f_genere" class="compact" rows="2"></textarea></div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label>📚 Lista</label>
+            <select id="f_lista">
+              <option value="collezione">In collezione</option>
+              <option value="wishlist">💭 Wishlist (da comprare)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Codice a barre (EAN)</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="f_barcode" placeholder="es. 5051891156395" inputmode="numeric" style="flex:1; min-width:0;">
+              <button class="btn ghost" id="scanFieldBtn" title="Scansiona con la fotocamera" style="padding:10px 14px;">📷</button>
+            </div>
+          </div>
+          <div class="field">
+            <label>Prezzo pagato (€)</label>
+            <input type="text" id="f_prezzo" placeholder="es. 24,99" inputmode="decimal">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>📤 Prestato a</label>
+            <input type="text" id="f_prestatoA" placeholder="es. Marco (vuoto = non prestato)">
+          </div>
+          <div class="field">
+            <label>Data prestito</label>
+            <input type="date" id="f_prestatoIl">
+          </div>
         </div>
 
         <div class="field-row">
@@ -761,7 +823,10 @@ function seedToMovie(r){
     votoPersonale:null, votoImdb:null, votoRT:null, votoRTPubblico:null, votoMeta:null, imdbVotes:'',
     durata:'', premi:'',
     poster:'', qaudio:'', qvideo:'', imdbId:null,
-    tags:'', stato:'da_vedere'
+    tags:'', stato:'da_vedere',
+    lista:'collezione', barcode:'', prezzo:'',
+    prestatoA:'', prestatoIl:'',
+    aggiunto: Date.now()
   };
 }
 
@@ -797,6 +862,8 @@ function cleanupMovies(){
     if(m.formato) m.formato = m.formato.trim();
     m.custodia = canonicalCustodia(m.custodia);
     m.numero_film = parseInt(m.numero_film) || 1;
+    if(!m.lista) m.lista = 'collezione';
+    if(!m.aggiunto) m.aggiunto = Date.now();
   });
 }
 
@@ -851,6 +918,11 @@ function downloadBackupNow(){
 }
 window.addEventListener('beforeunload', e=>{
   if(_saveInFlight || _saveDirty || _saveFailed){ e.preventDefault(); e.returnValue = ''; }
+});
+/* Su telefono beforeunload spesso non scatta: al passaggio in background,
+   se c'è un salvataggio in coda si forza subito la scrittura. */
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'hidden' && (_saveDirty || _saveFailed)){ saveState(); }
 });
 /* ---------- Backup automatico ----------
    Ogni giorno (al primo salvataggio della giornata) viene scritta una copia
@@ -1023,14 +1095,24 @@ function populateFilters(){
 }
 
 function renderStats(){
-  const total = state.movies.length;
-  const totalFilms = state.movies.reduce((a,m)=>a+(parseInt(m.numero_film)||1),0);
+  const totale_tutti = state.movies;
+  const soloPossedute = totale_tutti.filter(m=>(m.lista||'collezione')!=='wishlist');
+  const total = soloPossedute.length;
+  const totalFilms = soloPossedute.reduce((a,m)=>a+(parseInt(m.numero_film)||1),0);
   const rated = state.movies.filter(m=>m.votoPersonale);
   const avg = rated.length ? (rated.reduce((a,m)=>a+Number(m.votoPersonale),0)/rated.length).toFixed(1) : '—';
   const ratedImdb = state.movies.filter(m=>parseVotoNumber(m.votoImdb)!==null);
   const avgImdb = ratedImdb.length ? (ratedImdb.reduce((a,m)=>a+parseVotoNumber(m.votoImdb),0)/ratedImdb.length).toFixed(2).replace('.', ',') : '—';
   const enriched = state.movies.filter(m=>m.poster).length;
-  const daVedere = state.movies.filter(m=>(m.stato||'da_vedere')==='da_vedere').length;
+  const posseduti = state.movies.filter(m=>(m.lista||'collezione')!=='wishlist');
+  const daVedere = posseduti.filter(m=>(m.stato||'da_vedere')==='da_vedere').length;
+  const inWishlist = state.movies.length - posseduti.length;
+  const prestati = posseduti.filter(m=>(m.prestatoA||'').trim()).length;
+  const valore = posseduti.reduce((acc,m)=>{
+    const n = parseFloat(String(m.prezzo||'').replace(/[€\s]/g,'').replace(',','.'));
+    return acc + (isNaN(n) ? 0 : n);
+  }, 0);
+  const valoreStr = valore > 0 ? valore.toFixed(2).replace('.', ',') + ' €' : '—';
   document.getElementById('statsRow').innerHTML = `
     <div class="stat"><b>${total}</b><small>Titoli</small></div>
     <div class="stat"><b>${totalFilms}</b><small>Film totali</small></div>
@@ -1038,6 +1120,9 @@ function renderStats(){
     <div class="stat"><b>${avgImdb}</b><small>Voto IMDb medio</small></div>
     <div class="stat"><b>${enriched}</b><small>Con locandina</small></div>
     <div class="stat"><b>${daVedere}</b><small>Da vedere</small></div>
+    <div class="stat"><b>${valoreStr}</b><small>Valore collezione</small></div>
+    ${prestati ? `<div class="stat"><b>${prestati}</b><small>Prestati</small></div>` : ''}
+    ${inWishlist ? `<div class="stat"><b>${inWishlist}</b><small>In wishlist</small></div>` : ''}
   `;
 }
 
@@ -1051,13 +1136,15 @@ function getFiltered(){
   let list = state.movies.filter(m=>{
     if(q){
       // Cerca in tutta la scheda: titolo, regista, cast, genere, tag, anno
-      const hay = norm([m.titolo, m.regista, m.cast, m.genere, m.tags, m.anno].filter(Boolean).join(' | '));
+      const hay = norm([m.titolo, m.regista, m.cast, m.genere, m.tags, m.anno, m.barcode, m.prestatoA].filter(Boolean).join(' | '));
       if(!hay.includes(q)) return false;
     }
     if(ff && formatoLabel(m.formato) !== ff) return false;
     if(fc && norm(m.custodia) !== fc) return false;
     if(ft && !tagList(m).includes(ft)) return false;
-    if(fs && (m.stato||'da_vedere') !== fs) return false;
+    if(fs === 'wishlist'){ if((m.lista||'collezione') !== 'wishlist') return false; }
+    else if(fs === 'prestati'){ if(!(m.prestatoA||'').trim()) return false; }
+    else if(fs && (m.stato||'da_vedere') !== fs) return false;
     return true;
   });
   list.sort((a,b)=>{
@@ -1069,6 +1156,7 @@ function getFiltered(){
     if(sb==='votoRTPubblico') return (parseInt(b.votoRTPubblico)||0)-(parseInt(a.votoRTPubblico)||0);
     if(sb==='votoMeta') return (parseInt(b.votoMeta)||0)-(parseInt(a.votoMeta)||0);
     if(sb==='anno') return (parseInt(b.anno)||0)-(parseInt(a.anno)||0);
+    if(sb==='aggiunto') return (b.aggiunto||0)-(a.aggiunto||0);
     return 0;
   });
   return list;
@@ -1081,6 +1169,8 @@ function cardHTML(m){
   const imdbVal = parseVotoNumber(m.votoImdb);
   const qty = (parseInt(m.numero_film)||1) > 1 ? `<div class="card-badge qty">x${m.numero_film}</div>` : '';
   const seen = (m.stato||'da_vedere') === 'visto' ? `<div class="card-badge seen">✓ Visto</div>` : '';
+  const wish = (m.lista||'collezione') === 'wishlist' ? `<div class="card-badge wish">💭 Wishlist</div>` : '';
+  const loan = (m.prestatoA||'').trim() ? `<div class="card-badge loan">📤 ${escapeHtml(m.prestatoA.trim())}</div>` : '';
   // Riga dettagli: anno · durata · genere (prima voce)
   const genPrimo = (m.genere||'').split(',')[0].trim();
   const metaBits = [m.anno, m.durata, genPrimo].filter(Boolean).map(escapeHtml);
@@ -1098,6 +1188,8 @@ function cardHTML(m){
     <div class="card-badge">${escapeHtml(formatoLabel(m.formato))} · ${escapeHtml(custodiaLabel(m.custodia))}</div>
     ${qty}
     ${seen}
+    ${wish}
+    ${loan}
     <div class="card-bottom">
       <div class="t">${escapeHtml(displayTitle(m.titolo))}</div>
       ${meta}
@@ -1130,7 +1222,9 @@ function renderTable(list){
   tbody.innerHTML = list.map(m=>{
     const posterCell = m.poster ? `<img src="${escapeHtml(m.poster)}" loading="lazy" referrerpolicy="no-referrer" onerror="posterCellError(this)">` : `<div class="ph">🎞️</div>`;
     const tags = tagList(m).map(t=>`<span class="chip">${escapeHtml(t)}</span>`).join(' ');
-    const stato = (m.stato||'da_vedere')==='visto' ? `<span class="chip watch">✓ Visto</span>` : `<span class="chip">Da vedere</span>`;
+    let stato = (m.stato||'da_vedere')==='visto' ? `<span class="chip watch">✓ Visto</span>` : `<span class="chip">Da vedere</span>`;
+    if((m.lista||'collezione')==='wishlist') stato = `<span class="chip" style="border-color:rgba(167,139,250,.5); color:#cdbcff;">💭 Wishlist</span>`;
+    if((m.prestatoA||'').trim()) stato += ` <span class="chip" style="border-color:rgba(255,171,64,.5); color:#ffd9a1;">📤 ${escapeHtml(m.prestatoA.trim())}</span>`;
     const imdbVal = parseVotoNumber(m.votoImdb);
     return `<tr data-id="${m.id}">
       <td class="poster-cell">${posterCell}</td>
@@ -1207,6 +1301,11 @@ function openModal(id){
   document.getElementById('f_genere').value = m.genere||'';
   document.getElementById('f_tags').value = m.tags||'';
   document.getElementById('f_stato').value = m.stato||'da_vedere';
+  document.getElementById('f_lista').value = (m.lista||'collezione');
+  document.getElementById('f_barcode').value = m.barcode||'';
+  document.getElementById('f_prezzo').value = m.prezzo||'';
+  document.getElementById('f_prestatoA').value = m.prestatoA||'';
+  document.getElementById('f_prestatoIl').value = m.prestatoIl||'';
   document.getElementById('f_votoTmdb').value = formatVoto10(m.votoImdb);
   document.getElementById('f_votoRT').value = m.votoRT ? String(parseInt(m.votoRT)) : '';
   document.getElementById('f_votoRTPubblico').value = m.votoRTPubblico ? String(parseInt(m.votoRTPubblico)) : '';
@@ -1323,6 +1422,12 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
   m.genere = document.getElementById('f_genere').value.trim();
   m.tags = document.getElementById('f_tags').value.trim();
   m.stato = document.getElementById('f_stato').value;
+  m.lista = document.getElementById('f_lista').value;
+  m.barcode = document.getElementById('f_barcode').value.replace(/\s+/g,'').trim();
+  m.prezzo = document.getElementById('f_prezzo').value.trim();
+  m.prestatoA = document.getElementById('f_prestatoA').value.trim();
+  m.prestatoIl = document.getElementById('f_prestatoIl').value;
+  if(!m.aggiunto) m.aggiunto = Date.now();
   m.qvideo = document.getElementById('f_qvideo').value.trim();
   m.qaudio = document.getElementById('f_qaudio').value.trim();
   m.cast = document.getElementById('f_cast').value.trim();
@@ -1380,6 +1485,12 @@ document.getElementById('addBtn').addEventListener('click', ()=>{
   document.getElementById('f_genere').value='';
   document.getElementById('f_tags').value='';
   document.getElementById('f_stato').value='da_vedere';
+  document.getElementById('f_lista').value = window._draftLista || 'collezione';
+  document.getElementById('f_barcode').value = window._draftBarcode || '';
+  document.getElementById('f_prezzo').value='';
+  document.getElementById('f_prestatoA').value='';
+  document.getElementById('f_prestatoIl').value='';
+  window._draftBarcode = null; window._draftLista = null;
   document.getElementById('f_votoTmdb').value='';
   document.getElementById('f_votoRT').value='';
   document.getElementById('f_votoRTPubblico').value='';
@@ -1501,6 +1612,11 @@ function rowToImportedFields(obj){
     tags: S('tag') || S('tags'),
     imdbId: idm[0] || '',
     rtUrl: S('link rotten tomatoes'),
+    lista: S('lista').toLowerCase().startsWith('wish') ? 'wishlist' : (S('lista') ? 'collezione' : ''),
+    barcode: S('codice a barre') || S('barcode') || S('ean'),
+    prezzo: S('prezzo pagato') || S('prezzo'),
+    prestatoA: S('prestato a'),
+    prestatoIl: S('prestato il'),
     stato: statoRaw ? (statoRaw.startsWith('vist') ? 'visto' : 'da_vedere') : ''
   };
   return f;
@@ -1508,7 +1624,8 @@ function rowToImportedFields(obj){
 function mergeImportedInto(m, f){
   // Solo i valori NON vuoti del file sovrascrivono; i vuoti non toccano nulla
   ['formato','custodia','anno','durata','regista','genere','cast','trama','premi','curiosita',
-   'poster','qvideo','qaudio','votoImdb','imdbVotes','votoRT','votoRTPubblico','votoMeta','tags','imdbId','rtUrl','stato']
+   'poster','qvideo','qaudio','votoImdb','imdbVotes','votoRT','votoRTPubblico','votoMeta','tags','imdbId','rtUrl','stato',
+   'lista','barcode','prezzo','prestatoA','prestatoIl']
     .forEach(k=>{ if(f[k]) m[k] = f[k]; });
   if(f.numero_film) m.numero_film = f.numero_film;
   if(f.votoPersonale) m.votoPersonale = f.votoPersonale;
@@ -1539,7 +1656,8 @@ async function importLibraryFile(file){
         headers.forEach((h,i)=>{ obj[h] = r[i]; });
         const f = rowToImportedFields(obj);
         if(!f.titolo) return;
-        let existing = (f.imdbId && state.movies.find(m => m.imdbId === f.imdbId))
+        let existing = (f.barcode && state.movies.find(m => (m.barcode||'').replace(/\s+/g,'') === f.barcode.replace(/\s+/g,'')))
+                    || (f.imdbId && state.movies.find(m => m.imdbId === f.imdbId))
                     || state.movies.find(m => norm(m.titolo) === norm(f.titolo));
         if(existing){
           mergeImportedInto(existing, f);
@@ -1588,6 +1706,10 @@ function buildExportRows(){
     'qualita video':m.qvideo, 'qualita audio':m.qaudio, trama:m.trama, riconoscimenti:m.premi, curiosita:m.curiosita, locandina:m.poster,
     'link imdb': m.imdbId ? `https://www.imdb.com/title/${m.imdbId}/` : '',
     'link rotten tomatoes': m.rtUrl || '',
+    lista: (m.lista||'collezione')==='wishlist' ? 'Wishlist' : 'Collezione',
+    'codice a barre': m.barcode||'', 'prezzo pagato': m.prezzo||'',
+    'prestato a': m.prestatoA||'', 'prestato il': m.prestatoIl||'',
+    'aggiunto il': m.aggiunto ? new Date(m.aggiunto).toISOString().slice(0,10) : '',
     tag: m.tags||'', stato: (m.stato||'da_vedere')==='visto' ? 'Visto' : 'Da vedere'
   }));
 }
@@ -1650,7 +1772,11 @@ document.getElementById('restoreInput').addEventListener('change', function(e){
       let added = 0, updated = 0;
       incoming.forEach(inc=>{
         if(!inc || !inc.titolo) return;
-        const existing = state.movies.find(m => norm(m.titolo) === norm(inc.titolo));
+        const bcode = (inc.barcode||'').replace(/\s+/g,'');
+        const existing = state.movies.find(m => m.id === inc.id)
+          || (bcode && state.movies.find(m => (m.barcode||'').replace(/\s+/g,'') === bcode))
+          || (inc.imdbId && state.movies.find(m => m.imdbId === inc.imdbId))
+          || state.movies.find(m => norm(m.titolo) === norm(inc.titolo));
         if(existing){
           Object.assign(existing, inc, { id: existing.id });
           updated++;
@@ -1677,6 +1803,16 @@ document.getElementById('integrityBtn').addEventListener('click', ()=>{
   const senzaGenere = state.movies.filter(m=>!m.genere);
   const senzaAnno = state.movies.filter(m=>!m.anno);
   const senzaTrama = state.movies.filter(m=>!m.trama);
+  const senzaBarcode = state.movies.filter(m=>(m.lista||'collezione')!=='wishlist' && !(m.barcode||'').trim() && !/digital/i.test(m.custodia||''));
+  const contaBarcode = {};
+  state.movies.forEach(m=>{ const b=(m.barcode||'').replace(/\s+/g,''); if(b) contaBarcode[b]=(contaBarcode[b]||[]).concat(m.titolo); });
+  const barcodeDup = Object.entries(contaBarcode).filter(([b,t])=>t.length>1);
+  const TRE_MESI = 1000*60*60*24*90;
+  const prestitiVecchi = state.movies.filter(m=>{
+    if(!(m.prestatoA||'').trim() || !m.prestatoIl) return false;
+    const d = new Date(m.prestatoIl).getTime();
+    return d && (Date.now()-d) > TRE_MESI;
+  });
   const contaTitoli = {};
   state.movies.forEach(m=>{ const k = norm(m.titolo); contaTitoli[k] = (contaTitoli[k]||0)+1; });
   const duplicati = Object.keys(contaTitoli).filter(k=>contaTitoli[k]>1);
@@ -1688,10 +1824,17 @@ document.getElementById('integrityBtn').addEventListener('click', ()=>{
   html += riga('🎭 Senza genere', senzaGenere);
   html += riga('📅 Senza anno', senzaAnno);
   html += riga('📝 Senza trama', senzaTrama);
+  html += riga('🏷️ Senza codice a barre (per usare lo scanner in negozio)', senzaBarcode);
+  if(barcodeDup.length){
+    html += `<p style="margin:14px 0 6px;"><strong style="color:var(--cream);">⚠️ Codici a barre duplicati (${barcodeDup.length})</strong><br>${barcodeDup.map(([b,t])=>escapeHtml(b+' → '+t.join(' / '))).join('<br>')}</p>`;
+  }
+  if(prestitiVecchi.length){
+    html += `<p style="margin:14px 0 6px;"><strong style="color:var(--cream);">⏰ Prestati da più di 3 mesi — forse è ora di chiederli indietro</strong><br>${prestitiVecchi.map(m=>escapeHtml(displayTitle(m.titolo)+' → '+m.prestatoA+' ('+m.prestatoIl+')')).join('<br>')}</p>`;
+  }
   if(duplicati.length){
     html += `<p style="margin:14px 0 6px;"><strong style="color:var(--cream);">📎 Titoli duplicati (${duplicati.length})</strong><br>${duplicati.map(k=>escapeHtml(k)).join(', ')}</p>`;
   }
-  if(!senzaPoster.length && !senzaGenere.length && !senzaAnno.length && !senzaTrama.length && !duplicati.length){
+  if(!senzaPoster.length && !senzaGenere.length && !senzaAnno.length && !senzaTrama.length && !duplicati.length && !barcodeDup.length && !prestitiVecchi.length){
     html += `<p>Tutto a posto ✓ nessun problema rilevato.</p>`;
   }
   showInfoModal('🔍 Controllo libreria', html);
@@ -2094,6 +2237,123 @@ document.getElementById('bulkEnrichBtn').addEventListener('click', async ()=>{
   _bulkCancelled = false;
 });
 
+/* ---------- Scanner codice a barre: "ce l'ho già?" ----------
+   Usa la BarcodeDetector API nativa (Chrome, Edge, Android) + fotocamera.
+   Dove non è supportata (Safari/iOS) o la fotocamera è negata, resta
+   l'inserimento manuale del codice: la risposta è identica e immediata.
+   Il codice scansionato viene confrontato con la libreria: se il film
+   c'è, si apre la sua scheda ("già in collezione!"); se non c'è, puoi
+   aggiungerlo al volo con il barcode precompilato — o metterlo in
+   wishlist direttamente dal negozio. */
+let _scanStream = null, _scanLoop = null;
+function findByBarcode(code){
+  const c = String(code||'').replace(/\s+/g,'').trim();
+  if(!c) return null;
+  return state.movies.find(m => (m.barcode||'').replace(/\s+/g,'') === c) || null;
+}
+async function handleScannedCode(code){
+  stopScanner(false);
+  const hit = findByBarcode(code);
+  if(hit){
+    document.getElementById('scanOverlay').classList.remove('open');
+    openModal(hit.id);
+    const dove = (hit.lista||'collezione')==='wishlist' ? 'nella tua WISHLIST' : 'già in collezione';
+    toast(`✓ "${displayTitle(hit.titolo)}" è ${dove} (${formatoLabel(hit.formato)} · ${custodiaLabel(hit.custodia)})`);
+    return;
+  }
+  document.getElementById('scanOverlay').classList.remove('open');
+  const aggiungi = await askConfirm(`Codice ${code} non trovato nella libreria: non possiedi questo titolo. Vuoi aggiungerlo adesso? (Nella scheda potrai scegliere "Wishlist" se è solo un promemoria d'acquisto)`);
+  if(aggiungi){
+    window._draftBarcode = String(code);
+    document.getElementById('addBtn').click();
+    toast('Codice a barre precompilato — usa 🔎 Cerca film per riempire la scheda');
+  }
+}
+function stopScanner(closeOverlay){
+  if(_scanLoop){ cancelAnimationFrame(_scanLoop); _scanLoop = null; }
+  if(_scanStream){ _scanStream.getTracks().forEach(t=>t.stop()); _scanStream = null; }
+  const v = document.getElementById('scanVideo');
+  if(v) v.srcObject = null;
+  if(closeOverlay !== false) document.getElementById('scanOverlay').classList.remove('open');
+}
+async function openScanner(){
+  const overlay = document.getElementById('scanOverlay');
+  const status = document.getElementById('scanStatus');
+  const videoWrap = document.getElementById('scanVideoWrap');
+  document.getElementById('scanManual').value = '';
+  overlay.classList.add('open');
+  const hasDetector = 'BarcodeDetector' in window;
+  const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+  if(!hasDetector || !hasCamera){
+    videoWrap.style.display = 'none';
+    status.textContent = !hasDetector
+      ? 'La scansione automatica non è supportata da questo browser (funziona su Chrome ed Edge, anche Android). Digita il codice qui sotto: il controllo è identico.'
+      : 'Fotocamera non disponibile in questo contesto. Digita il codice qui sotto: il controllo è identico.';
+    document.getElementById('scanManual').focus();
+    return;
+  }
+  videoWrap.style.display = 'block';
+  status.textContent = 'Avvio fotocamera…';
+  try{
+    _scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    const video = document.getElementById('scanVideo');
+    video.srcObject = _scanStream;
+    await video.play();
+    status.textContent = 'Inquadra il codice sul retro della custodia…';
+    const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128'] });
+    const tick = async ()=>{
+      if(!_scanStream) return;
+      try{
+        const codes = await detector.detect(video);
+        if(codes && codes.length && codes[0].rawValue){
+          handleScannedCode(codes[0].rawValue);
+          return;
+        }
+      }catch(e){ /* frame non leggibile: si riprova */ }
+      _scanLoop = requestAnimationFrame(tick);
+    };
+    _scanLoop = requestAnimationFrame(tick);
+  }catch(e){
+    console.error(e);
+    videoWrap.style.display = 'none';
+    status.textContent = 'Fotocamera negata o non disponibile. Digita il codice qui sotto: il controllo è identico.';
+    document.getElementById('scanManual').focus();
+  }
+}
+document.getElementById('scanBtn').addEventListener('click', openScanner);
+document.getElementById('scanCloseBtn').addEventListener('click', ()=>stopScanner(true));
+document.getElementById('scanOverlay').addEventListener('click', e=>{ if(e.target.id==='scanOverlay') stopScanner(true); });
+document.getElementById('scanManualBtn').addEventListener('click', ()=>{
+  const code = document.getElementById('scanManual').value.trim();
+  if(!code){ toast('Inserisci un codice'); return; }
+  handleScannedCode(code);
+});
+document.getElementById('scanManual').addEventListener('keydown', e=>{ if(e.key==='Enter') document.getElementById('scanManualBtn').click(); });
+/* Scan dentro la scheda film: riempie il campo barcode */
+document.getElementById('scanFieldBtn').addEventListener('click', async ()=>{
+  if(!('BarcodeDetector' in window) || !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
+    toast('Scansione automatica non supportata qui: digita il codice a mano');
+    document.getElementById('f_barcode').focus();
+    return;
+  }
+  window._fieldScan = true;
+  openScanner();
+});
+/* Se lo scan è partito dal campo della scheda, compila il campo invece di cercare */
+const _origHandleScanned = handleScannedCode;
+handleScannedCode = async function(code){
+  if(window._fieldScan){
+    window._fieldScan = false;
+    stopScanner(true);
+    document.getElementById('f_barcode').value = String(code);
+    const hit = findByBarcode(code);
+    if(hit && hit.id !== currentId) toast(`⚠️ Attenzione: questo codice è già assegnato a "${displayTitle(hit.titolo)}"`);
+    else toast('Codice a barre inserito ✓');
+    return;
+  }
+  return _origHandleScanned(code);
+};
+
 /* ---------- Watchlist stasera (quick filter) ---------- */
 document.getElementById('watchlistBtn').addEventListener('click', ()=>{
   const sel = document.getElementById('filterStato');
@@ -2177,7 +2437,10 @@ function spinRoulette(){
     box.innerHTML = '<p style="color:var(--dim2);">Nessun film corrisponde ai filtri attuali. Prova ad allargare la ricerca.</p>';
     return;
   }
-  const pick = list[Math.floor(Math.random()*list.length)];
+  // Non proporre film che non possiedi (wishlist) o che sono a casa di altri (prestati)
+  const guardabili = list.filter(m => (m.lista||'collezione')!=='wishlist' && !(m.prestatoA||'').trim());
+  const pool = guardabili.length ? guardabili : list;
+  const pick = pool[Math.floor(Math.random()*pool.length)];
   rouletteId = pick.id;
   box.innerHTML = `
     <div class="roulette-poster">${pick.poster ? `<img src="${escapeHtml(pick.poster)}" referrerpolicy="no-referrer">` : posterFallbackHTML(displayTitle(pick.titolo))}</div>
@@ -2205,6 +2468,7 @@ document.addEventListener('keydown', e=>{
     const open = document.querySelector('.overlay.open');
     if(open){
       if(open.id==='confirmOverlay'){ closeConfirm(false); return; }
+      if(open.id==='scanOverlay'){ stopScanner(true); return; }
       open.classList.remove('open');
       if(open.id==='movieOverlay') currentId = null;
     }
@@ -2217,6 +2481,19 @@ document.addEventListener('keydown', e=>{
     sInput.focus(); sInput.select();
   }
 });
+
+/* ---------- Rete di sicurezza: nessun errore muore in silenzio ----------
+   Un'eccezione imprevista mostra un toast con l'invito a fare un backup:
+   i dati in pagina restano sempre recuperabili. */
+let _lastErrToast = 0;
+function reportUnexpected(){
+  const now = Date.now();
+  if(now - _lastErrToast < 8000) return; // non tempestare di toast
+  _lastErrToast = now;
+  toast('⚠️ Si è verificato un errore imprevisto. I tuoi dati sono al sicuro: se succede di nuovo, scarica un backup', { label:'💾 Backup', onClick: downloadBackupNow });
+}
+window.addEventListener('error', e=>{ console.error(e.error||e.message); reportUnexpected(); });
+window.addEventListener('unhandledrejection', e=>{ console.error(e.reason); reportUnexpected(); });
 
 /* ---------- init ---------- */
 (async function init(){
