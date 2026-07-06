@@ -2,6 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>My Physical Movie Library</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
@@ -415,6 +416,25 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 .roulette-title{font-family:'Sora',sans-serif; font-weight:700; font-size:20px; margin:8px 0 4px;}
 .roulette-meta{color:var(--dim); font-size:13px; margin-bottom:18px;}
 .roulette-actions{display:flex; gap:10px; justify-content:center; flex-wrap:wrap;}
+
+/* ---------- Mobile (uso "in negozio": ricerca rapida a una mano) ---------- */
+@media (max-width: 640px){
+  header{padding:34px 5vw 24px;}
+  .stats-row{gap:8px;}
+  .stat{padding:10px 14px; min-width:84px;}
+  .stat b{font-size:18px;}
+  .toolbar{padding:10px 4vw; gap:8px;}
+  #search{min-width:0; flex:1 1 100%;}
+  .toolbar-group{gap:8px; width:100%;}
+  input[type=text], select{font-size:16px;} /* evita lo zoom automatico di iOS al focus */
+  .btn{padding:9px 14px; font-size:12.5px;}
+  #grid{grid-template-columns:repeat(auto-fill, minmax(128px, 1fr)); gap:14px;}
+  .grid-wrap{padding-left:4vw; padding-right:4vw;}
+  .modal{max-width:none; width:100%; height:100dvh; max-height:100dvh; border-radius:0; overflow-y:auto;}
+  .modal-body{display:block;}
+  .modal-poster{max-width:220px; margin:0 auto;}
+  .settings-modal{height:auto; max-height:92dvh; border-radius:20px; width:94vw;}
+}
 </style>
 </head>
 <body>
@@ -428,7 +448,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 
 <div class="toolbar">
   <div class="toolbar-group">
-    <input type="text" id="search" placeholder="Cerca titolo…">
+    <input type="text" id="search" placeholder="Cerca titolo, regista, attore, tag…">
     <select id="filterFormato"><option value="">Tutti i formati</option></select>
     <select id="filterCustodia"><option value="">Tutte le custodie</option></select>
     <select id="filterTag"><option value="">Tutti i tag</option></select>
@@ -1029,7 +1049,11 @@ function getFiltered(){
   const fs = document.getElementById('filterStato').value;
   const sb = document.getElementById('sortBy').value;
   let list = state.movies.filter(m=>{
-    if(q && !norm(m.titolo).includes(q)) return false;
+    if(q){
+      // Cerca in tutta la scheda: titolo, regista, cast, genere, tag, anno
+      const hay = norm([m.titolo, m.regista, m.cast, m.genere, m.tags, m.anno].filter(Boolean).join(' | '));
+      if(!hay.includes(q)) return false;
+    }
     if(ff && formatoLabel(m.formato) !== ff) return false;
     if(fc && norm(m.custodia) !== fc) return false;
     if(ft && !tagList(m).includes(ft)) return false;
@@ -1396,6 +1420,49 @@ document.getElementById('search').addEventListener('input', debouncedRender);
 /* Se il CDN della libreria Excel non è raggiungibile (offline, rete
    filtrata…), import/export mostrano un avviso chiaro invece di far
    fallire silenziosamente la pagina con un errore JS. */
+/* ---------- Motore CSV nativo (RFC 4180) ----------
+   Il ciclo CSV è il cuore dell'app e NON deve dipendere da un CDN:
+   scrittura e lettura CSV funzionano sempre, anche offline. La libreria
+   Excel (XLSX) resta un extra per i file .xlsx quando il CDN risponde. */
+function csvStringify(rows, headers){
+  const esc = v => {
+    const s = (v===undefined || v===null) ? '' : String(v);
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  };
+  const lines = [headers.map(esc).join(',')];
+  rows.forEach(r=>{ lines.push(headers.map(h=>esc(r[h])).join(',')); });
+  return lines.join('\r\n');
+}
+function csvParse(text){
+  // Parser RFC 4180: virgolette, virgole e a-capo dentro le celle, CRLF/LF
+  if(text.charCodeAt(0) === 0xFEFF) text = text.slice(1); // BOM
+  const rows = []; let row = [], cell = '', inQ = false;
+  for(let i=0; i<text.length; i++){
+    const ch = text[i];
+    if(inQ){
+      if(ch === '"'){
+        if(text[i+1] === '"'){ cell += '"'; i++; }
+        else inQ = false;
+      } else cell += ch;
+    } else {
+      if(ch === '"') inQ = true;
+      else if(ch === ','){ row.push(cell); cell=''; }
+      else if(ch === '\n' || ch === '\r'){
+        if(ch === '\r' && text[i+1] === '\n') i++;
+        row.push(cell); cell='';
+        if(row.length > 1 || row[0] !== '') rows.push(row);
+        row = [];
+      }
+      else cell += ch;
+    }
+  }
+  if(cell !== '' || row.length){ row.push(cell); if(row.length > 1 || row[0] !== '') rows.push(row); }
+  return rows;
+}
+function exportHeaders(){
+  const sample = buildExportRows();
+  return sample.length ? Object.keys(sample[0]) : [];
+}
 function xlsxReady(){
   if(typeof XLSX === 'undefined'){
     toast('⚠️ Libreria Excel non caricata: verifica la connessione e ricarica la pagina');
@@ -1448,13 +1515,20 @@ function mergeImportedInto(m, f){
 }
 async function importLibraryFile(file){
   if(!file) return;
-  if(!xlsxReady()) return;
+  const isCsv = /\.(csv|tsv|txt)$/i.test(file.name);
+  if(!isCsv && !xlsxReady()) return;
   const reader = new FileReader();
   reader.onload = async function(ev){
     try{
-      const wb = XLSX.read(ev.target.result, {type:'array'});
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
+      let rows;
+      if(isCsv){
+        // Percorso nativo: nessuna dipendenza esterna, funziona anche offline
+        rows = csvParse(String(ev.target.result));
+      } else {
+        const wb = XLSX.read(ev.target.result, {type:'array'});
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
+      }
       let headerIdx = rows.findIndex(r => r.some(c => (c+'').toLowerCase().trim()==='titolo'));
       if(headerIdx === -1) headerIdx = 0;
       const headers = rows[headerIdx].map(h => (h+'').toLowerCase().trim());
@@ -1486,7 +1560,8 @@ async function importLibraryFile(file){
       toast('Errore nella lettura del file');
     }
   };
-  reader.readAsArrayBuffer(file);
+  if(isCsv) reader.readAsText(file, 'utf-8');
+  else reader.readAsArrayBuffer(file);
 }
 document.getElementById('fileInput').addEventListener('change', function(e){
   const file = e.target.files[0];
@@ -1525,9 +1600,9 @@ document.getElementById('exportBtn').addEventListener('click', ()=>{
   toast('Excel esportato ✓');
 });
 document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
-  if(!xlsxReady()) return;
-  const ws = XLSX.utils.json_to_sheet(buildExportRows());
-  const csv = XLSX.utils.sheet_to_csv(ws);
+  // Export CSV nativo: funziona sempre, anche senza la libreria Excel
+  const rows = buildExportRows();
+  const csv = csvStringify(rows, exportHeaders());
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -1988,13 +2063,24 @@ document.getElementById('bulkEnrichBtn').addEventListener('click', async ()=>{
         const ok = await applyFullDetails(m, m.imdbId);
         if(ok) full++;
       }
+      // Voti in diretta da Rotten Tomatoes (best effort): sovrascrivono
+      // quelli più vecchi di Wikidata quando disponibili
+      try{
+        const rt = await rtSearchScores(m.titolo, m.anno);
+        if(rt){
+          if(rt.votoRT) m.votoRT = rt.votoRT;
+          if(rt.votoRTPubblico) m.votoRTPubblico = rt.votoRTPubblico;
+          if(rt.url) m.rtUrl = rt.url;
+          if(rt.votoRT || rt.votoRTPubblico) full++;
+        }
+      }catch(e){ /* non bloccante */ }
     }catch(e){ console.error(e); }
     done++;
     document.getElementById('progressFill').style.width = (done/todo.length*100)+'%';
     // Salva e ridisegna ogni 5 film (non a ogni film): interfaccia fluida
     // e molte meno scritture, senza rischiare più di 5 film di lavoro
     if(done % 5 === 0){ await saveState(); renderGrid(); }
-    await new Promise(r=>setTimeout(r, 200));
+    await new Promise(r=>setTimeout(r, 400));
   }
   await saveState(); // salvataggio finale sempre, anche dopo interruzione
   renderGrid();
