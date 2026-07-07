@@ -518,6 +518,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
     <input type="file" id="restoreInput" accept=".json" style="display:none;">
     <button class="btn ghost" id="integrityBtn" title="Controlla film senza poster, genere o anno, e titoli duplicati">🔍 Controlla libreria</button>
     <button class="btn ghost" id="bulkEnrichBtn">🍅 Arricchisci con Rotten Tomatoes</button>
+    <button class="btn ghost" id="cloudBtn" title="Sincronizza la libreria tra dispositivi diversi">☁️ Sincronizza</button>
     <button class="btn solid" id="addBtn">+ Aggiungi film</button>
     <span class="results-count" id="resultsCount"></span>
     <span class="save-indicator saved" id="saveIndicator" title="Stato del salvataggio automatico"><span class="sdot"></span><span class="stext">Salvato</span></span>
@@ -793,6 +794,58 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
   </div>
 </div>
 
+<!-- Cloud sync modal -->
+<div class="overlay" id="cloudOverlay">
+  <div class="modal settings-modal">
+    <button class="modal-close" onclick="document.getElementById('cloudOverlay').classList.remove('open')">&times;</button>
+    <h2>☁️ Sincronizza tra dispositivi</h2>
+    <p id="cloudStatusText">Non connesso — i dati restano solo su questo dispositivo/browser.</p>
+
+    <details class="info-details" id="cloudSetupDetails">
+      <summary>⚙️ Configura il tuo spazio cloud gratuito (una volta sola)</summary>
+      <div class="info-details-body">
+        <p>Serve un piccolo progetto gratuito tuo su Firebase (Google) — è l'unico modo per avere dati davvero "sul sito" invece che sul dispositivo: qualunque archivio cloud richiede un account che lo possieda, non esiste alternativa. Nessuna email o password personale da registrare però: al posto del login userai un codice segreto generato dall'app.</p>
+        <p><b>1)</b> Vai su <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → crea un progetto (gratuito, nessuna carta richiesta).<br>
+        <b>2)</b> Nel menu di sinistra → <b>Firestore Database</b> → crea database → modalità produzione, scegli una regione europea.<br>
+        <b>3)</b> Nella scheda "Regole" di Firestore, incolla queste regole e pubblica:</p>
+        <pre style="background:rgba(0,0,0,.3); padding:10px; border-radius:8px; font-size:11px; overflow-x:auto; white-space:pre-wrap;">rules_version = '2';
+service cloud.firestore {
+  match /databases/{db}/documents {
+    match /libraries/{code} {
+      allow read, write: if code.size() >= 20;
+    }
+  }
+}</pre>
+        <p style="font-size:11px;">(la condizione sulla lunghezza serve solo a impedire codici troppo corti/indovinabili: la vera protezione è che il codice generato qui sotto resti privato, un po' come una password)</p>
+        <p><b>4)</b> Impostazioni progetto (⚙ in alto) → "Le tue app" → icona web <b>&lt;/&gt;</b> → registra un'app (nome a piacere, NON serve Authentication) → copia l'oggetto <code>firebaseConfig</code> mostrato e incollalo qui sotto per intero.</p>
+        <textarea id="cloudConfigInput" rows="6" style="width:100%;background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--cream);border-radius:10px;padding:10px;font-family:monospace;font-size:12.5px;" placeholder='{
+  apiKey: "...",
+  authDomain: "...",
+  projectId: "...",
+  ...
+}'></textarea>
+        <button class="btn ghost" id="cloudSaveConfigBtn" style="width:100%; margin-top:10px;">Salva configurazione</button>
+      </div>
+    </details>
+
+    <div id="cloudCodeBox" style="margin-top:16px; display:none;">
+      <label>Codice libreria (la tua "chiave" segreta, invece di email/password)</label>
+      <input type="text" id="cloudCodeInput" placeholder="incolla qui il codice, oppure generane uno nuovo" style="font-family:monospace;">
+      <div style="display:flex; gap:8px; margin:-8px 0 18px;">
+        <button class="btn ghost" id="cloudGenCodeBtn" style="flex:1;">🎲 Genera nuovo codice</button>
+        <button class="btn ghost" id="cloudCopyCodeBtn" style="flex:1;">📋 Copia</button>
+      </div>
+      <p style="font-size:11.5px; color:var(--dim2); line-height:1.5;">⚠️ Salva questo codice da qualche parte (note, password manager). È l'unica cosa che serve per ritrovare la tua libreria da un altro dispositivo: sullo stesso, incolla la stessa configurazione Firebase e questo identico codice. Chiunque conosca il codice può leggere e modificare la libreria: trattalo come una password.</p>
+      <button class="btn solid" id="cloudConnectBtn" style="width:100%;">Connetti questo dispositivo</button>
+    </div>
+    <div id="cloudConnectedBox" style="margin-top:16px; display:none;">
+      <p style="font-size:13px;">Connesso con il codice <code id="cloudActiveCode" style="word-break:break-all;"></code></p>
+      <button class="btn ghost" id="cloudShowCodeBtn" style="width:100%; margin-bottom:8px;">📋 Mostra/copia il codice per un altro dispositivo</button>
+      <button class="btn ghost" id="cloudLogoutBtn" style="width:100%;">Disconnetti questo dispositivo</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -835,6 +888,195 @@ const storageAdapter = (function(){
   };
 })();
 
+/* ---------- Sincronizzazione cloud (Firebase, opzionale, senza email/password) ----------
+   Di base i dati restano solo su questo dispositivo/browser (storageAdapter
+   sopra). Se l'utente configura un proprio progetto Firebase gratuito e
+   genera un "codice libreria" (una stringa casuale usata come unica chiave,
+   al posto di email+password), lo stesso codice su un altro dispositivo
+   punta allo stesso documento Firestore: il confronto avviene tramite un
+   timestamp (_updatedAt), tenendo sempre la copia più recente tra locale e
+   cloud. Configurazione e codice restano SEMPRE locali a ciascun
+   dispositivo (non vengono mai inclusi nei dati sincronizzati): vanno
+   incollati/digitati una volta su ogni dispositivo che si vuole collegare. */
+let cloudConfig = null;
+let cloudCode = null;
+let fbDb = null;
+let _cloudReady = false;
+
+async function loadCloudConfig(){
+  try{
+    const res = await storageAdapter.get('cloud-config');
+    if(res && res.value){
+      const parsed = JSON.parse(res.value);
+      cloudConfig = parsed.config || null;
+      cloudCode = parsed.code || null;
+    }
+  }catch(e){ cloudConfig = null; cloudCode = null; }
+}
+async function saveCloudSettings(){
+  await storageAdapter.set('cloud-config', JSON.stringify({ config: cloudConfig, code: cloudCode }));
+}
+function generateLibraryCode(){
+  const bytes = new Uint8Array(18);
+  (window.crypto || window.msCrypto).getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(36).padStart(2,'0')).join('').slice(0,24);
+}
+function loadExternalScript(src){
+  return new Promise((resolve, reject)=>{
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = ()=>resolve();
+    s.onerror = ()=>reject(new Error('CDN non raggiungibile: ' + src));
+    document.head.appendChild(s);
+  });
+}
+async function ensureFirebaseSdk(){
+  if(window.firebase && window.firebase.apps) return;
+  await loadExternalScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js');
+  await loadExternalScript('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js');
+}
+async function initCloud(){
+  if(!cloudConfig || !cloudCode) return false;
+  if(_cloudReady) return true;
+  try{
+    await ensureFirebaseSdk();
+    const app = window.firebase.apps.length ? window.firebase.apps[0] : window.firebase.initializeApp(cloudConfig);
+    fbDb = window.firebase.firestore(app);
+    _cloudReady = true;
+    await cloudPullAndMerge();
+    return true;
+  }catch(e){
+    console.error('Inizializzazione Firebase fallita', e);
+    return false;
+  }
+}
+function cloudDocRef(){
+  return fbDb.collection('libraries').doc(cloudCode);
+}
+async function cloudPullAndMerge(){
+  if(!_cloudReady) return;
+  setCloudStatus('syncing');
+  try{
+    const snap = await cloudDocRef().get();
+    if(snap.exists){
+      const remote = snap.data();
+      const remoteState = remote && remote.payload ? JSON.parse(remote.payload) : null;
+      const remoteTs = (remote && remote.updatedAt) || 0;
+      const localTs = state._updatedAt || 0;
+      if(remoteState && remoteTs > localTs){
+        state = remoteState;
+        if(!state.movies) state.movies = [];
+        cleanupMovies();
+        await storageAdapter.set(STORAGE_KEY, JSON.stringify(state));
+        if(typeof renderAll === 'function') renderAll();
+        toast('☁️ Dati più recenti scaricati dal cloud');
+      }
+    }
+    await cloudPushNow();
+    updateCloudUI();
+  }catch(e){
+    console.error('Sincronizzazione cloud fallita', e);
+    setCloudStatus('error');
+  }
+}
+async function cloudPushNow(){
+  if(!_cloudReady) return false;
+  setCloudStatus('syncing');
+  for(let att=0; att<2; att++){
+    try{
+      await cloudDocRef().set({ payload: JSON.stringify(state), updatedAt: state._updatedAt || Date.now() });
+      setCloudStatus('synced');
+      return true;
+    }catch(e){
+      if(att===0) await new Promise(r=>setTimeout(r, 700));
+      else { console.error('Push cloud fallito', e); setCloudStatus('error'); }
+    }
+  }
+  return false;
+}
+function setCloudStatus(st){
+  const btn = document.getElementById('cloudBtn');
+  if(!btn) return;
+  if(st==='synced') btn.textContent = '☁️ Sincronizzato';
+  else if(st==='syncing') btn.textContent = '☁️ Sincronizzazione…';
+  else if(st==='error') btn.textContent = '☁️ Errore sync (riprova)';
+  else btn.textContent = '☁️ Sincronizza';
+}
+function updateCloudUI(){
+  const codeBox = document.getElementById('cloudCodeBox');
+  const connectedBox = document.getElementById('cloudConnectedBox');
+  const statusText = document.getElementById('cloudStatusText');
+  if(!codeBox || !connectedBox || !statusText) return;
+  if(_cloudReady && cloudCode){
+    codeBox.style.display = 'none';
+    connectedBox.style.display = 'block';
+    document.getElementById('cloudActiveCode').textContent = cloudCode;
+    statusText.textContent = 'Connesso — i dati si sincronizzano automaticamente su ogni dispositivo che usa lo stesso codice.';
+  } else if(cloudConfig){
+    codeBox.style.display = 'block';
+    connectedBox.style.display = 'none';
+    document.getElementById('cloudCodeInput').value = cloudCode || '';
+    statusText.textContent = 'Configurazione salvata su questo dispositivo — genera o incolla un codice per iniziare a sincronizzare.';
+  } else {
+    codeBox.style.display = 'none';
+    connectedBox.style.display = 'none';
+    statusText.textContent = 'Non connesso — i dati restano solo su questo dispositivo/browser.';
+    setCloudStatus('off');
+  }
+}
+
+document.getElementById('cloudBtn').addEventListener('click', ()=>{
+  document.getElementById('cloudOverlay').classList.add('open');
+  updateCloudUI();
+});
+document.getElementById('cloudOverlay').addEventListener('click', e=>{ if(e.target.id==='cloudOverlay') e.currentTarget.classList.remove('open'); });
+
+document.getElementById('cloudSaveConfigBtn').addEventListener('click', async ()=>{
+  const raw = document.getElementById('cloudConfigInput').value.trim();
+  if(!raw){ toast('Incolla prima la configurazione copiata da Firebase'); return; }
+  let cfg;
+  try{
+    cfg = new Function('return (' + raw.replace(/^\s*(const|let|var)\s+firebaseConfig\s*=/, '').replace(/;\s*$/,'') + ')')();
+  }catch(e){ toast("Configurazione non valida: controlla di aver copiato l'intero oggetto"); return; }
+  if(!cfg || !cfg.apiKey || !cfg.projectId){ toast('Configurazione incompleta: mancano campi obbligatori (apiKey, projectId)'); return; }
+  cloudConfig = cfg;
+  await saveCloudSettings();
+  toast('Configurazione salvata su questo dispositivo ✓ ora genera o incolla un codice');
+  updateCloudUI();
+});
+
+document.getElementById('cloudGenCodeBtn').addEventListener('click', ()=>{
+  document.getElementById('cloudCodeInput').value = generateLibraryCode();
+});
+document.getElementById('cloudCopyCodeBtn').addEventListener('click', async ()=>{
+  const v = document.getElementById('cloudCodeInput').value.trim();
+  if(!v){ toast('Genera o incolla prima un codice'); return; }
+  try{ await navigator.clipboard.writeText(v); toast('Codice copiato ✓ salvalo in un posto sicuro'); }
+  catch(e){ toast('Copia manualmente il codice dal campo qui sopra'); }
+});
+document.getElementById('cloudConnectBtn').addEventListener('click', async ()=>{
+  const code = document.getElementById('cloudCodeInput').value.trim();
+  if(!code || code.length < 20){ toast('Genera un codice nuovo o incolla quello di un altro dispositivo (min. 20 caratteri)'); return; }
+  if(!cloudConfig){ toast('Salva prima la configurazione Firebase qui sopra'); return; }
+  cloudCode = code;
+  await saveCloudSettings();
+  _cloudReady = false;
+  const ok = await initCloud();
+  updateCloudUI();
+  toast(ok ? 'Connesso ✓ sincronizzazione in corso…' : 'Connessione non riuscita: ricontrolla configurazione e codice');
+});
+document.getElementById('cloudShowCodeBtn').addEventListener('click', async ()=>{
+  try{ await navigator.clipboard.writeText(cloudCode); toast('Codice copiato ✓ incollalo sull\'altro dispositivo'); }
+  catch(e){ toast('Codice: ' + cloudCode); }
+});
+document.getElementById('cloudLogoutBtn').addEventListener('click', async ()=>{
+  cloudCode = null; cloudConfig = null; _cloudReady = false;
+  await storageAdapter.delete('cloud-config');
+  toast('Disconnesso da questo dispositivo — i dati restano salvati nel cloud con il codice che avevi');
+  updateCloudUI();
+});
+
+
 const seed = [{"titolo": "007 No time to Die", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "007 Skyfall", "formato": "Bluray", "custodia": "slip cover", "numero film": 1}, {"titolo": "48 ore ancora", "formato": "4k", "custodia": "slipcover", "numero film": 1}, {"titolo": "Animali Fantastici Trilogia", "formato": "4k", "custodia": "cofanetto", "numero film": 3}, {"titolo": "Apollo 13", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Arma Letale", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Avatar", "formato": "Bluray", "custodia": "slip cover", "numero film": 1}, {"titolo": "Avatar 2", "formato": "4k", "custodia": "slipcover", "numero film": 1}, {"titolo": "Bastardi senza Gloria", "formato": "Bluray", "custodia": "slip cover", "numero film": 1}, {"titolo": "Batman v Superman", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Beverly Hills Cop", "formato": "4k", "custodia": "slipcover", "numero film": 1}, {"titolo": "Black Hawk Down", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Blade Runner 2049", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Bullet Train", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "C'era una volta a Hollywood", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "C'era una volta in America", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Django Unchained", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Edge of Tomorrow", "formato": "Apple tv", "custodia": "digitale", "numero film": 1}, {"titolo": "F1 the movie", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Fast 4", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Fast 5", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Fast 6", "formato": "Bluray", "custodia": "slip cover", "numero film": 1}, {"titolo": "Fast and furious", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Fast and Furiuos Tokyo Drift", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Fight Club", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Foo Fighters", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Fuori in 60 secondi", "formato": "Bluray", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Furiosa", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Gran Turismo", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Harry Potter 8 film", "formato": "4k", "custodia": "Cofanetto", "numero film": 8}, {"titolo": "Il gladiatore", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Il grande Lebowski", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Il miglio verde", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Il Padrino Trilogia", "formato": "4k", "custodia": "Cofanetto", "numero film": 3}, {"titolo": "Il signore degli Anelli Trilogia", "formato": "4k", "custodia": "Cofanetto", "numero film": 3}, {"titolo": "Indiana Jones 4 film Collection", "formato": "Apple tv", "custodia": "digitale", "numero film": 4}, {"titolo": "Interstellar", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Into the Wild", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Joker", "formato": "4k", "custodia": "slip cover", "numero film": 1}, {"titolo": "Jurassic Park", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Jurassic Park 2", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Jurassic World Dominion", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Justice League Z. Snyder", "formato": "4k", "custodia": "slip cover", "numero film": 1}, {"titolo": "L'uomo d'acciaio", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Last Action Hero", "formato": "Apple tv", "custodia": "digitale", "numero film": 1}, {"titolo": "Lo hobbit Trilogia", "formato": "4k", "custodia": "cofanetto", "numero film": 3}, {"titolo": "Mad Max Fury Road", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Mission Impossible 1", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Mission Impossible 4", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Mission Impossible 5", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Mission Impossible 6", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Mission Impossible 7", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "Mission Impossible 8", "formato": "Bluray", "custodia": "amaray", "numero film": 1}, {"titolo": "Pirati dei Caraibi 5 film", "formato": "Bluray", "custodia": "Cofanetto", "numero film": 5}, {"titolo": "Salvate il Soldato Ryan", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Shazam 1-2", "formato": "4k ", "custodia": "Cofanetto", "numero film": 2}, {"titolo": "Sonic", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Spiderman 6 Film Collection", "formato": "Bluray", "custodia": "cofanetto", "numero film": 6}, {"titolo": "Star Wars I-VI", "formato": "Bluray", "custodia": "Cofanetto", "numero film": 6}, {"titolo": "Star Wars VII-IX", "formato": "4k", "custodia": "Cofanetto", "numero film": 3}, {"titolo": "Suicide  Squad", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Terminator", "formato": "Apple tv", "custodia": "digitale", "numero film": 1}, {"titolo": "Terminator 2", "formato": "Bluray", "custodia": "slip cover", "numero film": 1}, {"titolo": "The Batman", "formato": "4k", "custodia": "Steelbook", "numero film": 1}, {"titolo": "The Hateful eight", "formato": "Bluray", "custodia": "slip cover", "numero film": 1}, {"titolo": "Thor Love and Thunder", "formato": "4k", "custodia": "steelbook", "numero film": 1}, {"titolo": "Top Gun Collection", "formato": "4k", "custodia": "Cofanetto", "numero film": 2}, {"titolo": "Trilogia Cavaliere Oscuro", "formato": "4k", "custodia": "Cofanetto", "numero film": 3}, {"titolo": "Trilogia Ritorno al Futuro", "formato": "4k", "custodia": "Cofanetto", "numero film": 3}, {"titolo": "Twisters", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "V for Vendetta", "formato": "4k", "custodia": "steelbook", "numero film": 1}, {"titolo": "Wonder Woman", "formato": "4k ", "custodia": "slip cover", "numero film": 1}, {"titolo": "Wonka", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "Spiderman Trilogia Raimi", "formato": "4k", "custodia": "cofanetto", "numero film": 3}, {"titolo": "indiana jones 4 movie collection", "formato": "4k", "custodia": "cofanetto", "numero film": 4}, {"titolo": "indiana jones il quadrante del destino", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "star wars rogue one", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "i fantastici 4 - 2025", "formato": "4k", "custodia": "amaray", "numero film": 1}, {"titolo": "baby driver", "formato": "4k", "custodia": "amaray", "numero film": 1}]
 ;
 
@@ -866,13 +1108,18 @@ async function loadState(){
     if(res && res.value){
       state = JSON.parse(res.value);
       if(!state.movies) state.movies = [];
+      if(!state._updatedAt) state._updatedAt = Date.now();
       cleanupMovies();
+      await loadCloudConfig();
+      if(cloudConfig) initCloud(); // non bloccante: se già loggato su questo dispositivo, sincronizza in background
       return;
     }
   }catch(e){ /* no existing data */ }
-  state = { movies: seed.map(seedToMovie) };
+  state = { movies: seed.map(seedToMovie), _updatedAt: Date.now() };
   cleanupMovies();
   await saveState();
+  await loadCloudConfig();
+  if(cloudConfig) initCloud();
 }
 /* Normalizza in modo sicuro i dati salvati: compattazione spazi doppi nei
    titoli ("Suicide  Squad"), rimozione spazi finali nel formato ("4k "),
@@ -921,6 +1168,7 @@ async function saveState(){
   setSaveStatus('saving');
   while(_saveDirty){
     _saveDirty = false;
+    state._updatedAt = Date.now();
     const payload = JSON.stringify(state); // serializza lo stato PIÙ recente
     let ok = false;
     for(let att=0; att<3 && !ok; att++){
@@ -940,6 +1188,7 @@ async function saveState(){
   _saveInFlight = false; _saveFailed = false;
   setSaveStatus('saved');
   maybeBackup(); // non bloccante
+  cloudPushNow(); // non bloccante: se il cloud è configurato e loggato, allinea in background
 }
 function downloadBackupNow(){
   const today = new Date().toISOString().slice(0,10);
@@ -1970,7 +2219,7 @@ const SEZIONI_CURIOSITA_EN = ['Production','Development','Trivia','Background'];
 /* QID Wikidata dei siti di recensioni, usati come qualificatore "review score by" (P447) */
 const QID_ROTTEN_TOMATOES = ['Q105584','Q108403393','Q108403540']; // Rotten Tomatoes / Tomatometer score / RT average
 const QID_METACRITIC = ['Q106515043']; // Metascore
-async function fetchWikidataDetails(imdbId, attempt){
+async function fetchWikidataDetails(imdbId, wantCuriosita, attempt){
   attempt = attempt || 1;
   const query = `SELECT ?genreLabel ?directorLabel ?castLabel ?seriesLabel ?articleIt ?articleEn ?score ?scoreBy WHERE {
     ?film wdt:P345 "${imdbId}" .
@@ -1991,7 +2240,7 @@ async function fetchWikidataDetails(imdbId, attempt){
   }catch(e){
     if(attempt < 2){
       await new Promise(r=>setTimeout(r, 900));
-      return fetchWikidataDetails(imdbId, attempt+1);
+      return fetchWikidataDetails(imdbId, wantCuriosita, attempt+1);
     }
     throw e;
   }
@@ -2021,23 +2270,22 @@ async function fetchWikidataDetails(imdbId, attempt){
   if(rt) out.votoRT = /%/.test(rt) ? rt : (rt + (Number(rt)<=10 ? '/10' : '%'));
   if(meta) out.votoMeta = meta;
   if(articleTitle){
-    try{
-      const sres = await fetchWithTimeout(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(articleTitle)}`, 6000);
-      if(sres.ok){
-        const sdata = await sres.json();
-        if(sdata.extract) out.trama = sdata.extract;
-      }
-    }catch(e){ /* niente trama disponibile, non è bloccante */ }
-    const [itRes, enRes] = await Promise.allSettled([
-      articleTitleIt ? fetchWikipediaFullText('it', articleTitleIt) : Promise.resolve(''),
-      articleTitleEn ? fetchWikipediaFullText('en', articleTitleEn) : Promise.resolve('')
-    ]);
-    const itFull = itRes.status === 'fulfilled' ? itRes.value : '';
-    const enFull = enRes.status === 'fulfilled' ? enRes.value : '';
-    let cur = itFull ? extractCuriosita(itFull, SEZIONI_CURIOSITA_IT) : '';
-    let curLang = 'it';
-    if(!cur && enFull){ cur = extractCuriosita(enFull, SEZIONI_CURIOSITA_EN); curLang = 'en'; }
-    if(cur) out.curiosita = curLang === 'en' ? ('[EN, da tradurre] ' + cur) : cur;
+    // Riepilogo (per la trama) e testo completo (solo se serve la curiosità)
+    // partono in parallelo invece che in sequenza: molto più veloce.
+    const jobs = [
+      fetchWithTimeout(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(articleTitle)}`, 6000)
+        .then(r => r.ok ? r.json() : null).catch(()=>null),
+      wantCuriosita && articleTitleIt ? fetchWikipediaFullText('it', articleTitleIt).catch(()=>'') : Promise.resolve(''),
+      wantCuriosita && articleTitleEn ? fetchWikipediaFullText('en', articleTitleEn).catch(()=>'') : Promise.resolve('')
+    ];
+    const [sdata, itFull, enFull] = await Promise.all(jobs);
+    if(sdata && sdata.extract) out.trama = sdata.extract;
+    if(wantCuriosita){
+      let cur = itFull ? extractCuriosita(itFull, SEZIONI_CURIOSITA_IT) : '';
+      let curLang = 'it';
+      if(!cur && enFull){ cur = extractCuriosita(enFull, SEZIONI_CURIOSITA_EN); curLang = 'en'; }
+      if(cur) out.curiosita = curLang === 'en' ? ('[EN, da tradurre] ' + cur) : cur;
+    }
   }
   return out;
 }
@@ -2060,7 +2308,7 @@ function applyWikidataDetails(m, d){
   return trovatoQualcosa;
 }
 async function applyFullDetails(m, imdbId){
-  const d = await fetchWikidataDetails(imdbId);
+  const d = await fetchWikidataDetails(imdbId, !m.curiosita);
   return applyWikidataDetails(m, d);
 }
 
@@ -2157,26 +2405,33 @@ document.getElementById('bulkEnrichBtn').addEventListener('click', async ()=>{
   const pw = document.getElementById('progressWrap');
   pw.classList.add('show');
   let done = 0, full = 0;
-  for(const m of todo){
-    if(_bulkCancelled) break;
-    document.getElementById('progressText').textContent = `Arricchimento in corso… ${done+1}/${todo.length}: ${displayTitle(m.titolo)}`;
-    try{
-      if(!m.imdbId){
-        const results = await imdbSearch(m.titolo);
-        if(results.length) applyImdbBasic(m, results[0]);
-      }
-      if(m.imdbId){
-        const ok = await applyFullDetails(m, m.imdbId);
-        if(ok) full++;
-      }
-    }catch(e){ console.error(e); }
-    done++;
-    document.getElementById('progressFill').style.width = (done/todo.length*100)+'%';
-    // Salva e ridisegna ogni 5 film (non a ogni film): interfaccia fluida
-    // e molte meno scritture, senza rischiare più di 5 film di lavoro
-    if(done % 5 === 0){ await saveState(); renderGrid(); }
-    await new Promise(r=>setTimeout(r, 400));
+  const CONCURRENCY = 4; // più film in parallelo: molto più veloce, resta gentile con i server pubblici
+  let nextIndex = 0;
+  const inProgress = new Set();
+  async function worker(){
+    while(nextIndex < todo.length && !_bulkCancelled){
+      const m = todo[nextIndex++];
+      inProgress.add(m.titolo);
+      try{
+        if(!m.imdbId){
+          const results = await imdbSearch(m.titolo);
+          if(results.length) applyImdbBasic(m, results[0]);
+        }
+        if(m.imdbId){
+          const ok = await applyFullDetails(m, m.imdbId);
+          if(ok) full++;
+        }
+      }catch(e){ console.error(e); }
+      inProgress.delete(m.titolo);
+      done++;
+      document.getElementById('progressText').textContent = `Arricchimento in corso… ${done}/${todo.length} (${[...inProgress].map(displayTitle).join(', ') || '…'})`;
+      document.getElementById('progressFill').style.width = (done/todo.length*100)+'%';
+      // Salva e ridisegna ogni 8 film: interfaccia fluida, poche scritture,
+      // rischio limitato anche in caso di interruzione a metà
+      if(done % 8 === 0){ await saveState(); renderGrid(); }
+    }
   }
+  await Promise.all(Array.from({length: Math.min(CONCURRENCY, todo.length)}, worker));
   await saveState(); // salvataggio finale sempre, anche dopo interruzione
   renderGrid();
   pw.classList.remove('show');
