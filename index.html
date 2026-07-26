@@ -12,7 +12,7 @@
 <title>My Physical Movie Library</title>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Bungee&family=VT323&family=Space+Mono:wght@400;700&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bungee&family=VT323&family=Permanent+Marker&family=Space+Mono:wght@400;700&family=Manrope:wght@400;500;600;700;800&display=swap');
 
 :root{
   --bg:#0a0a14;
@@ -592,36 +592,60 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 <body>
 <div id="vhsTape">
   <div class="tape-body">
-    <svg viewBox="0 0 200 132" width="160" height="106" xmlns="http://www.w3.org/2000/svg">
-      <rect x="3" y="3" width="194" height="126" rx="10" fill="#171325" stroke="#2de2e6" stroke-width="3"/>
-      <rect x="26" y="24" width="148" height="60" rx="5" fill="#050408" stroke="#ffd23f" stroke-width="2"/>
-      <g transform="translate(63,54)">
+    <svg viewBox="0 0 200 150" width="170" height="127" xmlns="http://www.w3.org/2000/svg">
+      <rect x="3" y="3" width="194" height="144" rx="10" fill="#171325" stroke="#2de2e6" stroke-width="3"/>
+      <rect x="24" y="18" width="152" height="56" rx="5" fill="#050408" stroke="#ffd23f" stroke-width="2"/>
+      <!-- Bobina sinistra: più nastro avvolto (rullo pieno) -->
+      <g transform="translate(62,46)">
         <g>
-          <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="0.7s" repeatCount="indefinite"/>
-          <circle r="17" fill="none" stroke="#ff2e91" stroke-width="3"/>
-          <circle r="4" fill="#ff2e91"/>
-          <line x1="-17" y1="0" x2="17" y2="0" stroke="#ff2e91" stroke-width="2"/>
-          <line x1="0" y1="-17" x2="0" y2="17" stroke="#ff2e91" stroke-width="2"/>
-          <line x1="-12" y1="-12" x2="12" y2="12" stroke="#ff2e91" stroke-width="2"/>
-          <line x1="-12" y1="12" x2="12" y2="-12" stroke="#ff2e91" stroke-width="2"/>
+          <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="1.1s" repeatCount="indefinite"/>
+          <circle r="16" fill="rgba(255,255,255,.035)"/>
+          <circle r="16" fill="none" stroke="#7a7f8c" stroke-width="1.6"/>
+          <circle r="13" fill="#2b1d12" opacity=".6"/>
+          <circle r="13" fill="none" stroke="#1a120b" stroke-width=".6" opacity=".7"/>
+          <line x1="5" y1="0" x2="13.4" y2="0" stroke="#5c616d" stroke-width="1.5"/>
+          <line x1="2.5" y1="4.3" x2="6.7" y2="11.6" stroke="#5c616d" stroke-width="1.5"/>
+          <line x1="-2.5" y1="4.3" x2="-6.7" y2="11.6" stroke="#5c616d" stroke-width="1.5"/>
+          <line x1="-5" y1="0" x2="-13.4" y2="0" stroke="#5c616d" stroke-width="1.5"/>
+          <line x1="-2.5" y1="-4.3" x2="-6.7" y2="-11.6" stroke="#5c616d" stroke-width="1.5"/>
+          <line x1="2.5" y1="-4.3" x2="6.7" y2="-11.6" stroke="#5c616d" stroke-width="1.5"/>
+          <circle r="6" fill="#c7cbd1"/>
+          <circle r="6" fill="none" stroke="#8b8f98" stroke-width=".7"/>
+          <circle r="2.2" fill="#232328"/>
         </g>
       </g>
-      <g transform="translate(137,54)">
+      <!-- Bobina destra: meno nastro avvolto (rullo più svuotato) -->
+      <g transform="translate(138,46)">
         <g>
-          <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="0.7s" repeatCount="indefinite"/>
-          <circle r="17" fill="none" stroke="#2de2e6" stroke-width="3"/>
-          <circle r="4" fill="#2de2e6"/>
-          <line x1="-17" y1="0" x2="17" y2="0" stroke="#2de2e6" stroke-width="2"/>
-          <line x1="0" y1="-17" x2="0" y2="17" stroke="#2de2e6" stroke-width="2"/>
-          <line x1="-12" y1="-12" x2="12" y2="12" stroke="#2de2e6" stroke-width="2"/>
-          <line x1="-12" y1="12" x2="12" y2="-12" stroke="#2de2e6" stroke-width="2"/>
+          <animateTransform attributeName="transform" type="rotate" from="0 0 0" to="360 0 0" dur="1.1s" repeatCount="indefinite"/>
+          <circle r="16" fill="rgba(255,255,255,.035)"/>
+          <circle r="16" fill="none" stroke="#7a7f8c" stroke-width="1.6"/>
+          <circle r="9" fill="#2b1d12" opacity=".6"/>
+          <circle r="9" fill="none" stroke="#1a120b" stroke-width=".6" opacity=".7"/>
+          <line x1="5" y1="0" x2="15" y2="0" stroke="#5c616d" stroke-width="1.5"/>
+          <line x1="2.5" y1="4.3" x2="7.5" y2="13" stroke="#5c616d" stroke-width="1.5"/>
+          <line x1="-2.5" y1="4.3" x2="-7.5" y2="13" stroke="#5c616d" stroke-width="1.5"/>
+          <line x1="-5" y1="0" x2="-15" y2="0" stroke="#5c616d" stroke-width="1.5"/>
+          <line x1="-2.5" y1="-4.3" x2="-7.5" y2="-13" stroke="#5c616d" stroke-width="1.5"/>
+          <line x1="2.5" y1="-4.3" x2="7.5" y2="-13" stroke="#5c616d" stroke-width="1.5"/>
+          <circle r="6" fill="#c7cbd1"/>
+          <circle r="6" fill="none" stroke="#8b8f98" stroke-width=".7"/>
+          <circle r="2.2" fill="#232328"/>
         </g>
       </g>
-      <line x1="80" y1="54" x2="120" y2="54" stroke="#5a5270" stroke-width="2"/>
-      <rect x="26" y="92" width="148" height="18" fill="#ffd23f"/>
-      <text x="100" y="105" text-anchor="middle" font-family="'VT323',monospace" font-size="15" font-weight="700" fill="#241407" letter-spacing="1">SP · HI-FI STEREO</text>
-      <circle cx="46" cy="118" r="3" fill="#050408"/>
-      <circle cx="154" cy="118" r="3" fill="#050408"/>
+      <line x1="82" y1="46" x2="118" y2="46" stroke="#3a2c1c" stroke-width="2.4"/>
+      <g transform="rotate(-1.2 100 106)">
+        <rect x="18" y="82" width="164" height="48" rx="2" fill="#f7ecd8" stroke="#241407" stroke-width="1.5"/>
+        <line x1="26" y1="98" x2="174" y2="98" stroke="#c9bfa0" stroke-width="1"/>
+        <line x1="26" y1="112" x2="174" y2="112" stroke="#c9bfa0" stroke-width="1"/>
+        <text id="vhsLabelText" font-family="'Permanent Marker',cursive" font-size="15" fill="#1a0f05" text-anchor="middle">
+          <tspan id="vhsLabelLine1" x="100" y="100">TITOLO</tspan>
+          <tspan id="vhsLabelLine2" x="100" y="116"></tspan>
+        </text>
+        <text x="170" y="127" text-anchor="end" font-family="'VT323',monospace" font-size="11" fill="#1a0f05" opacity=".55">SP</text>
+      </g>
+      <circle cx="44" cy="138" r="3" fill="#050408"/>
+      <circle cx="156" cy="138" r="3" fill="#050408"/>
     </svg>
     <div class="tape-label">CARICAMENTO…</div>
   </div>
@@ -788,7 +812,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
             <details class="info-help">
               <summary>ℹ️ Come funziona il recupero dati (nessuna chiave richiesta)</summary>
               <p style="font-size:11.5px;color:var(--dim2);line-height:1.5;margin:10px 0 0;">Nessuna chiave o registrazione richiesta, in nessun caso. Locandina, anno, trama, genere, regista, cast e tag arrivano da Wikidata/Wikipedia (infrastruttura ufficiale Wikimedia, stabile e gratuita); quando disponibile, arriva anche il voto della critica di Rotten Tomatoes (Tomatometer) e quello di Metacritic. Il voto del pubblico di Rotten Tomatoes (Popcornmeter) e il voto IMDb restano manuali — non sono ridistribuibili liberamente — ma con il link diretto qui sopra li trovi e li copi in pochi secondi. 🍅 rosso = "Fresh" (60% o più), 🟢 splat verde = "Rotten" (sotto 60%), come sul sito originale. Trama e cast possono arrivare in inglese se la voce italiana non esiste: modificali pure a mano. Curiosità e tag restano un recupero "best effort".</p>
-              <p style="font-size:11px;color:var(--dim2);line-height:1.5;margin:6px 0 0;">Nota: il "voto Rotten Tomatoes" qui è quello dei critici (Tomatometer). Wikidata quasi mai registra separatamente il voto del pubblico (Popcornmeter): per questo va inserito a mano, come il voto IMDb.</p>
+              <p style="font-size:11px;color:var(--dim2);line-height:1.5;margin:6px 0 0;">Nota: il voto critica (Tomatometer) arriva quasi sempre da Wikidata, in automatico e senza problemi. Il voto pubblico (Popcornmeter) invece è un "tentativo": l'app prova ad aprire la pagina esatta su Rotten Tomatoes e leggerlo da lì, ma il sito a volte blocca queste richieste automatiche — quindi capita che non arrivi. Se resta vuoto, inseriscilo pure a mano dal link qui a sinistra: non è un errore dell'app, è un limite del sito d'origine.</p>
             </details>
           </div>
         </div>
@@ -1715,9 +1739,31 @@ function renderTable(list){
    per chi preferisce animazioni ridotte: in quel caso la scheda si apre
    subito, senza attesa. */
 const PREFERS_REDUCED_MOTION = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+/* Spezza il titolo su max 2 righe per stare nell'etichetta scritta a mano,
+   troncando con "…" se proprio non ci sta. */
+function wrapVhsTitle(title){
+  const t = (title||'Senza titolo').trim().toUpperCase();
+  const MAX = 15;
+  if(t.length <= MAX) return [t, ''];
+  let line1 = t.slice(0, MAX);
+  const cut = line1.lastIndexOf(' ');
+  if(cut > 4) line1 = t.slice(0, cut);
+  let line2 = t.slice(line1.length).trim();
+  if(line2.length > MAX) line2 = line2.slice(0, MAX-1).trim() + '…';
+  return [line1, line2];
+}
+function setVhsLabel(title){
+  const [l1, l2] = wrapVhsTitle(title);
+  const t1 = document.getElementById('vhsLabelLine1');
+  const t2 = document.getElementById('vhsLabelLine2');
+  if(t1) t1.textContent = l1;
+  if(t2) t2.textContent = l2;
+}
 function playVhsInsert(cardEl, onDone){
   if(PREFERS_REDUCED_MOTION || !cardEl){ onDone(); return; }
   const tape = document.getElementById('vhsTape');
+  const m = state.movies.find(x=>x.id===cardEl.dataset.id);
+  setVhsLabel(m ? displayTitle(m.titolo) : '');
   cardEl.classList.add('inserting');
   if(tape){
     requestAnimationFrame(()=> tape.classList.add('active'));
@@ -2572,7 +2618,7 @@ async function wikidataSearch(title){
 }
 /* Dettagli completi partendo dal QID (per i rari film senza ID IMDb) */
 async function fetchWikidataDetailsByQid(qid){
-  const query = `SELECT ?genreLabel ?directorLabel ?castLabel ?seriesLabel ?articleIt ?articleEn ?score ?scoreBy WHERE {
+  const query = `SELECT ?genreLabel ?directorLabel ?castLabel ?seriesLabel ?articleIt ?articleEn ?score ?scoreBy ?rtId WHERE {
     BIND(wd:${qid} AS ?film)
     OPTIONAL { ?film wdt:P136 ?genre. }
     OPTIONAL { ?film wdt:P57 ?director. }
@@ -2581,6 +2627,7 @@ async function fetchWikidataDetailsByQid(qid){
     OPTIONAL { ?articleIt schema:about ?film ; schema:isPartOf <https://it.wikipedia.org/> . }
     OPTIONAL { ?articleEn schema:about ?film ; schema:isPartOf <https://en.wikipedia.org/> . }
     OPTIONAL { ?film p:P444 ?st . ?st ps:P444 ?score . ?st pq:P447 ?scoreByItem . BIND(STRAFTER(STR(?scoreByItem), "entity/") AS ?scoreBy) }
+    OPTIONAL { ?film wdt:P1258 ?rtId. }
     SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". }
   } LIMIT 300`;
   const url = 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(query);
@@ -2626,7 +2673,7 @@ const QID_ROTTEN_TOMATOES = ['Q105584','Q108403393','Q108403540']; // Rotten Tom
 const QID_METACRITIC = ['Q106515043']; // Metascore
 async function fetchWikidataDetails(imdbId, attempt){
   attempt = attempt || 1;
-  const query = `SELECT ?genreLabel ?directorLabel ?castLabel ?seriesLabel ?articleIt ?articleEn ?score ?scoreBy WHERE {
+  const query = `SELECT ?genreLabel ?directorLabel ?castLabel ?seriesLabel ?articleIt ?articleEn ?score ?scoreBy ?rtId WHERE {
     ?film wdt:P345 "${imdbId}" .
     OPTIONAL { ?film wdt:P136 ?genre. }
     OPTIONAL { ?film wdt:P57 ?director. }
@@ -2635,6 +2682,7 @@ async function fetchWikidataDetails(imdbId, attempt){
     OPTIONAL { ?articleIt schema:about ?film ; schema:isPartOf <https://it.wikipedia.org/> . }
     OPTIONAL { ?articleEn schema:about ?film ; schema:isPartOf <https://en.wikipedia.org/> . }
     OPTIONAL { ?film p:P444 ?st . ?st ps:P444 ?score . ?st pq:P447 ?scoreByItem . BIND(STRAFTER(STR(?scoreByItem), "entity/") AS ?scoreBy) }
+    OPTIONAL { ?film wdt:P1258 ?rtId. }
     SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". }
   } LIMIT 300`;
   const url = 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(query);
@@ -2654,7 +2702,7 @@ async function fetchWikidataDetails(imdbId, attempt){
 }
 async function parseWikidataRows(rows){
   const genres = new Set(), directors = new Set(), cast = new Set(), series = new Set();
-  let articleTitleIt = null, articleTitleEn = null, rt = null, meta = null;
+  let articleTitleIt = null, articleTitleEn = null, rt = null, meta = null, rtId = null;
   rows.forEach(r=>{
     if(r.genreLabel && !isQidFallback(r.genreLabel.value)) genres.add(cleanGenreLabel(r.genreLabel.value));
     if(r.directorLabel && !isQidFallback(r.directorLabel.value)) directors.add(r.directorLabel.value);
@@ -2662,6 +2710,7 @@ async function parseWikidataRows(rows){
     if(r.seriesLabel && !isQidFallback(r.seriesLabel.value)) series.add(r.seriesLabel.value);
     if(!articleTitleIt && r.articleIt) articleTitleIt = decodeURIComponent(r.articleIt.value.split('/wiki/')[1]);
     if(!articleTitleEn && r.articleEn) articleTitleEn = decodeURIComponent(r.articleEn.value.split('/wiki/')[1]);
+    if(!rtId && r.rtId && r.rtId.value) rtId = r.rtId.value.trim();
     if(r.score && r.scoreBy){
       if(!rt && QID_ROTTEN_TOMATOES.includes(r.scoreBy.value)) rt = r.score.value;
       if(!meta && QID_METACRITIC.includes(r.scoreBy.value)) meta = r.score.value;
@@ -2676,6 +2725,7 @@ async function parseWikidataRows(rows){
   if(series.size) out.tagSuggeriti = [...series].join(', ');
   if(rt) out.votoRT = /%/.test(rt) ? rt : (rt + (Number(rt)<=10 ? '/10' : '%'));
   if(meta) out.votoMeta = meta;
+  if(rtId) out.rtUrl = 'https://www.rottentomatoes.com/' + rtId.replace(/^\/+/, '');
   if(articleTitle){
     // La scheda Wikipedia porta trama E l'immagine dell'infobox, che per i
     // film è la locandina. È la fonte poster affidabile e senza chiavi: i
@@ -2722,6 +2772,7 @@ function applyWikidataDetails(m, d){
   if(!m.curiosita && d.curiosita) m.curiosita = cleanText(d.curiosita);
   if(d.votoRT) m.votoRT = d.votoRT;
   if(d.votoMeta) m.votoMeta = d.votoMeta;
+  if(!m.rtUrl && d.rtUrl) m.rtUrl = d.rtUrl;
   if(d.tagSuggeriti){
     const esistenti = (m.tags||'').split(',').map(t=>t.trim()).filter(Boolean);
     const nuovi = d.tagSuggeriti.split(',').map(t=>t.trim()).filter(Boolean);
@@ -2737,12 +2788,43 @@ async function applyFullDetails(m, imdbId){
 }
 
 /* ---------- Voti direttamente da Rotten Tomatoes (best effort, keyless) ----------
-   RT non ha un'API pubblica: qui si interroga l'endpoint di ricerca interno
-   del sito (lo stesso della barra di ricerca su rottentomatoes.com) tramite
-   i proxy CORS già usati per IMDb. Quando risponde, arrivano SUBITO e
-   aggiornati sia il voto critica (Tomatometer) sia quello del pubblico
-   (Popcornmeter), più il link alla scheda esatta. Se non risponde, restano
-   i voti da Wikidata e l'inserimento manuale: nessun errore bloccante. */
+   RT non ha un'API pubblica. Due strade, in ordine di affidabilità:
+   1) Se Wikidata conosce già l'ID esatto della pagina RT del film (proprietà
+      P1258), si apre direttamente quella pagina — niente ricerca di mezzo,
+      quindi molto più affidabile.
+   2) Altrimenti si prova l'endpoint di ricerca interno del sito (quello
+      della barra di ricerca su rottentomatoes.com).
+   In entrambi i casi i voti (critica E pubblico) si leggono dal componente
+   <score-board> della pagina scheda, che li porta come attributi HTML
+   (tomatometerscore, audiencescore) — indipendentemente dal JSON dell'API
+   di ricerca, che quasi sempre NON include il voto del pubblico. Se niente
+   risponde, restano i voti da Wikidata e l'inserimento manuale: nessun
+   errore bloccante. */
+const RT_WRAPS = [
+  u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
+  u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u),
+  u => 'https://corsproxy.io/?url=' + encodeURIComponent(u)
+];
+/* Legge tomatometer e audience score direttamente da una pagina scheda RT:
+   il sito li incorpora nell'attributo HTML del componente <score-board>
+   (tomatometerscore="92" audiencescore="88"). Prova tutti i relay CORS
+   disponibili finché uno risponde. */
+async function rtPageScores(url){
+  for(const wrap of RT_WRAPS){
+    try{
+      const res = await fetchWithTimeout(wrap(url), 7000);
+      console.log('[RT] pagina', url, '→ relay', wrap(url).split('?')[0], 'status', res.status);
+      if(!res.ok) continue;
+      const html = await res.text();
+      const tm = html.match(/tomatometerscore="(\d{1,3})"/i);
+      const aud = html.match(/audiencescore="(\d{1,3})"/i);
+      console.log('[RT] tomatometerscore trovato?', !!tm, '— audiencescore trovato?', !!aud, '— lunghezza pagina', html.length);
+      if(!tm && !aud) continue;
+      return { critics: tm ? parseInt(tm[1]) : null, audience: aud ? parseInt(aud[1]) : null };
+    }catch(e){ console.log('[RT] relay fallito per', url, ':', e.message); }
+  }
+  return null;
+}
 async function rtSearchScores(title, year){
   if(!title) return null;
   const q = encodeURIComponent(title.trim());
@@ -2750,38 +2832,77 @@ async function rtSearchScores(title, year){
     `https://www.rottentomatoes.com/api/private/v2.0/search/?q=${q}&limit=10`,
     `https://www.rottentomatoes.com/napi/search/all?searchQuery=${q}`
   ];
-  const wraps = [
-    u => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u),
-    u => 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u)
-  ];
   for(const ep of endpoints){
-    for(const wrap of wraps){
+    for(const wrap of RT_WRAPS){
       try{
         const res = await fetchWithTimeout(wrap(ep), 6000);
+        console.log('[RT] ricerca', title, '→ relay', wrap(ep).split('?')[0], 'status', res.status);
         if(!res.ok) continue;
         const data = await res.json();
         const movies = (data && data.movies)
           || (data && data.movie && data.movie.items)
           || [];
+        console.log('[RT] risultati ricerca trovati:', movies.length);
         if(!movies.length) continue;
         const y = parseInt(year);
         const best = (y && movies.find(mv => parseInt(mv.year || mv.releaseYear) === y)) || movies[0];
         const critics = best.meterScore != null ? best.meterScore
           : (best.criticsScore ? (best.criticsScore.score != null ? best.criticsScore.score : best.criticsScore.value) : null);
-        const audience = best.audienceScore ? (best.audienceScore.score != null ? best.audienceScore.score : best.audienceScore.value) : null;
+        let audience = best.audienceScore ? (best.audienceScore.score != null ? best.audienceScore.score : best.audienceScore.value) : null;
         const path = best.url || '';
         const url = path ? (path.startsWith('http') ? path : 'https://www.rottentomatoes.com' + path) : '';
-        if(critics != null || audience != null || url){
+        console.log('[RT] scelto:', best.name || title, '— critica dalla ricerca:', critics, '— pubblico dalla ricerca:', audience, '— url scheda:', url);
+        let critics2 = null;
+        // La ricerca "leggera" quasi sempre NON include il voto del pubblico:
+        // se manca, si apre la scheda esatta appena trovata e si legge da lì.
+        if(audience == null && url){
+          try{
+            const scores = await rtPageScores(url);
+            if(scores){
+              if(scores.audience != null) audience = scores.audience;
+              if(scores.critics != null) critics2 = scores.critics;
+            }
+          }catch(e){ /* pagina non raggiungibile, restano i dati della ricerca */ }
+        }
+        if(critics != null || critics2 != null || audience != null || url){
           return {
-            votoRT: (critics != null && critics !== '') ? String(critics).replace('%','').trim() + '%' : '',
+            votoRT: (critics2 ?? critics) != null ? String(critics2 ?? critics).replace('%','').trim() + '%' : '',
             votoRTPubblico: (audience != null && audience !== '') ? String(audience).replace('%','').trim() + '%' : '',
             url
           };
         }
-      }catch(e){ /* prova la combinazione successiva */ }
+      }catch(e){ console.log('[RT] ricerca fallita su questo relay:', e.message); }
     }
   }
   return null;
+}
+/* Orchestratore: prova prima l'URL diretto (se noto da Wikidata), poi la
+   ricerca sul sito come riserva. Unisce i risultati così un voto trovato
+   da una fonte non viene perso se l'altra fonte non lo porta. */
+async function getRtScores(m, title, year){
+  console.log('[RT] --- inizio recupero voti per', title, '— URL diretto da Wikidata?', m.rtUrl || '(nessuno)');
+  let out = { votoRT:'', votoRTPubblico:'', url: m.rtUrl || '' };
+  if(m.rtUrl){
+    try{
+      const s = await rtPageScores(m.rtUrl);
+      if(s){
+        if(s.critics != null) out.votoRT = String(s.critics) + '%';
+        if(s.audience != null) out.votoRTPubblico = String(s.audience) + '%';
+      }
+    }catch(e){ console.log('[RT] URL diretto fallito:', e.message); }
+  }
+  if(!out.votoRT || !out.votoRTPubblico){
+    try{
+      const s2 = await rtSearchScores(title, year);
+      if(s2){
+        if(!out.votoRT && s2.votoRT) out.votoRT = s2.votoRT;
+        if(!out.votoRTPubblico && s2.votoRTPubblico) out.votoRTPubblico = s2.votoRTPubblico;
+        if(!out.url && s2.url) out.url = s2.url;
+      }
+    }catch(e){ console.log('[RT] ricerca sul sito fallita:', e.message); }
+  }
+  console.log('[RT] --- risultato finale:', out);
+  return (out.votoRT || out.votoRTPubblico || out.url) ? out : null;
 }
 function renderRtLink(m){
   const box = document.getElementById('rtLinkWrap');
@@ -2799,7 +2920,7 @@ async function refreshRtScores(m, session){
     // cambio scheda non fa cercare il titolo sbagliato.
     const titolo = m.titolo || document.getElementById('f_titolo').value.trim();
     const anno = m.anno || document.getElementById('f_anno').value.trim();
-    const rt = await rtSearchScores(titolo, anno);
+    const rt = await getRtScores(m, titolo, anno);
     if(!rt) return false;
     // Se nel frattempo l'utente ha cambiato scheda, aggiorna solo l'oggetto
     // (che è quello giusto) ma NON i campi visibili di un'altra scheda.
@@ -2987,7 +3108,7 @@ document.getElementById('bulkEnrichBtn').addEventListener('click', async ()=>{
       // Voti in diretta da Rotten Tomatoes (best effort): sovrascrivono
       // quelli più vecchi di Wikidata quando disponibili
       try{
-        const rt = await rtSearchScores(m.titolo, m.anno);
+        const rt = await getRtScores(m, m.titolo, m.anno);
         if(rt){
           if(rt.votoRT) m.votoRT = rt.votoRT;
           if(rt.votoRTPubblico) m.votoRTPubblico = rt.votoRTPubblico;
