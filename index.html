@@ -267,6 +267,8 @@ input[type=file]{display:none;}
 }
 .card-bottom .sub-dir{cursor:pointer; transition:color .15s;}
 .card-bottom .sub-dir:hover{color:var(--accent1); text-decoration:underline;}
+.card-bottom .sub-cof{cursor:pointer; transition:color .15s;}
+.card-bottom .sub-cof:hover{color:var(--gold); text-decoration:underline;}
 .card-bottom .votes{
   margin-top:5px; display:flex; flex-wrap:wrap; gap:6px; font-size:10.5px; font-weight:700;
 }
@@ -386,6 +388,18 @@ label{
   display:inline-flex; align-items:center; white-space:nowrap; max-width:100%;
   overflow:hidden; text-overflow:ellipsis;
 }
+
+/* altri film nello stesso cofanetto, mostrati nella scheda */
+.cofanetto-siblings{display:flex; flex-wrap:wrap; gap:6px; margin-top:10px;}
+.cofanetto-sib{
+  display:inline-flex; align-items:center; gap:6px; padding:5px 10px 5px 6px; border-radius:20px;
+  background:var(--card); border:1px solid var(--line); cursor:pointer; transition:.15s;
+  font-family:'Manrope',sans-serif; font-size:12px; color:var(--cream); font-weight:600;
+}
+.cofanetto-sib:hover{border-color:var(--accent1); color:var(--accent1);}
+.cofanetto-sib img{width:20px; height:28px; object-fit:cover; border-radius:3px; flex:0 0 auto;}
+.cofanetto-sib .ph{width:20px; height:28px; border-radius:3px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; font-size:11px; background:rgba(255,255,255,.06);}
+.cofanetto-sib.current{opacity:.55; cursor:default; border-style:dashed;}
 
 /* settings modal */
 .settings-modal{max-width:520px; padding:44px 36px;}
@@ -665,6 +679,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
     <select id="filterCustodia"><option value="">Tutte le custodie</option></select>
     <select id="filterTag"><option value="">Tutti i tag</option></select>
     <select id="filterRegista"><option value="">Tutti i registi</option></select>
+    <select id="filterCofanetto"><option value="">Tutti i cofanetti</option></select>
     <select id="filterDecennio"><option value="">Tutti i decenni</option></select>
     <select id="filterStato">
       <option value="">Visti e da vedere</option>
@@ -846,6 +861,14 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
           <div class="field">
             <label for="f_numero">N° film nel cofanetto</label>
             <input type="number" id="f_numero" min="1" value="1">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field full">
+            <label for="f_cofanetto">📦 Fa parte del cofanetto</label>
+            <input type="text" id="f_cofanetto" list="cofanettiList" placeholder="es. Animali Fantastici Trilogia (vuoto = film singolo)">
+            <datalist id="cofanettiList"></datalist>
+            <div id="cofanettoSiblings" class="cofanetto-siblings"></div>
           </div>
         </div>
         <div class="field-row">
@@ -1137,6 +1160,7 @@ function seedToMovie(r){
     tags:'', stato:'da_vedere',
     lista:'collezione', barcode:'', prezzo:'',
     prestatoA:'', prestatoIl:'',
+    cofanetto:'',
     aggiunto: Date.now()
   };
 }
@@ -1173,6 +1197,7 @@ function cleanupMovies(){
     if(m.formato) m.formato = m.formato.trim();
     m.custodia = canonicalCustodia(m.custodia);
     m.numero_film = parseInt(m.numero_film) || 1;
+    m.cofanetto = (m.cofanetto||'').replace(/\s+/g,' ').trim();
     if(!m.lista) m.lista = 'collezione';
     if(!m.aggiunto) m.aggiunto = Date.now();
   });
@@ -1563,6 +1588,21 @@ function populateFilters(){
   fD.innerHTML = '<option value="">Tutti i decenni</option>' +
     decs.map(d=>`<option value="${d}">Anni ${d.slice(2)}' · ${d}s (${decCount[d]})</option>`).join('');
   if(decs.includes(prevD)) fD.value = prevD;
+
+  // Cofanetti: filtro (solo nomi usati da almeno 2 film) e datalist per l'autocompletamento nel form
+  const cofCount = {};
+  state.movies.forEach(m=>{ const c = (m.cofanetto||'').trim(); if(c) cofCount[c] = (cofCount[c]||0)+1; });
+  const cofNames = Object.keys(cofCount).sort((a,b)=>a.localeCompare(b,'it'));
+  const fCof = document.getElementById('filterCofanetto');
+  if(fCof){
+    const prevCof = fCof.value;
+    const conDuePiu = cofNames.filter(c=>cofCount[c]>1);
+    fCof.innerHTML = '<option value="">Tutti i cofanetti</option>' +
+      conDuePiu.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)} (${cofCount[c]})</option>`).join('');
+    if(conDuePiu.includes(prevCof)) fCof.value = prevCof;
+  }
+  const dl = document.getElementById('cofanettiList');
+  if(dl) dl.innerHTML = cofNames.map(c=>`<option value="${escapeHtml(c)}">`).join('');
 }
 
 function renderStats(){
@@ -1603,6 +1643,7 @@ function getFiltered(){
   const fc = document.getElementById('filterCustodia').value;
   const ft = document.getElementById('filterTag').value;
   const fr = document.getElementById('filterRegista').value;
+  const fcof = document.getElementById('filterCofanetto').value;
   const fd = document.getElementById('filterDecennio').value;
   const fs = document.getElementById('filterStato').value;
   const sb = document.getElementById('sortBy').value;
@@ -1616,6 +1657,7 @@ function getFiltered(){
     if(fc && norm(m.custodia) !== fc) return false;
     if(ft && !tagList(m).includes(ft)) return false;
     if(fr && primaryDirector(m) !== fr) return false;
+    if(fcof && norm(m.cofanetto) !== norm(fcof)) return false;
     if(fd && movieDecade(m) !== fd) return false;
     if(fs === 'wishlist'){ if((m.lista||'collezione') !== 'wishlist') return false; }
     else if(fs === 'prestati'){ if(!(m.prestatoA||'').trim()) return false; }
@@ -1651,6 +1693,7 @@ function cardHTML(m){
   const metaBits = [m.anno, m.durata, genPrimo].filter(Boolean).map(escapeHtml);
   const meta = metaBits.length ? `<div class="meta">${metaBits.join(' · ')}</div>` : '';
   const regia = m.regista ? `<div class="sub sub-dir" data-dir="${escapeHtml(m.regista.split(',')[0].trim())}" title="Mostra tutti i film di questo regista">🎬 ${escapeHtml(m.regista.split(',')[0].trim())}</div>` : '';
+  const cofanetto = (m.cofanetto||'').trim() ? `<div class="sub sub-cof" data-cof="${escapeHtml(m.cofanetto.trim())}" title="Mostra tutti i film di questo cofanetto">📦 ${escapeHtml(m.cofanetto.trim())}</div>` : '';
   // Voti compatti sotto il titolo
   const votes = [];
   if(imdbVal!==null) votes.push(`<span>⭐ ${formatVoto10(m.votoImdb)}</span>`);
@@ -1669,6 +1712,7 @@ function cardHTML(m){
       <div class="t">${escapeHtml(displayTitle(m.titolo))}</div>
       ${meta}
       ${regia}
+      ${cofanetto}
       ${votesRow}
       <div class="stars">${stars}</div>
     </div>
@@ -1677,7 +1721,7 @@ function cardHTML(m){
 
 function renderGrid(){
   const list = getFiltered();
-  const anyFilter = ['search','filterFormato','filterCustodia','filterTag','filterRegista','filterDecennio','filterStato']
+  const anyFilter = ['search','filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato']
     .some(id=>{ const el = document.getElementById(id); return el && el.value; });
   const emptyEl = document.getElementById('empty');
   emptyEl.style.display = list.length ? 'none' : 'block';
@@ -1789,6 +1833,17 @@ document.getElementById('grid').addEventListener('click', e=>{
     }
     return;
   }
+  const cof = e.target.closest('.sub-cof');
+  if(cof){
+    e.stopPropagation();
+    const fCof = document.getElementById('filterCofanetto');
+    if([...fCof.options].some(o=>o.value===cof.dataset.cof)){
+      fCof.value = cof.dataset.cof;
+      renderGrid();
+      window.scrollTo({top:0, behavior:'smooth'});
+    }
+    return;
+  }
   const card = e.target.closest('.card');
   if(card) playVhsInsert(card, ()=>openModal(card.dataset.id));
 });
@@ -1828,6 +1883,31 @@ function renderRatingBadges(m){
   if(imdbVal!==null) parts.push(`<span class="rbadge imdb"><span class="ic">⭐</span>IMDb ${formatVoto10(m.votoImdb)}${m.imdbVotes ? ' ('+escapeHtml(m.imdbVotes)+' voti)' : ''}</span>`);
   box.innerHTML = parts.join('');
 }
+/* Mostra gli altri film già in libreria che condividono lo stesso nome di
+   cofanetto: ogni film resta una scheda a sé (con la propria trama, cast,
+   voti…), qui si vede solo il collegamento e si passa velocemente da uno
+   all'altro. */
+function renderCofanettoSiblings(m){
+  const box = document.getElementById('cofanettoSiblings');
+  if(!box) return;
+  const nome = (m.cofanetto||'').trim();
+  if(!nome){ box.innerHTML = ''; return; }
+  const siblings = state.movies.filter(x => norm(x.cofanetto) === norm(nome));
+  if(siblings.length < 2){
+    box.innerHTML = '<div style="font-size:11.5px;color:var(--dim2);margin-top:8px;">Nessun altro film con questo nome di cofanetto, per ora.</div>';
+    return;
+  }
+  box.innerHTML = siblings.map(s=>{
+    const isCurrent = s.id === m.id;
+    const thumb = s.poster
+      ? `<img src="${escapeHtml(s.poster)}" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display='none'">`
+      : `<div class="ph">🎬</div>`;
+    return `<div class="cofanetto-sib${isCurrent?' current':''}" data-id="${s.id}">${thumb}<span>${escapeHtml(displayTitle(s.titolo))}${isCurrent?' (questo)':''}</span></div>`;
+  }).join('');
+  box.querySelectorAll('.cofanetto-sib:not(.current)').forEach(el=>{
+    el.addEventListener('click', ()=> openModal(el.dataset.id));
+  });
+}
 function openModal(id){
   currentId = id;
   _modalSession++;
@@ -1838,6 +1918,8 @@ function openModal(id){
   document.getElementById('f_formato').value = normalizeSelectVal(m.formato, ['4k','Bluray','DVD','Apple tv','Digitale']);
   document.getElementById('f_custodia').value = normalizeSelectVal(m.custodia, ['amaray','steelbook','slipcover','cofanetto','digitale']);
   document.getElementById('f_numero').value = m.numero_film || 1;
+  document.getElementById('f_cofanetto').value = m.cofanetto || '';
+  renderCofanettoSiblings(m);
   document.getElementById('f_anno').value = m.anno||'';
   document.getElementById('f_durata').value = m.durata||'';
   document.getElementById('f_regista').value = m.regista||'';
@@ -2001,6 +2083,7 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
   m.formato = document.getElementById('f_formato').value;
   m.custodia = document.getElementById('f_custodia').value;
   m.numero_film = parseInt(document.getElementById('f_numero').value)||1;
+  m.cofanetto = document.getElementById('f_cofanetto').value.trim();
   m.anno = document.getElementById('f_anno').value.trim();
   m.durata = document.getElementById('f_durata').value.trim();
   m.regista = document.getElementById('f_regista').value.trim();
@@ -2065,6 +2148,8 @@ document.getElementById('addBtn').addEventListener('click', ()=>{
   document.getElementById('f_formato').value='4k';
   document.getElementById('f_custodia').value='amaray';
   document.getElementById('f_numero').value=1;
+  document.getElementById('f_cofanetto').value='';
+  document.getElementById('cofanettoSiblings').innerHTML='';
   document.getElementById('f_anno').value='';
   document.getElementById('f_durata').value='';
   document.getElementById('f_regista').value='';
@@ -2107,6 +2192,7 @@ document.getElementById('search').addEventListener('input', debouncedRender);
   document.getElementById('filterCustodia').addEventListener(evt, renderGrid);
   document.getElementById('filterTag').addEventListener(evt, renderGrid);
   document.getElementById('filterRegista').addEventListener(evt, renderGrid);
+  document.getElementById('filterCofanetto').addEventListener(evt, renderGrid);
   document.getElementById('filterDecennio').addEventListener(evt, renderGrid);
   document.getElementById('filterStato').addEventListener(evt, ()=>{
     document.getElementById('watchlistBtn').classList.toggle('toggle-on', document.getElementById('filterStato').value==='da_vedere');
@@ -2115,7 +2201,7 @@ document.getElementById('search').addEventListener('input', debouncedRender);
   document.getElementById('sortBy').addEventListener(evt, renderGrid);
 });
 document.getElementById('clearFiltersBtn').addEventListener('click', ()=>{
-  ['search','filterFormato','filterCustodia','filterTag','filterRegista','filterDecennio','filterStato'].forEach(id=>{
+  ['search','filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato'].forEach(id=>{
     const el = document.getElementById(id); if(el) el.value = '';
   });
   document.getElementById('watchlistBtn').classList.remove('toggle-on');
@@ -2192,6 +2278,7 @@ function rowToImportedFields(obj){
     formato: S('formato'),
     custodia: S('custodia'),
     numero_film: parseInt(S('numero film')) || 0,
+    cofanetto: S('cofanetto'),
     anno: S('anno'), durata: S('durata'), regista: S('regista'),
     genere: S('genere'), cast: S('cast'), trama: S('trama'),
     premi: S('riconoscimenti') || S('premi'),
@@ -2220,7 +2307,7 @@ function mergeImportedInto(m, f){
   // Solo i valori NON vuoti del file sovrascrivono; i vuoti non toccano nulla
   ['formato','custodia','anno','durata','regista','genere','cast','trama','premi','curiosita',
    'poster','qvideo','qaudio','votoImdb','imdbVotes','votoRT','votoRTPubblico','votoMeta','tags','imdbId','rtUrl','stato',
-   'lista','barcode','prezzo','prestatoA','prestatoIl']
+   'lista','barcode','prezzo','prestatoA','prestatoIl','cofanetto']
     .forEach(k=>{ if(f[k]) m[k] = f[k]; });
   if(f.numero_film) m.numero_film = f.numero_film;
   if(f.votoPersonale) m.votoPersonale = f.votoPersonale;
@@ -2294,7 +2381,7 @@ document.addEventListener('drop', e=>{
 /* ---------- Excel export ---------- */
 function buildExportRows(){
   return state.movies.map(m=>({
-    titolo:m.titolo, formato:m.formato, custodia:m.custodia, 'numero film':m.numero_film,
+    titolo:m.titolo, formato:m.formato, custodia:m.custodia, 'numero film':m.numero_film, cofanetto:m.cofanetto||'',
     anno:m.anno, durata:m.durata, regista:m.regista, genere:m.genere, cast:m.cast,
     'voto personale':m.votoPersonale, 'voto imdb':m.votoImdb, 'voti imdb':m.imdbVotes,
     'voto rotten tomatoes critica':m.votoRT, 'voto rotten tomatoes pubblico':m.votoRTPubblico, 'voto metacritic':m.votoMeta,
