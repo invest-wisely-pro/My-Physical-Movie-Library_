@@ -822,12 +822,16 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
             <div class="tmdb-results" id="tmdbResults"></div>
             <div id="imdbLinkWrap" style="margin-top:10px;"></div>
             <div id="rtLinkWrap" style="margin-top:8px;"></div>
+            <label for="f_blurayUrl" style="display:block; margin-top:12px; font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--dim2);">URL Blu-ray.com (la tua edizione esatta)</label>
+            <input type="text" id="f_blurayUrl" placeholder="Incolla qui il link della tua edizione…" style="margin-top:4px;">
+            <div id="blurayLinkWrap" style="margin-top:8px;"></div>
             <button class="btn ghost" id="retryFullDetailsBtn" style="width:100%; margin-top:8px; display:none;">🔄 Riprova dati completi</button>
             <button class="btn ghost" id="trailerBtn" style="width:100%; margin-top:8px;">▶ Cerca trailer su YouTube</button>
             <details class="info-help">
               <summary>ℹ️ Come funziona il recupero dati (nessuna chiave richiesta)</summary>
               <p style="font-size:11.5px;color:var(--dim2);line-height:1.5;margin:10px 0 0;">Nessuna chiave o registrazione richiesta, in nessun caso. Locandina, anno, trama, genere, regista, cast e tag arrivano da Wikidata/Wikipedia (infrastruttura ufficiale Wikimedia, stabile e gratuita); quando disponibile, arriva anche il voto della critica di Rotten Tomatoes (Tomatometer) e quello di Metacritic. Il voto del pubblico di Rotten Tomatoes (Popcornmeter) e il voto IMDb restano manuali — non sono ridistribuibili liberamente — ma con il link diretto qui sopra li trovi e li copi in pochi secondi. 🍅 rosso = "Fresh" (60% o più), 🟢 splat verde = "Rotten" (sotto 60%), come sul sito originale. Trama e cast possono arrivare in inglese se la voce italiana non esiste: modificali pure a mano. Curiosità e tag restano un recupero "best effort".</p>
               <p style="font-size:11px;color:var(--dim2);line-height:1.5;margin:6px 0 0;">Nota: il voto critica (Tomatometer) arriva quasi sempre da Wikidata, in automatico e senza problemi. Il voto pubblico (Popcornmeter) invece è un "tentativo": l'app prova ad aprire la pagina esatta su Rotten Tomatoes e leggerlo da lì, ma il sito a volte blocca queste richieste automatiche — quindi capita che non arrivi. Se resta vuoto, inseriscilo pure a mano dal link qui a sinistra: non è un errore dell'app, è un limite del sito d'origine.</p>
+              <p style="font-size:11px;color:var(--dim2);line-height:1.5;margin:6px 0 0;">Nota su Blu-ray.com: quel sito blocca esplicitamente l'accesso automatico nel suo robots.txt, quindi l'app non ci prova nemmeno — sarebbe una violazione delle loro regole. Il pulsante apre una ricerca per titolo: trova tu la pagina della TUA edizione esatta (steelbook, 4K, ecc.) e incollane il link nel campo qui sopra, così resta salvato e un tap la riapre sempre.</p>
             </details>
           </div>
         </div>
@@ -1948,6 +1952,8 @@ function openModal(id){
   renderImdbLink(m);
   window._draftRtUrl = null;
   renderRtLink(m);
+  document.getElementById('f_blurayUrl').value = m.blurayUrl || '';
+  renderBlurayLink(m);
   document.getElementById('confirmDelete').classList.remove('show');
   document.getElementById('badgeRow').innerHTML = `<span class="tag">${escapeHtml(formatoLabel(m.formato))}</span><span class="tag">${escapeHtml(custodiaLabel(m.custodia))}</span>${(m.numero_film>1)?`<span class="tag">${m.numero_film} film</span>`:''}`;
   document.getElementById('movieOverlay').classList.add('open');
@@ -2068,6 +2074,10 @@ document.getElementById('f_poster').addEventListener('input', e=>{
   renderPosterView({poster:e.target.value, titolo:document.getElementById('f_titolo').value});
 });
 
+document.getElementById('f_blurayUrl').addEventListener('input', e=>{
+  renderBlurayLink({ blurayUrl: e.target.value.trim(), titolo: document.getElementById('f_titolo').value });
+});
+
 document.getElementById('saveBtn').addEventListener('click', async ()=>{
   let m = state.movies.find(x=>x.id===currentId);
   const isNew = !m;
@@ -2109,6 +2119,7 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
   m.votoRT = rtCriticaVal ? rtCriticaVal.replace('%','').trim() + '%' : '';
   m.votoRTPubblico = rtPubblicoVal ? rtPubblicoVal.replace('%','').trim() + '%' : '';
   if(!m.rtUrl && window._draftRtUrl) m.rtUrl = window._draftRtUrl;
+  m.blurayUrl = document.getElementById('f_blurayUrl').value.trim();
   await saveState();
   renderAll();
   closeModal();
@@ -2178,6 +2189,8 @@ document.getElementById('addBtn').addEventListener('click', ()=>{
   renderImdbLink({});
   window._draftRtUrl = null;
   renderRtLink({titolo:''});
+  document.getElementById('f_blurayUrl').value = '';
+  renderBlurayLink({titolo:''});
   document.getElementById('tmdbResults').innerHTML='';
   document.getElementById('confirmDelete').classList.remove('show');
   document.getElementById('badgeRow').innerHTML='';
@@ -2294,6 +2307,7 @@ function rowToImportedFields(obj){
     tags: S('tag') || S('tags'),
     imdbId: idm[0] || '',
     rtUrl: S('link rotten tomatoes'),
+    blurayUrl: S('link blu-ray.com') || S('link bluray') || S('link blu-ray'),
     lista: S('lista').toLowerCase().startsWith('wish') ? 'wishlist' : (S('lista') ? 'collezione' : ''),
     barcode: S('codice a barre') || S('barcode') || S('ean'),
     prezzo: S('prezzo pagato') || S('prezzo'),
@@ -2306,7 +2320,7 @@ function rowToImportedFields(obj){
 function mergeImportedInto(m, f){
   // Solo i valori NON vuoti del file sovrascrivono; i vuoti non toccano nulla
   ['formato','custodia','anno','durata','regista','genere','cast','trama','premi','curiosita',
-   'poster','qvideo','qaudio','votoImdb','imdbVotes','votoRT','votoRTPubblico','votoMeta','tags','imdbId','rtUrl','stato',
+   'poster','qvideo','qaudio','votoImdb','imdbVotes','votoRT','votoRTPubblico','votoMeta','tags','imdbId','rtUrl','blurayUrl','stato',
    'lista','barcode','prezzo','prestatoA','prestatoIl','cofanetto']
     .forEach(k=>{ if(f[k]) m[k] = f[k]; });
   if(f.numero_film) m.numero_film = f.numero_film;
@@ -2388,6 +2402,7 @@ function buildExportRows(){
     'qualita video':m.qvideo, 'qualita audio':m.qaudio, trama:m.trama, riconoscimenti:m.premi, curiosita:m.curiosita, locandina:m.poster,
     'link imdb': m.imdbId ? `https://www.imdb.com/title/${m.imdbId}/` : '',
     'link rotten tomatoes': m.rtUrl || '',
+    'link blu-ray.com': m.blurayUrl || '',
     lista: (m.lista||'collezione')==='wishlist' ? 'Wishlist' : 'Collezione',
     'codice a barre': m.barcode||'', 'prezzo pagato': m.prezzo||'',
     'prestato a': m.prestatoA||'', 'prestato il': m.prestatoIl||'',
@@ -2999,6 +3014,25 @@ function renderRtLink(m){
   box.innerHTML = url
     ? `<a href="${escapeHtml(url)}" target="_blank" class="btn ghost" style="width:100%; display:block; text-align:center; box-sizing:border-box; text-decoration:none;">🍅 ${m && m.rtUrl ? 'Apri scheda su Rotten Tomatoes' : 'Cerca su Rotten Tomatoes'}</a>`
     : '';
+}
+/* Blu-ray.com blocca esplicitamente lo scraping nel suo robots.txt: niente
+   automazione, per rispetto delle loro regole (lo stesso motivo per cui
+   l'app non aggira mai le protezioni di un sito). Qui si può solo cercare
+   per titolo — è l'utente a trovare e incollare il link della SUA edizione
+   esatta (ogni release ha una pagina diversa), che poi resta salvato. */
+function renderBlurayLink(m){
+  const box = document.getElementById('blurayLinkWrap');
+  if(!box) return;
+  const titolo = (m && m.titolo) || document.getElementById('f_titolo').value.trim();
+  const saved = (m && m.blurayUrl) || '';
+  const searchUrl = titolo ? 'https://blu-ray.com/search/?quicksearch=1&keyword=' + encodeURIComponent(titolo) : '';
+  const parts = [];
+  if(saved){
+    parts.push(`<a href="${escapeHtml(saved)}" target="_blank" class="btn ghost" style="width:100%; display:block; text-align:center; box-sizing:border-box; text-decoration:none;">📀 Apri la tua edizione su Blu-ray.com</a>`);
+  } else if(searchUrl){
+    parts.push(`<a href="${escapeHtml(searchUrl)}" target="_blank" class="btn ghost" style="width:100%; display:block; text-align:center; box-sizing:border-box; text-decoration:none;">📀 Cerca su Blu-ray.com</a>`);
+  }
+  box.innerHTML = parts.join('');
 }
 /* Recupera i voti RT e compila i campi della scheda aperta */
 async function refreshRtScores(m, session){
