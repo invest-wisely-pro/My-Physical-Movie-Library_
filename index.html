@@ -77,6 +77,8 @@ header{
   text-align:center;
   border-bottom:2px solid var(--line);
   overflow:hidden;
+  transition:max-height .32s ease, padding-top .32s ease, padding-bottom .32s ease, opacity .22s ease, border-color .32s ease;
+  max-height:600px;
 }
 header::before{
   content:""; position:absolute; width:340px; height:340px; border-radius:50%;
@@ -178,7 +180,7 @@ select{cursor:pointer; appearance:none; padding-right:30px;
   box-shadow:0 20px 50px rgba(0,0,0,.55); z-index:60;
 }
 .tools-dropdown.open{display:flex;}
-.tools-dropdown .btn{width:100%; text-align:left; justify-content:flex-start;}
+.tools-dropdown .btn{width:100%; text-align:left; justify-content:flex-start; white-space:normal; line-height:1.4;}
 .btn{
   font-family:var(--font-mono); font-weight:700; font-size:12px; letter-spacing:.4px; text-transform:uppercase;
   padding:10px 20px; border-radius:9px; border:2px solid var(--line);
@@ -343,7 +345,7 @@ label{
 #f_trama{min-height:120px;}
 #f_curiosita{min-height:90px;}
 .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--accent1); box-shadow:0 0 0 3px rgba(45,226,230,.15);}
-.director-gaps{margin:-6px 0 14px; grid-column:1/-1;}
+.director-gaps{margin:-6px 0 14px;}
 .director-gaps-toggle{
   width:100%; text-align:left; background:rgba(160,32,240,.08); border:1px solid var(--line);
   border-radius:12px; padding:10px 14px; color:var(--dim); font-family:'Manrope',sans-serif;
@@ -352,11 +354,11 @@ label{
 .director-gaps-toggle:hover{border-color:var(--accent2); background:rgba(160,32,240,.14); color:var(--cream);}
 .director-gaps-toggle .chev{float:right; color:var(--dim2);}
 .director-gaps-list{margin-top:8px; padding:10px 12px; border:1px dashed var(--line); border-radius:12px; max-height:220px; overflow-y:auto;}
-.director-gaps-item{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:6px 2px; border-bottom:1px solid var(--line);}
+.director-gaps-item{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:8px 2px; border-bottom:1px solid var(--line);}
 .director-gaps-item:last-child{border-bottom:none;}
 .dgi-title{font-size:13px; color:var(--cream); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .dgi-year{color:var(--dim2); font-weight:500;}
-.dgi-add{flex:0 0 auto; padding:5px 10px; font-size:11.5px;}
+.dgi-add{flex:0 0 auto; padding:8px 12px; font-size:11.5px;}
 .dgi-more{font-size:12px; color:var(--dim2); padding:6px 2px 2px; text-align:center;}
 .modal-title-input{
   font-family:var(--font-display) !important; font-weight:400 !important; font-size:22px !important; color:var(--cream) !important;
@@ -545,6 +547,14 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 /* ---------- Mobile (uso "in negozio": ricerca rapida a una mano) ---------- */
 @media (max-width: 640px){
   header{padding:34px 5vw 24px;}
+  /* Menu iniziale "a scomparsa": scorrendo verso il basso tra le locandine
+     l'header si ritrae (titolo, tessera, statistiche) lasciando più spazio
+     alla griglia; risalendo, o tornando in cima, riappare subito. La barra
+     di ricerca/filtri resta sempre raggiungibile perché è già "sticky". */
+  header.header-collapsed{
+    max-height:0; padding-top:0; padding-bottom:0; opacity:0; border-color:transparent;
+    pointer-events:none;
+  }
   .stats-row{gap:8px;}
   .stat{padding:10px 14px; min-width:84px;}
   .stat b{font-size:18px;}
@@ -820,7 +830,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
   <div class="modal settings-modal" style="max-width:640px; max-height:80vh; display:flex; flex-direction:column;">
     <h2 style="margin-top:0; font-family:'Sora',sans-serif; font-size:20px;">🎬 Registi da completare</h2>
     <p style="color:var(--dim2); font-size:12.5px; margin:-8px 0 4px;">Registi di cui possiedi almeno 2 film, e il resto della loro filmografia che non hai ancora — calcolato dall'indice IMDb offline, senza rete.</p>
-    <div id="directorsOverlayBody" style="overflow-y:auto; flex:1; margin-top:10px;"></div>
+    <div id="directorsOverlayBody" style="overflow-y:auto; flex:1; min-height:0; margin-top:10px;"></div>
     <div class="modal-actions" style="margin-top:16px; display:flex; gap:10px; justify-content:flex-end;">
       <button class="btn ghost" id="directorsOverlayClose">Chiudi</button>
     </div>
@@ -1563,6 +1573,40 @@ async function registerServiceWorkerBestEffort(){
   }
 }
 registerServiceWorkerBestEffort();
+
+/* ---------- Menu iniziale a scomparsa (solo mobile) ----------
+   Scorrendo verso il basso tra le locandine l'header (tessera, titolo,
+   statistiche) si ritrae per lasciare più spazio alla griglia; scorrendo
+   verso l'alto, o tornando vicino alla cima della pagina, riappare
+   subito. La barra di ricerca/filtri non è toccata: resta "sticky" e
+   sempre raggiungibile. Attivo solo sotto i 641px: su desktop l'header
+   resta sempre visibile come oggi. */
+(function setupCollapsingHeader(){
+  const header = document.querySelector('header');
+  if(!header) return;
+  const mq = window.matchMedia('(max-width: 640px)');
+  const TOP_SAFE = 40;   // vicino alla cima: sempre visibile, evita "sfarfallio"
+  const THRESHOLD = 10;  // scorrimento minimo prima di reagire
+  let lastY = window.scrollY || 0;
+  let ticking = false;
+  function update(){
+    ticking = false;
+    if(!mq.matches){ header.classList.remove('header-collapsed'); return; }
+    const y = window.scrollY || document.documentElement.scrollTop || 0;
+    if(y <= TOP_SAFE){ header.classList.remove('header-collapsed'); lastY = y; return; }
+    const delta = y - lastY;
+    if(Math.abs(delta) < THRESHOLD) return;
+    if(delta > 0) header.classList.add('header-collapsed');    // scende → nasconde
+    else header.classList.remove('header-collapsed');           // sale → mostra
+    lastY = y;
+  }
+  window.addEventListener('scroll', ()=>{
+    if(!ticking){ requestAnimationFrame(update); ticking = true; }
+  }, {passive:true});
+  const onModeChange = ()=> header.classList.remove('header-collapsed');
+  if(mq.addEventListener) mq.addEventListener('change', onModeChange);
+  else if(mq.addListener) mq.addListener(onModeChange); // Safari meno recenti
+})();
 
 function toast(msg, action){
   const t = document.getElementById('toast');
