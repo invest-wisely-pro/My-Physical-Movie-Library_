@@ -748,6 +748,46 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
   .modal-hero-bg{height:300px;}
 }
 
+/* ---------- Assistente "Collega i film mancanti" ---------- */
+#linkOverlay{z-index:105;}
+#confirmOverlay{z-index:120;} /* le conferme devono stare sopra a qualunque finestra */
+.link-modal{max-width:680px; padding:34px 32px 28px;}
+.link-intro{color:var(--dim); font-size:14px; line-height:1.75;}
+.link-intro b{color:var(--cream);}
+.link-progress{height:6px; border-radius:6px; background:rgba(255,255,255,.07); overflow:hidden; margin:4px 0 8px;}
+.link-progress > div{height:100%; background:var(--grad); transition:width .3s ease;}
+.link-count{font-size:12px; color:var(--dim2); margin-bottom:14px;}
+.link-film{padding:14px 16px; border:1px dashed var(--line); border-radius:14px; margin-bottom:16px; background:rgba(255,255,255,.03);}
+.lf-label{font-size:10.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--dim2); margin-bottom:4px;}
+.lf-title{font-family:var(--font-display, 'Sora'), sans-serif; font-size:22px; color:var(--cream); line-height:1.2; overflow-wrap:anywhere;}
+.lf-meta{font-size:12.5px; color:var(--dim); margin-top:4px;}
+.link-sub{font-size:11.5px; letter-spacing:1.2px; text-transform:uppercase; color:var(--dim2); margin:0 0 8px;}
+.link-cand{display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:rgba(255,255,255,.03);
+  border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:8px; cursor:pointer; color:var(--cream);
+  font-family:'Manrope',sans-serif; transition:border-color .15s, background .15s, transform .1s;}
+.link-cand:hover{border-color:var(--accent1); background:rgba(45,226,230,.05);}
+.link-cand:active{transform:scale(.99);}
+.link-cand.best{border-color:var(--accent1); box-shadow:0 0 0 3px rgba(45,226,230,.12); background:rgba(45,226,230,.07);}
+.lc-main{flex:1; min-width:0;}
+.lc-title{font-weight:700; font-size:14.5px; line-height:1.3;}
+.lc-meta{font-size:12px; color:var(--dim2); margin-top:3px; line-height:1.5;}
+.lc-meta .r{color:#f5c518; font-weight:700;}
+.lc-pick{flex:0 0 auto; font-family:var(--font-mono, monospace); font-size:11px; font-weight:700; color:var(--accent1); white-space:nowrap;}
+.lc-badge{display:inline-block; font-size:10px; font-weight:800; letter-spacing:.4px; text-transform:uppercase; padding:2px 8px; border-radius:20px;
+  background:rgba(60,255,150,.12); color:#7dffb0; border:1px solid rgba(60,255,150,.3); margin-left:6px; vertical-align:middle;}
+.link-empty{font-size:13px; color:var(--dim); line-height:1.6; padding:12px 14px; border:1px solid var(--line); border-radius:12px; margin-bottom:8px;}
+.link-search{display:flex; gap:8px; margin:14px 0 4px;}
+.link-search input{flex:1; min-width:0;}
+.link-actions{display:flex; justify-content:space-between; gap:10px; margin-top:18px; flex-wrap:wrap;}
+.link-done{text-align:center; padding:6px 0 4px;}
+.link-big{font-family:var(--font-display, 'Sora'), sans-serif; font-size:44px; line-height:1.1; color:var(--cream); text-shadow:0 0 18px rgba(45,226,230,.35);}
+.link-done p{color:var(--dim); font-size:14px; line-height:1.7;}
+@media (max-width: 640px){
+  .link-modal{padding:58px 5vw 40px;}
+  .lf-title{font-size:20px;}
+  .link-actions .btn{flex:1;}
+}
+
 /* ---------- Animazione "inserimento videocassetta" al click sulla card ---------- */
 .card.inserting{
   animation:vhsInsert .55s cubic-bezier(.5,0,.85,1) forwards;
@@ -906,6 +946,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
       <button class="btn ghost" id="toolsMenuBtn">⚙️ Strumenti</button>
       <div class="tools-backdrop" id="toolsBackdrop"></div>
       <div class="tools-dropdown" id="toolsDropdown">
+        <button class="btn ghost" id="linkAssistantBtn" title="Collega a IMDb i film che non lo sono ancora: si sbloccano Dietro le quinte, schede persona e statistiche">🔗 Collega i film mancanti</button>
         <button class="btn ghost" onclick="document.getElementById('fileInput').click()" title="Importa da CSV o Excel (.xlsx/.xls). Trascinare il file sulla pagina funziona lo stesso.">📥 Importa CSV / Excel</button>
         <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
         <button class="btn ghost" id="exportBtn">📤 Esporta Excel</button>
@@ -1204,6 +1245,15 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 
 
 <!-- Stats modal -->
+<!-- Assistente: collega i film mancanti a IMDb -->
+<div class="overlay" id="linkOverlay">
+  <div class="modal link-modal" role="dialog" aria-modal="true" aria-labelledby="linkTitle">
+    <button class="modal-close" id="linkClose" aria-label="Chiudi assistente">&times;</button>
+    <h2 id="linkTitle" style="margin-top:0; font-family:'Sora',sans-serif; font-size:20px;">🔗 Collega i film mancanti</h2>
+    <div id="linkBody"></div>
+  </div>
+</div>
+
 <!-- Scheda persona: attore / regista / autore -->
 <div class="overlay" id="personOverlay">
   <div class="modal person-modal" role="dialog" aria-modal="true" aria-labelledby="personName">
@@ -2252,6 +2302,258 @@ function renderStatsStars(){
   if(pairs.length) html += `<div class="people-chips-label" style="margin:0 0 8px">Coppie d'oro regista + attore</div>${pairs.map(p=>`<div class="people-chips" style="margin:0 0 6px"><button type="button" class="person-chip dir" data-person="${escapeHtml(p.d)}">🎬 ${escapeHtml(p.d)}</button><button type="button" class="person-chip" data-person="${escapeHtml(p.a)}">${escapeHtml(p.a)} <b>×${p.n}</b></button></div>`).join('')}`;
   box.innerHTML = html || '<div style="color:var(--dim2);font-size:13px;">Compila regia e cast dei tuoi film (con 🔎 Cerca film) per scoprire le tue star.</div>';
 }
+
+/* =====================================================================
+   ASSISTENTE "COLLEGA I FILM MANCANTI"
+   Per ogni film senza ID IMDb propone i candidati più probabili dall'indice
+   offline; l'utente conferma con un tocco. Niente abbinamenti automatici
+   alla cieca: i casi ambigui (stesso titolo, remake, saghe) li decide lui.
+   I cofanetti vengono esclusi: un cofanetto non è un singolo titolo IMDb.
+   ===================================================================== */
+const LINK_NOISE = /\b(4k|uhd|ultra hd|blu ?-?ray|bluray|dvd|steelbook|slip ?cover|edizione|limited|collector'?s?|extended|director'?s cut|remastered|special edition|deluxe)\b/gi;
+function linkCleanTitle(t){ return normKey(String(t||'').replace(LINK_NOISE, ' ')); }
+function isCollectionTitle(t){
+  t = String(t||'');
+  return /\b(trilogia|quadrilogia|tetralogia|saga|collection|collezione|cofanetto|antologia|box ?set)\b/i.test(t)
+    || /\b\d+\s*(film|movie|movies)\b/i.test(t)
+    || /\b[ivx]+\s*[-–]\s*[ivx]+\b/i.test(t);
+}
+function titleSim(a, b){
+  if(!a || !b) return 0;
+  if(a === b || a.replace(/ /g,'') === b.replace(/ /g,'')) return 1;
+  const ta = new Set(a.split(' ')), tb = new Set(b.split(' '));
+  let inter = 0; ta.forEach(t=>{ if(tb.has(t)) inter++; });
+  const jac = inter / (ta.size + tb.size - inter);
+  return Math.min(0.95, jac + ((b.startsWith(a) || a.startsWith(b)) ? 0.1 : 0));
+}
+function linkCandidates(m, overrideQuery){
+  if(!IMDB_INDEX) return [];
+  const raw = overrideQuery || m.titolo;
+  const q = linkCleanTitle(raw);
+  if(!q) return [];
+  const toks = q.split(' ');
+  // "Mission Impossible 4": numero di capitolo in coda (1–2 cifre, non un anno)
+  const numTail = (!overrideQuery && toks.length > 1 && /^\d{1,2}$/.test(toks[toks.length-1])) ? parseInt(toks[toks.length-1], 10) : 0;
+  const base = numTail ? toks.slice(0, -1).join(' ') : q;
+  const variants = new Set([q, base]);
+  const noNum = toks.filter(t=>!/^\d+$/.test(t)).join(' ');
+  if(noNum) variants.add(noNum);
+  String(raw).split(/\s[-–:]\s|:\s/).forEach(p=>{ const k = linkCleanTitle(p); if(k && k.split(' ').length >= 2) variants.add(k); });
+  const pool = new Map();
+  variants.forEach(v=>{ if(v) searchImdbIndex(v, 40).forEach(e=>pool.set(e.id, e)); });
+  const year = parseInt(m.anno, 10) || 0;
+  const dirs = splitNames(m.regista);
+  const scored = [...pool.values()].map(e=>{
+    const it = normKey(e.it), en = normKey(e.en || '');
+    // "Sonic - Il film", "… The Movie": suffissi tipici delle distribuzioni, non parte del titolo
+    const strip = t => t.replace(/\s(il film|the movie|la serie|film)$/, '');
+    const sim = Math.max(titleSim(q, it), titleSim(q, en), titleSim(base, it), titleSim(base, en),
+                         titleSim(q, strip(it)), titleSim(q, strip(en)));
+    let s = sim * 100;
+    const ey = parseInt(e.y, 10) || 0;
+    if(year && ey) s += (ey === year) ? 40 : (Math.abs(ey - year) <= 1 ? 20 : -20);
+    if(dirs.length && e.dir && dirs.some(n=>directorMatches(e.dir, n))) s += 35;
+    s += Math.log10((e.v || 0) + 1) * 6;   // popolarità: il film famoso batte l'omonimo sconosciuto
+    return { e, s, sim, chapter: 0 };
+  });
+  // Capitolo N di una saga: i film che iniziano col titolo base, ordinati per anno → l'N-esimo
+  if(numTail){
+    const topV = Math.max(1, ...scored.map(x=>x.e.v || 0));
+    const saga = scored.filter(x=>{
+      const it = normKey(x.e.it), en = normKey(x.e.en || '');
+      return (it.startsWith(base) || en.startsWith(base)) && (x.e.v || 0) >= Math.max(2000, topV * 0.02);
+    }).sort((a,b)=>(parseInt(a.e.y,10)||0) - (parseInt(b.e.y,10)||0));
+    if(saga.length >= numTail){ saga[numTail-1].s += 80; saga[numTail-1].chapter = numTail; }
+  }
+  scored.sort((a,b)=>b.s - a.s);
+  const top = scored.slice(0, 6);
+  if(top.length){
+    const gap = top.length > 1 ? top[0].s - top[1].s : 999;
+    // Capitolo di saga individuato per anno: basta un vantaggio più piccolo per segnalarlo
+    top[0].confident = top[0].chapter ? gap >= 10 : (top[0].sim >= 0.8 && gap >= 25);
+  }
+  return top;
+}
+
+let _link = null;
+async function openLinkAssistant(){
+  const overlay = document.getElementById('linkOverlay');
+  overlay.classList.add('open');
+  document.getElementById('linkBody').innerHTML = '<p class="link-intro">Preparo l\'indice offline…</p>';
+  const idx = await ensureImdbIndex();
+  if(!idx){
+    document.getElementById('linkBody').innerHTML = '<p class="link-intro">L\'assistente usa l\'indice IMDb offline, che richiede un browser recente (Chrome, Edge, Safari aggiornati).</p>';
+    return;
+  }
+  const all = state.movies.filter(m=>!isTt(m.imdbId));
+  const collections = all.filter(m=>isCollectionTitle(m.titolo));
+  const queue = all.filter(m=>!isCollectionTitle(m.titolo)).map(m=>m.id);
+  _link = { queue, i:0, linked:[], skipped:new Set(), collections: collections.length, query:'', phase: queue.length ? 'intro' : 'empty', enrich:null };
+  renderLink();
+}
+function linkCurrent(){ return _link && state.movies.find(x=>x.id === _link.queue[_link.i]); }
+function renderLink(){
+  const box = document.getElementById('linkBody'); if(!box || !_link) return;
+  const L = _link;
+  if(L.phase === 'empty'){
+    box.innerHTML = `<div class="link-done"><div class="link-big">✓</div><p>Tutti i tuoi film sono già collegati a IMDb${L.collections ? ` (esclusi ${L.collections} cofanetti, che contengono più film)` : ''}.</p><button type="button" class="btn solid" data-link-close>Chiudi</button></div>`;
+    return;
+  }
+  if(L.phase === 'intro'){
+    box.innerHTML = `<p class="link-intro">Hai <b>${L.queue.length} film</b> non ancora collegati a IMDb${L.collections ? `, più <b>${L.collections} cofanetti</b> che escludo (un cofanetto contiene più film, non corrisponde a un singolo titolo)` : ''}.</p>
+      <p class="link-intro">Per ciascuno ti propongo il candidato più probabile dall'indice offline: tu confermi con un tocco, oppure scegli un'alternativa, cerchi a mano o salti. Puoi annullare l'ultimo collegamento in qualsiasi momento.</p>
+      <p class="link-intro">Collegandoli si sbloccano <b>Dietro le quinte</b>, schede persona più precise e statistiche complete.</p>
+      <div class="link-actions"><button type="button" class="btn ghost" data-link-close>Più tardi</button><button type="button" class="btn solid" data-link-start>Inizia →</button></div>`;
+    return;
+  }
+  if(L.phase === 'step'){
+    const m = linkCurrent();
+    if(!m){ L.phase = 'done'; return renderLink(); }
+    const cands = linkCandidates(m, L.query);
+    const pct = Math.round(L.i / L.queue.length * 100);
+    const meta = [formatoLabel(m.formato), m.custodia ? m.custodia.charAt(0).toUpperCase() + m.custodia.slice(1) : '', m.anno || '', primaryDirector(m)].filter(Boolean).join(' · ');
+    const fmtVotes = v => v >= 1e6 ? (v/1e6).toFixed(1).replace('.', ',') + ' Mln voti' : v >= 1e3 ? Math.round(v/1e3) + 'k voti' : (v ? v + ' voti' : '');
+    let list;
+    if(cands.length){
+      list = cands.map((c, n)=>{
+        const e = c.e;
+        const meta2 = [e.y, e.dir, e.g ? e.g.split(',')[0] : ''].filter(Boolean).map(x=>escapeHtml(String(x))).join(' · ');
+        const extra = [e.rt ? `<span class="r">★ ${escapeHtml(String(e.rt))}</span>` : '', escapeHtml(fmtVotes(e.v || 0)), c.chapter ? `capitolo ${c.chapter} della saga` : ''].filter(Boolean).join(' · ');
+        const sub = (e.en && normKey(e.en) !== normKey(e.it)) ? `<div class="lc-meta">${escapeHtml(e.en)}</div>` : '';
+        return `<button type="button" class="link-cand${n === 0 ? ' best' : ''}" data-link="${escapeHtml(e.id)}">
+          <div class="lc-main"><div class="lc-title">${escapeHtml(e.it || e.en)}${n === 0 && c.confident ? '<span class="lc-badge">Molto probabile</span>' : ''}</div>${sub}<div class="lc-meta">${meta2}${extra ? ' · ' + extra : ''}</div></div>
+          <span class="lc-pick">${n === 0 ? '✓ È questo' : 'Scegli'}</span></button>`;
+      }).join('');
+    } else {
+      list = `<div class="link-empty">Nessun candidato nell'indice per <b>${escapeHtml(L.query || m.titolo)}</b>. Potrebbe non essere un film (un concerto, una serie TV, un documentario non distribuito in Italia) o avere un titolo diverso: prova a cercarlo a mano qui sotto, oppure salta.</div>`;
+    }
+    box.innerHTML = `<div class="link-progress"><div style="width:${pct}%"></div></div>
+      <div class="link-count">Film ${L.i + 1} di ${L.queue.length} · ${L.linked.length} collegati${L.skipped.size ? ` · ${L.skipped.size} saltati` : ''}</div>
+      <div class="link-film"><div class="lf-label">Il tuo disco</div><div class="lf-title">${escapeHtml(displayTitle(m.titolo))}</div>${meta ? `<div class="lf-meta">${escapeHtml(meta)}</div>` : ''}</div>
+      <div class="link-sub">${L.query ? `Risultati per “${escapeHtml(L.query)}”` : 'Quale di questi è il tuo?'}</div>
+      ${list}
+      <div class="link-search"><input type="text" id="linkSearchInput" placeholder="Non c'è? Cerca con un altro titolo…" value="${escapeHtml(L.query)}" aria-label="Cerca un altro titolo"><button type="button" class="btn ghost" data-link-search>Cerca</button></div>
+      <div class="link-actions"><button type="button" class="btn ghost" data-link-undo ${L.linked.length ? '' : 'disabled'}>↩ Annulla ultimo</button><button type="button" class="btn ghost" data-link-skip>Salta →</button></div>`;
+    return;
+  }
+  if(L.phase === 'done'){
+    const n = L.linked.length;
+    box.innerHTML = `<div class="link-done"><div class="link-big">${n}</div>
+      <p>${n === 1 ? 'film collegato' : 'film collegati'} a IMDb${L.skipped.size ? ` · ${L.skipped.size} saltati (puoi riprovare quando vuoi)` : ''}.<br>Anno, regista, genere, durata e voto IMDb sono già compilati dove mancavano.</p>
+      ${n ? `<p style="font-size:13px;">Vuoi completare subito anche <b>locandine, trame, cast e Dietro le quinte</b>? Serve la connessione: circa ${Math.max(5, Math.round(n * 2.5))} secondi. Nulla di ciò che hai scritto a mano viene sovrascritto.</p>` : ''}
+      <div class="link-actions" style="justify-content:center">
+        ${L.linked.length ? '<button type="button" class="btn ghost" data-link-undo>↩ Annulla ultimo</button>' : ''}
+        <button type="button" class="btn ghost" data-link-close>Chiudi</button>
+        ${n ? '<button type="button" class="btn solid" data-link-enrich>🌐 Completa ora</button>' : ''}
+      </div></div>`;
+    return;
+  }
+  if(L.phase === 'enrich' || L.phase === 'enriched'){
+    const E = L.enrich;
+    const pct = E.total ? Math.round(E.done / E.total * 100) : 100;
+    if(L.phase === 'enrich'){
+      box.innerHTML = `<div class="link-progress"><div style="width:${pct}%"></div></div>
+        <div class="link-count">${E.done} di ${E.total}${E.current ? ` · ${escapeHtml(E.current)}…` : ''}</div>
+        <p class="link-intro">Scarico locandine, trame, cast e Dietro le quinte da Wikidata e Wikipedia. Puoi interrompere quando vuoi: quello già scaricato resta salvato.</p>
+        <div class="link-actions" style="justify-content:center"><button type="button" class="btn ghost" data-link-cancel>✕ Interrompi</button></div>`;
+    } else {
+      box.innerHTML = `<div class="link-done"><div class="link-big">✓</div>
+        <p>Completati <b>${E.ok}</b> film${E.fail ? `, ${E.fail} non raggiungibili ora (riprova più tardi dalla loro scheda)` : ''}${E.cancel ? ' — interrotto da te' : ''}.</p>
+        <div class="link-actions" style="justify-content:center"><button type="button" class="btn solid" data-link-close>Chiudi</button></div></div>`;
+    }
+  }
+}
+async function linkChoose(id){
+  const m = linkCurrent(); const e = imdbEntry(id);
+  if(!m || !e) return;
+  const altro = state.movies.find(x=>x !== m && x.imdbId === e.id);
+  if(altro && !(await askConfirm(`"${displayTitle(e.it || e.en)}" è già collegato a "${displayTitle(altro.titolo)}" nella tua libreria. Collegarlo anche a questo disco?`))) return;
+  const before = { imdbId: m.imdbId || null, anno: m.anno, regista: m.regista, genere: m.genere, durata: m.durata, votoImdb: m.votoImdb, extra: m.extra };
+  m.imdbId = e.id;
+  if(!m.anno && e.y) m.anno = String(e.y);
+  if(!m.regista && e.dir) m.regista = e.dir;
+  if(!m.genere && e.g) m.genere = e.g;
+  if(!m.durata && e.r) m.durata = e.r + ' min';
+  if(!m.votoImdb && e.rt) m.votoImdb = String(e.rt).replace('.', ',');
+  delete m.extra;   // eventuale cache di un collegamento precedente non vale più
+  _link.linked.push({ id: m.id, before });
+  _link.skipped.delete(m.id);
+  _link.i++; _link.query = '';
+  saveState();
+  if(_link.i >= _link.queue.length) _link.phase = 'done';
+  renderLink();
+}
+function linkUndo(){
+  const last = _link && _link.linked.pop(); if(!last) return;
+  const m = state.movies.find(x=>x.id === last.id);
+  if(m){
+    Object.keys(last.before).forEach(k=>{ if(last.before[k] === undefined) delete m[k]; else m[k] = last.before[k]; });
+  }
+  const pos = _link.queue.indexOf(last.id);
+  if(pos >= 0) _link.i = pos;
+  _link.phase = 'step'; _link.query = '';
+  saveState(); renderLink();
+  toast('Collegamento annullato');
+}
+async function linkEnrichAll(){
+  const ids = _link.linked.map(x=>x.id);
+  const E = _link.enrich = { done:0, total:ids.length, ok:0, fail:0, cancel:false, current:'' };
+  _link.phase = 'enrich'; renderLink();
+  for(const id of ids){
+    if(E.cancel) break;
+    const m = state.movies.find(x=>x.id === id);
+    if(!m || !isTt(m.imdbId)){ E.done++; continue; }
+    E.current = displayTitle(m.titolo); renderLink();
+    try{
+      const d = await fetchWikidataDetails(m.imdbId);
+      // applyWikidataDetails sovrascrive: la applico a un oggetto temporaneo
+      // e copio SOLO nei campi vuoti, così non tocco ciò che hai scritto tu.
+      const tmp = {};
+      applyWikidataDetails(tmp, d || {});
+      Object.keys(tmp).forEach(k=>{ if(tmp[k] && !m[k]) m[k] = tmp[k]; });
+      if(!safeUrl(m.poster)){ const p = await fetchPosterByImdb(m.imdbId).catch(()=>''); if(p) m.poster = p; }
+      if(!m.extra){ const ex = await fetchBehindScenes(m.imdbId).catch(()=>null); if(ex) m.extra = ex; }
+      E.ok++;
+    }catch(err){ E.fail++; }
+    E.done++;
+    saveState();
+    if(!E.cancel) await new Promise(r=>setTimeout(r, 250));   // gentile con i server Wikimedia
+  }
+  E.current = '';
+  _link.phase = 'enriched';
+  renderAll(); renderLink();
+}
+function closeLinkAssistant(){
+  document.getElementById('linkOverlay').classList.remove('open');
+  if(_link && _link.enrich) _link.enrich.cancel = true;
+  renderAll();
+}
+document.getElementById('linkAssistantBtn').addEventListener('click', ()=>{
+  const dd = document.getElementById('toolsDropdown'); if(dd) dd.classList.remove('open');
+  const bd = document.getElementById('toolsBackdrop'); if(bd) bd.classList.remove('open');
+  openLinkAssistant();
+});
+document.getElementById('linkClose').addEventListener('click', closeLinkAssistant);
+document.getElementById('linkOverlay').addEventListener('click', e=>{ if(e.target.id === 'linkOverlay') closeLinkAssistant(); });
+document.getElementById('linkBody').addEventListener('click', e=>{
+  const t = e.target;
+  if(t.closest('[data-link-start]')){ _link.phase = 'step'; renderLink(); return; }
+  const c = t.closest('[data-link]'); if(c){ linkChoose(c.dataset.link); return; }
+  if(t.closest('[data-link-skip]')){
+    const m = linkCurrent(); if(m) _link.skipped.add(m.id);
+    _link.i++; _link.query = '';
+    if(_link.i >= _link.queue.length) _link.phase = 'done';
+    renderLink(); return;
+  }
+  if(t.closest('[data-link-undo]')){ linkUndo(); return; }
+  if(t.closest('[data-link-search]')){ _link.query = (document.getElementById('linkSearchInput').value || '').trim(); renderLink(); return; }
+  if(t.closest('[data-link-enrich]')){ linkEnrichAll(); return; }
+  if(t.closest('[data-link-cancel]')){ if(_link.enrich) _link.enrich.cancel = true; return; }
+  if(t.closest('[data-link-close]')){ closeLinkAssistant(); return; }
+});
+document.getElementById('linkBody').addEventListener('keydown', e=>{
+  if(e.key === 'Enter' && e.target.id === 'linkSearchInput'){ e.preventDefault(); _link.query = e.target.value.trim(); renderLink(); }
+});
 
 /* ---------- Foglio "Filtri e ordinamento" (mobile) ----------
    Sono gli STESSI menu della barra desktop (stessi id, stessa logica di
