@@ -590,6 +590,164 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
   .tools-backdrop.open{display:block;}
 }
 
+/* ---------- Barra compatta: su desktop i contenitori sono "trasparenti" ---------- */
+.filter-panel, .action-rail{display:contents;}
+#filterSheetBtn, .filter-backdrop, .filter-sheet-head, .filter-sheet-foot{display:none;}
+.filter-count{display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px;
+  border-radius:9px; background:var(--accent3, #ff2e91); color:#14060c; font-size:11px; font-weight:800; margin-left:6px;}
+.filter-count:empty{display:none;}
+
+/* ---------- Mobile: ricerca + Filtri in alto, filtri in un foglio dal basso,
+   azioni su una fila scorrevole, "Aggiungi" come pulsante fluttuante ---------- */
+@media (max-width: 640px){
+  /* backdrop-filter crea un nuovo riferimento per gli elementi position:fixed
+     al suo interno: il pannello Strumenti, il foglio filtri e il pulsante "+"
+     finirebbero ancorati alla barra invece che allo schermo. */
+  .toolbar{backdrop-filter:none; -webkit-backdrop-filter:none; background:rgba(10,10,20,.97); padding:10px 4vw 8px; gap:8px;}
+  .search-group{flex-wrap:nowrap; width:100%;}
+  #search{flex:1 1 auto; min-width:0;}
+  #filterSheetBtn{display:inline-flex; align-items:center; flex:0 0 auto; padding:10px 12px;}
+  .filter-backdrop{display:block; position:fixed; inset:0; background:rgba(4,4,8,.62); opacity:0; pointer-events:none;
+    transition:opacity .25s ease; z-index:61;}
+  .filter-backdrop.open{opacity:1; pointer-events:auto;}
+  .filter-panel{
+    display:flex; flex-direction:column; gap:10px;
+    position:fixed; left:0; right:0; bottom:0; max-height:84vh; overflow-y:auto; overscroll-behavior:contain;
+    background:linear-gradient(170deg, #1d1729, #120f1c); border-top:2px solid var(--line);
+    border-radius:22px 22px 0 0; padding:14px 5vw calc(14px + env(safe-area-inset-bottom, 0px));
+    box-shadow:0 -20px 60px rgba(0,0,0,.6);
+    transform:translateY(105%); transition:transform .3s cubic-bezier(.2,.8,.2,1); z-index:62;
+    visibility:hidden;
+  }
+  .filter-panel.open{transform:none; visibility:visible;}
+  .filter-panel select{width:100%;}
+  .filter-sheet-head{display:flex; align-items:center; justify-content:space-between; font-family:'Sora',sans-serif;
+    font-weight:700; font-size:15px; color:var(--cream); padding-bottom:10px; border-bottom:1px solid var(--line);}
+  .filter-sheet-head .btn{padding:6px 12px;}
+  .filter-sheet-foot{display:flex; gap:10px; position:sticky; bottom:calc(-14px - env(safe-area-inset-bottom, 0px));
+    padding:12px 0 2px; background:linear-gradient(transparent, #120f1c 30%);}
+  .filter-sheet-foot .btn{flex:1;}
+  body.sheet-open{overflow:hidden;}
+
+  .action-rail{display:flex; flex-wrap:nowrap; gap:8px; width:100%; overflow-x:auto; overflow-y:hidden;
+    scrollbar-width:none; -webkit-overflow-scrolling:touch; max-height:64px; padding-bottom:4px;
+    transition:max-height .28s ease, padding .28s ease;}
+  .action-rail::-webkit-scrollbar{display:none;}
+  .action-rail .toolbar-group{flex-wrap:nowrap; width:auto; flex:0 0 auto; gap:8px;}
+  .action-rail .btn, .action-rail .results-count, .action-rail .save-indicator{flex:0 0 auto;}
+  /* Scorrendo verso il basso la fila di azioni si ritrae insieme all'header:
+     in alto resta solo la riga di ricerca. visibility (non opacity) perché i
+     figli fissi — "+", pannello Strumenti — devono poter restare visibili. */
+  body.chrome-collapsed .action-rail{max-height:0; padding-bottom:0; visibility:hidden;}
+  .action-rail .tools-dropdown, .action-rail .tools-backdrop, .action-rail #addBtn{visibility:visible;}
+
+  #addBtn{
+    position:fixed; right:calc(16px + env(safe-area-inset-right, 0px)); bottom:calc(18px + env(safe-area-inset-bottom, 0px));
+    z-index:58; border-radius:40px; padding:15px 20px; font-size:13px;
+    box-shadow:0 12px 30px rgba(0,0,0,.6), 0 4px 0 #7a1f38;
+  }
+  .grid-wrap{padding-bottom:110px;} /* spazio per non coprire l'ultima fila con il "+" */
+  #toast{bottom:calc(86px + env(safe-area-inset-bottom, 0px)); max-width:92vw; text-align:center;} /* sopra il "+", non sotto */
+}
+
+/* ---------- Scheda film: sfondo con locandina sfocata (tocco "premium") ---------- */
+.movie-modal{position:relative;}
+.modal-hero-bg{position:absolute; left:0; right:0; top:0; height:380px; overflow:hidden; border-radius:inherit;
+  pointer-events:none; z-index:0; opacity:0; transition:opacity .4s ease;}
+.modal-hero-bg.on{opacity:1;}
+.modal-hero-bg::before{content:""; position:absolute; inset:-60px; background-image:var(--hero, none);
+  background-size:cover; background-position:center 30%; filter:blur(38px) saturate(1.45); opacity:.30;}
+.modal-hero-bg::after{content:""; position:absolute; inset:0; background:linear-gradient(180deg, transparent 0%, #120f1c 96%);}
+.movie-modal > .modal-body{position:relative; z-index:1;}
+
+/* ---------- Chip persone (regia / cast) ---------- */
+.people-chips{display:flex; flex-wrap:wrap; gap:7px; margin:-6px 0 18px;}
+.people-chips:empty{display:none;}
+.person-chip{
+  display:inline-flex; align-items:center; gap:6px; max-width:100%;
+  font-family:'Manrope',sans-serif; font-size:12.5px; font-weight:700; color:var(--cream);
+  background:rgba(255,255,255,.05); border:1px solid var(--line); border-radius:30px; padding:6px 12px;
+  cursor:pointer; transition:border-color .15s, background .15s, transform .15s; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.person-chip:hover{border-color:var(--accent1); background:rgba(45,226,230,.08); transform:translateY(-1px);}
+.person-chip.dir{border-color:rgba(255,210,63,.45); color:var(--gold, #ffd23f);}
+.person-chip b{color:var(--dim); font-weight:800;}
+.people-chips-label{flex-basis:100%; font-size:10.5px; letter-spacing:1px; text-transform:uppercase; color:var(--dim2); margin-bottom:-2px;}
+
+/* ---------- Dietro le quinte ---------- */
+.bs-box{margin:0 0 18px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.025); overflow:hidden;}
+.bs-head{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 14px; border-bottom:1px solid var(--line);
+  font-family:var(--font-mono, monospace); font-size:12px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--accent3, #ff2e91);}
+.bs-head button{background:none; border:none; color:var(--dim2); cursor:pointer; font-size:14px; padding:2px 6px;}
+.bs-head button:hover{color:var(--accent1);}
+.bs-row{display:grid; grid-template-columns:118px 1fr; gap:10px; padding:9px 14px; border-bottom:1px solid rgba(255,255,255,.05); align-items:start;}
+.bs-row:last-child{border-bottom:none;}
+.bs-k{font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:var(--dim2); padding-top:6px;}
+.bs-v{display:flex; flex-wrap:wrap; gap:6px; font-size:13.5px; color:var(--cream); line-height:1.5; min-width:0;}
+.bs-v .plain{padding-top:4px;}
+.bs-v .money{font-family:var(--font-mono, monospace); font-weight:700; color:var(--gold, #ffd23f); padding-top:4px;}
+.bs-saga{display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding-top:2px;}
+.bs-note{padding:12px 14px; font-size:12.5px; color:var(--dim2);}
+.bs-note button{margin-left:6px;}
+.owned-tag{font-size:11px; font-weight:800; color:#7dffb0; padding:3px 8px; border-radius:20px; background:rgba(60,255,150,.1); border:1px solid rgba(60,255,150,.3); white-space:nowrap;}
+.wish-tag{font-size:11px; font-weight:800; color:#e3d2ff; padding:3px 8px; border-radius:20px; background:rgba(167,139,250,.14); border:1px solid rgba(167,139,250,.35); white-space:nowrap;}
+.mini-add{padding:4px 10px !important; font-size:11px !important;}
+.skeleton{display:block; height:12px; border-radius:6px; margin:8px 14px; background:linear-gradient(90deg, rgba(255,255,255,.05), rgba(255,255,255,.13), rgba(255,255,255,.05));
+  background-size:200% 100%; animation:skel 1.2s linear infinite;}
+@keyframes skel{from{background-position:200% 0;} to{background-position:-200% 0;}}
+
+/* ---------- Scheda persona ---------- */
+#personOverlay{z-index:110;} /* sempre sopra scheda film / statistiche da cui viene aperta */
+.person-modal{max-width:780px; padding:38px 36px 30px;}
+.person-hero{display:flex; gap:22px; align-items:center; margin-bottom:18px;}
+.person-photo{flex:0 0 auto; width:124px; height:124px; border-radius:50%; overflow:hidden; background:#231d34;
+  box-shadow:0 0 0 3px var(--accent1), 0 0 0 7px rgba(45,226,230,.15), 0 14px 40px rgba(0,0,0,.6);
+  display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-size:38px; font-weight:800; color:var(--dim);}
+.person-photo img{width:100%; height:100%; object-fit:cover; object-position:center 20%;}
+.person-hero h2{font-family:var(--font-display, 'Sora'), sans-serif; font-weight:400; font-size:28px; line-height:1.15; margin:0 0 6px; color:var(--cream);
+  text-shadow:0 0 18px rgba(255,46,145,.35);}
+.person-sub{font-size:13px; color:var(--dim); margin-bottom:6px;}
+.person-life{font-size:12.5px; color:var(--dim2); line-height:1.7;}
+.person-links{display:flex; gap:8px; flex-wrap:wrap; margin-top:10px;}
+.person-links a{text-decoration:none;}
+.person-bio{font-size:14px; line-height:1.75; color:#d9d2ea; margin:0 0 6px; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden;}
+.person-bio.expanded{-webkit-line-clamp:unset; display:block;}
+.bio-more{background:none; border:none; color:var(--accent1); font-weight:700; cursor:pointer; padding:0; font-size:12.5px; margin-bottom:12px;}
+.person-awards{display:flex; flex-wrap:wrap; gap:6px; margin:6px 0 4px;}
+.award-chip{font-size:11.5px; font-weight:700; color:var(--gold, #ffd23f); border:1px solid rgba(255,210,63,.35); background:rgba(255,210,63,.07); border-radius:20px; padding:4px 10px;}
+.person-sec{margin-top:22px;}
+.person-sec h3{font-family:var(--font-mono, monospace); font-size:11.5px; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent3, #ff2e91);
+  margin:0 0 12px; padding-top:16px; border-top:2px dashed var(--line); display:flex; justify-content:space-between; align-items:center; gap:10px;}
+.person-sec h3 small{font-family:'Manrope',sans-serif; letter-spacing:0; text-transform:none; color:var(--dim2); font-size:12px; font-weight:600;}
+.owned-strip{display:flex; gap:12px; overflow-x:auto; padding-bottom:6px; scrollbar-width:thin;}
+.owned-item{flex:0 0 auto; width:92px; background:none; border:none; padding:0; cursor:pointer; text-align:left; color:var(--cream);}
+.owned-item .op{width:92px; height:136px; border-radius:9px; overflow:hidden; background:#231d34; box-shadow:0 8px 20px rgba(0,0,0,.5);
+  display:flex; align-items:center; justify-content:center; font-size:26px; transition:transform .15s;}
+.owned-item:hover .op{transform:translateY(-3px);}
+.owned-item img{width:100%; height:100%; object-fit:cover;}
+.owned-item span{display:block; font-size:11.5px; line-height:1.3; margin-top:6px; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
+.filmo-tools{display:flex; gap:6px;}
+.filmo-tools button{font-size:11px; padding:4px 10px; border-radius:20px; border:1px solid var(--line); background:none; color:var(--dim); cursor:pointer;}
+.filmo-tools button.on{border-color:var(--accent1); color:var(--accent1);}
+.filmo-row{display:flex; align-items:center; gap:10px; padding:9px 2px; border-bottom:1px solid rgba(255,255,255,.06);}
+.filmo-main{flex:1; min-width:0;}
+.filmo-title{font-size:13.5px; color:var(--cream); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.filmo-meta{font-size:11.5px; color:var(--dim2); margin-top:2px;}
+.filmo-meta .r{color:#f5c518; font-weight:700;}
+.filmo-more{width:100%; margin-top:10px;}
+.person-note{font-size:12.5px; color:var(--dim2); line-height:1.6;}
+
+@media (max-width: 640px){
+  .person-modal{padding:58px 5vw 40px;}
+  .person-hero{flex-direction:column; text-align:center; gap:14px;}
+  .person-links{justify-content:center;}
+  .person-photo{width:132px; height:132px;}
+  .person-hero h2{font-size:25px;}
+  .bs-row{grid-template-columns:1fr; gap:4px;}
+  .bs-k{padding-top:0;}
+  .modal-hero-bg{height:300px;}
+}
+
 /* ---------- Animazione "inserimento videocassetta" al click sulla card ---------- */
 .card.inserting{
   animation:vhsInsert .55s cubic-bezier(.5,0,.85,1) forwards;
@@ -698,8 +856,12 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 </header>
 
 <div class="toolbar">
-  <div class="toolbar-group">
+  <div class="toolbar-group search-group">
     <input type="text" id="search" placeholder="Cerca titolo, regista, attore, tag…">
+    <button class="btn ghost" id="filterSheetBtn" type="button" aria-haspopup="dialog" aria-controls="filterPanel">🎚 Filtri<span class="filter-count" id="filterCount"></span></button>
+    <div class="filter-backdrop" id="filterBackdrop"></div>
+    <div class="filter-panel" id="filterPanel" role="dialog" aria-label="Filtri e ordinamento">
+    <div class="filter-sheet-head"><span>🎚 Filtri e ordinamento</span><button class="btn ghost" type="button" id="filterSheetClose" aria-label="Chiudi filtri">✕</button></div>
     <select id="filterFormato"><option value="">Tutti i formati</option></select>
     <select id="filterCustodia"><option value="">Tutte le custodie</option></select>
     <select id="filterTag"><option value="">Tutti i tag</option></select>
@@ -724,7 +886,13 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
       <option value="anno">Anno</option>
       <option value="aggiunto">Aggiunti di recente</option>
     </select>
+    <div class="filter-sheet-foot">
+      <button class="btn ghost" type="button" id="filterSheetReset">Azzera</button>
+      <button class="btn solid" type="button" id="filterSheetApply">Mostra risultati</button>
+    </div>
+    </div>
   </div>
+  <div class="action-rail" id="actionRail">
   <div class="toolbar-group">
     <button class="btn ghost" id="scanBtn" title="Ce l'ho già? Scansiona il codice a barre">📷 Scansiona</button>
     <button class="btn ghost" id="watchlistBtn">🌙 Watchlist stasera</button>
@@ -756,6 +924,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
     <span class="results-count" id="resultsCount"></span>
     <button class="btn ghost" id="clearFiltersBtn" style="display:none; padding:6px 12px; font-size:12px;">✕ Pulisci filtri</button>
     <span class="save-indicator saved" id="saveIndicator" title="Stato del salvataggio automatico"><span class="sdot"></span><span class="stext">Salvato</span></span>
+  </div>
   </div>
 </div>
 
@@ -848,7 +1017,8 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
   </div>
 </div>
 <div class="overlay" id="movieOverlay">
-  <div class="modal">
+  <div class="modal movie-modal">
+    <div class="modal-hero-bg" id="modalHeroBg" aria-hidden="true"></div>
     <button class="modal-close" onclick="closeModal()">&times;</button>
     <div class="modal-body">
       <div class="modal-poster">
@@ -975,6 +1145,8 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
         <div class="field-row">
           <div class="field full"><label for="f_cast">Cast principale</label><textarea id="f_cast" class="compact" rows="2" placeholder="Separati da virgola"></textarea></div>
         </div>
+        <div id="peopleChips" class="people-chips" aria-label="Regia e cast: tocca un nome per la scheda completa"></div>
+        <div id="behindScenesWrap"></div>
         <div class="field-row">
           <div class="field full"><label for="f_trama">Trama</label><textarea id="f_trama"></textarea></div>
         </div>
@@ -1032,6 +1204,14 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 
 
 <!-- Stats modal -->
+<!-- Scheda persona: attore / regista / autore -->
+<div class="overlay" id="personOverlay">
+  <div class="modal person-modal" role="dialog" aria-modal="true" aria-labelledby="personName">
+    <button class="modal-close" id="personClose" aria-label="Chiudi scheda persona">&times;</button>
+    <div id="personBody"></div>
+  </div>
+</div>
+
 <div class="overlay" id="statsOverlay">
   <div class="modal stats-modal">
     <button class="modal-close" onclick="document.getElementById('statsOverlay').classList.remove('open')">&times;</button>
@@ -1047,6 +1227,10 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
     <div class="stats-section">
       <h3>Generi più comuni</h3>
       <div id="statsGeneri"></div>
+    </div>
+    <div class="stats-section">
+      <h3>⭐ Le tue star</h3>
+      <div id="statsStars"></div>
     </div>
   </div>
 </div>
@@ -1574,6 +1758,530 @@ async function registerServiceWorkerBestEffort(){
 }
 registerServiceWorkerBestEffort();
 
+/* =====================================================================
+   PERSONE — attori, registi, autori
+   Scheda persona (foto, biografia, premi, filmografia con "ce l'hai?"),
+   chip cliccabili, pannello "Dietro le quinte", statistiche "Le tue star".
+   Fonti: Wikidata (SPARQL) e Wikipedia (REST) — CORS nativo, nessuna
+   chiave, nessun proxy. Tutto ciò che si può calcolare dalla collezione
+   (film posseduti, collaborazioni ricorrenti) funziona anche offline.
+   ===================================================================== */
+function splitNames(s){ return (s||'').split(',').map(x=>x.trim()).filter(Boolean); }
+/* Sicurezza: tutto ciò che entra in una query SPARQL viene ripulito
+   (niente iniezione di query) e gli identificatori vengono validati. */
+function sparqlStr(s){ return String(s||'').replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/[\r\n\t]+/g,' ').trim(); }
+function isQid(q){ return /^Q\d+$/.test(q||''); }
+function isTt(t){ return /^tt\d+$/.test(t||''); }
+const qidOf = uri => { const m = String(uri||'').match(/(Q\d+)$/); return m ? m[1] : ''; };
+let IMDB_BY_ID = null;
+function imdbEntry(id){
+  if(!IMDB_INDEX || !id) return null;
+  if(!IMDB_BY_ID){ IMDB_BY_ID = new Map(); IMDB_INDEX.forEach(x=>IMDB_BY_ID.set(x.id, x)); }
+  return IMDB_BY_ID.get(id) || null;
+}
+function wishlistImdbIds(){ return new Set(state.movies.filter(m=>(m.lista||'collezione')==='wishlist' && m.imdbId).map(m=>m.imdbId)); }
+/* URL sicuro dentro CSS url("…"): solo http/https (safeUrl) e caratteri
+   che potrebbero chiudere la stringa codificati in percentuale. */
+function cssUrl(u){
+  const s = safeUrl(u); if(!s) return '';
+  try{ return 'url("' + new URL(s).href.replace(/["'\\()\s]/g, c=>'%'+c.charCodeAt(0).toString(16).toUpperCase().padStart(2,'0')) + '")'; }
+  catch(e){ return ''; }
+}
+function setModalHero(poster){
+  const bg = document.getElementById('modalHeroBg'); if(!bg) return;
+  const v = cssUrl(poster);
+  if(v){ bg.style.setProperty('--hero', v); bg.classList.add('on'); }
+  else { bg.classList.remove('on'); bg.style.removeProperty('--hero'); }
+}
+async function wdSparql(query, ms){
+  const url = 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(query);
+  const res = await fetchWithTimeout(url, ms || 9000, { headers:{ 'Accept':'application/sparql-results+json' } });
+  if(!res.ok) throw new Error('Wikidata HTTP ' + res.status);
+  const d = await res.json();
+  return (d.results && d.results.bindings) || [];
+}
+function awardRank(l){
+  if(/oscar|academy award/i.test(l)) return 0;
+  if(/golden globe|bafta|palma d|leone d|orso d|césar|david di donatello|emmy|saturn|grammy/i.test(l)) return 1;
+  return 2;
+}
+
+/* ---------- Dalla collezione (offline) ---------- */
+function moviesWithPerson(name){
+  const k = normKey(name); if(!k) return [];
+  return state.movies.filter(m => splitNames(m.regista).concat(splitNames(m.cast)).some(n=>normKey(n)===k));
+}
+function personRolesLocal(name){
+  const k = normKey(name); let dir = 0, act = 0;
+  state.movies.forEach(m=>{
+    if(splitNames(m.regista).some(n=>normKey(n)===k)) dir++;
+    if(splitNames(m.cast).some(n=>normKey(n)===k)) act++;
+  });
+  return {dir, act};
+}
+/* "Spesso insieme a": chi compare più volte negli stessi film della tua
+   collezione — una curiosità che nessun sito può darti, perché dipende
+   da cosa possiedi TU. */
+function coStars(name, limit){
+  const k = normKey(name), counts = {}, disp = {};
+  moviesWithPerson(name).forEach(m=>{
+    const seen = new Set();
+    splitNames(m.regista).concat(splitNames(m.cast)).forEach(n=>{
+      const nk = normKey(n); if(!nk || nk===k || seen.has(nk)) return; seen.add(nk);
+      counts[nk] = (counts[nk]||0) + 1; if(!disp[nk]) disp[nk] = n;
+    });
+  });
+  return Object.keys(counts).filter(nk=>counts[nk]>=2)
+    .sort((a,b)=>counts[b]-counts[a] || disp[a].localeCompare(disp[b],'it'))
+    .slice(0, limit||8).map(nk=>({name:disp[nk], n:counts[nk]}));
+}
+
+/* ---------- Chip regia/cast nella scheda film ---------- */
+function renderPeopleChips(){
+  const box = document.getElementById('peopleChips'); if(!box) return;
+  const dirs = splitNames(document.getElementById('f_regista').value).slice(0, 4);
+  const cast = splitNames(document.getElementById('f_cast').value).slice(0, 12);
+  if(!dirs.length && !cast.length){ box.innerHTML = ''; return; }
+  box.innerHTML = '<span class="people-chips-label">Tocca un nome per la scheda completa</span>' +
+    dirs.map(n=>`<button type="button" class="person-chip dir" data-person="${escapeHtml(n)}">🎬 ${escapeHtml(n)}</button>`).join('') +
+    cast.map(n=>`<button type="button" class="person-chip" data-person="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('');
+}
+['f_regista','f_cast'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('input', debounce(renderPeopleChips, 250));
+});
+
+/* ---------- Dietro le quinte (per film, da Wikidata via ID IMDb) ---------- */
+const UNIT_SYMBOL = {Q4917:'$', Q4916:'€', Q25224:'£', Q8146:'¥', Q41044:'₽', Q4730:'₹'};
+function fmtMoney(amount, unitQ){
+  const n = Math.abs(parseFloat(amount)); if(!isFinite(n) || !n) return '';
+  let txt;
+  try{ txt = new Intl.NumberFormat('it-IT', {notation:'compact', maximumFractionDigits:1}).format(n); }
+  catch(e){ txt = Math.round(n).toLocaleString('it-IT'); }
+  const sym = UNIT_SYMBOL[unitQ] || '';
+  if(!sym) return txt;
+  return sym === '€' ? txt + ' €' : sym + ' ' + txt;
+}
+async function fetchBehindScenes(imdbId){
+  if(!isTt(imdbId)) return null;
+  const rel = (p, k, extra) => `{ ?film wdt:${p} ?v. BIND("${k}" AS ?k)${extra||''} }`;
+  const q = `SELECT ?k ?v ?vLabel ?vImdb ?amount ?unit WHERE {
+  ?film wdt:P345 "${imdbId}".
+  ${rel('P58','sceneggiatura')} UNION ${rel('P86','musiche')} UNION ${rel('P344','fotografia')} UNION ${rel('P1040','montaggio')}
+  UNION ${rel('P272','produzione')} UNION ${rel('P495','paese')} UNION ${rel('P364','lingua')} UNION ${rel('P144','tratto')}
+  UNION ${rel('P915','location')} UNION ${rel('P166','premio')} UNION ${rel('P1411','candidatura')}
+  UNION ${rel('P155','prequel',' OPTIONAL{ ?v wdt:P345 ?vImdb }')} UNION ${rel('P156','sequel',' OPTIONAL{ ?v wdt:P345 ?vImdb }')}
+  UNION { ?film p:P2130/psv:P2130 ?qv. ?qv wikibase:quantityAmount ?amount; wikibase:quantityUnit ?unit. BIND("budget" AS ?k) }
+  UNION { ?film p:P2142/psv:P2142 ?qv2. ?qv2 wikibase:quantityAmount ?amount; wikibase:quantityUnit ?unit. BIND("incassi" AS ?k) }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". }
+} LIMIT 400`;
+  const rows = await wdSparql(q, 11000);
+  const ex = { at: Date.now() };
+  let budget = null, incassi = null;
+  rows.forEach(r=>{
+    const k = r.k && r.k.value; if(!k) return;
+    if(k === 'budget' || k === 'incassi'){
+      const amt = r.amount ? parseFloat(r.amount.value) : 0; if(!amt) return;
+      const unit = qidOf(r.unit && r.unit.value);
+      if(k === 'budget' && (!budget || amt > budget.a)) budget = {a:amt, u:unit};
+      if(k === 'incassi' && (!incassi || amt > incassi.a)) incassi = {a:amt, u:unit};
+      return;
+    }
+    const label = r.vLabel && r.vLabel.value;
+    if(!label || /^Q\d+$/.test(label)) return; // etichetta mancante: inutile mostrarla
+    const item = { q: qidOf(r.v && r.v.value), l: label };
+    if(r.vImdb && isTt(r.vImdb.value)) item.t = r.vImdb.value;
+    ex[k] = ex[k] || [];
+    if(!ex[k].some(x=>x.q===item.q)) ex[k].push(item);
+  });
+  if(budget) ex.budget = budget;
+  if(incassi) ex.incassi = incassi;
+  ['premio','candidatura'].forEach(k=>{ if(ex[k]) ex[k] = ex[k].slice(0, 40); });
+  ['location','produzione','sceneggiatura','musiche','fotografia','montaggio','paese','lingua','tratto'].forEach(k=>{ if(ex[k]) ex[k] = ex[k].slice(0, 8); });
+  if(!Object.keys(ex).some(k=>k!=='at')) ex.empty = true;
+  return ex;
+}
+const BS_LABELS = [['sceneggiatura','Sceneggiatura'],['musiche','Musiche'],['fotografia','Fotografia'],['montaggio','Montaggio'],
+  ['produzione','Produzione'],['paese','Paese'],['lingua','Lingua originale'],['tratto','Tratto da'],['location','Girato a']];
+const BS_PERSON_KEYS = new Set(['sceneggiatura','musiche','fotografia','montaggio']);
+function sagaItemHTML(it){
+  const entry = it.t ? imdbEntry(it.t) : null;
+  const title = entry ? (entry.it || entry.en) : it.l;
+  let status = '';
+  if(it.t && ownedImdbIds().has(it.t)) status = '<span class="owned-tag">✓ Ce l\'hai</span>';
+  else if(it.t && wishlistImdbIds().has(it.t)) status = '<span class="wish-tag">💭 In wishlist</span>';
+  else if(entry) status = `<button type="button" class="btn ghost mini-add" data-wish-add="${escapeHtml(it.t)}">+ Wishlist</button>`;
+  return `<span class="bs-saga"><span class="plain">${escapeHtml(title)}${entry && entry.y ? ` <span style="color:var(--dim2)">(${escapeHtml(entry.y)})</span>` : ''}</span>${status}</span>`;
+}
+function behindHTML(ex){
+  const head = '<div class="bs-head">🎞️ Dietro le quinte <button type="button" data-bs-refresh title="Aggiorna da Wikidata" aria-label="Aggiorna dietro le quinte">↻</button></div>';
+  if(!ex || ex.empty) return `<div class="bs-box">${head}<div class="bs-note">Wikidata non ha ancora dettagli extra su questo film.</div></div>`;
+  const rows = [];
+  BS_LABELS.forEach(([k, label])=>{
+    const items = ex[k]; if(!items || !items.length) return;
+    const v = BS_PERSON_KEYS.has(k)
+      ? items.slice(0,6).map(it=>`<button type="button" class="person-chip" data-person="${escapeHtml(it.l)}"${isQid(it.q) ? ` data-person-qid="${it.q}"` : ''}>${escapeHtml(it.l)}</button>`).join('')
+      : `<span class="plain">${items.slice(0,6).map(it=>escapeHtml(it.l)).join(' · ')}</span>`;
+    rows.push(`<div class="bs-row"><div class="bs-k">${label}</div><div class="bs-v">${v}</div></div>`);
+  });
+  if(ex.budget || ex.incassi){
+    const parts = [];
+    const b = ex.budget ? fmtMoney(ex.budget.a, ex.budget.u) : '';
+    const i = ex.incassi ? fmtMoney(ex.incassi.a, ex.incassi.u) : '';
+    if(b) parts.push(`<span class="money">Budget ${escapeHtml(b)}</span>`);
+    if(i) parts.push(`<span class="money">Incassi ${escapeHtml(i)}</span>`);
+    if(b && i && ex.budget.u === ex.incassi.u && ex.budget.a > 0){
+      const r = ex.incassi.a / ex.budget.a;
+      if(isFinite(r) && r > 0) parts.push(`<span class="plain" style="color:var(--dim)">${r >= 1 ? '×' + r.toFixed(1).replace('.', ',') + ' il budget' : 'sotto il budget'}</span>`);
+    }
+    if(parts.length) rows.push(`<div class="bs-row"><div class="bs-k">Box office</div><div class="bs-v">${parts.join('')}</div></div>`);
+  }
+  if((ex.premio && ex.premio.length) || (ex.candidatura && ex.candidatura.length)){
+    const won = ex.premio || [], nom = ex.candidatura || [];
+    const oscar = won.filter(x=>awardRank(x.l)===0).length;
+    const top = won.slice().sort((a,b)=>awardRank(a.l)-awardRank(b.l)).slice(0,5);
+    rows.push(`<div class="bs-row"><div class="bs-k">Premi</div><div class="bs-v"><span class="plain"><b>${won.length}</b> vinti${nom.length ? ` · <b>${nom.length}</b> candidature` : ''}${oscar ? ` · 🏆 ${oscar} Oscar` : ''}</span>${top.map(a=>`<span class="award-chip">${escapeHtml(a.l)}</span>`).join('')}</div></div>`);
+  }
+  [['prequel','◀ Capitolo prima'],['sequel','Capitolo dopo ▶']].forEach(([k, label])=>{
+    if(!ex[k] || !ex[k].length) return;
+    rows.push(`<div class="bs-row"><div class="bs-k">${label}</div><div class="bs-v">${ex[k].slice(0,3).map(sagaItemHTML).join('')}</div></div>`);
+  });
+  if(!rows.length) return `<div class="bs-box">${head}<div class="bs-note">Wikidata non ha ancora dettagli extra su questo film.</div></div>`;
+  return `<div class="bs-box">${head}${rows.join('')}</div>`;
+}
+/* I dettagli vengono salvati nella scheda (m.extra): la volta dopo si
+   aprono all'istante, anche offline. ↻ forza un aggiornamento. */
+async function renderBehindScenes(m, force){
+  const box = document.getElementById('behindScenesWrap'); if(!box) return;
+  if(!m || !isTt(m.imdbId)){ box.innerHTML = ''; return; }
+  const session = _modalSession;
+  if(m.extra && m.extra.at && !force){ box.innerHTML = behindHTML(m.extra); return; }
+  box.innerHTML = '<div class="bs-box"><div class="bs-head">🎞️ Dietro le quinte</div><span class="skeleton" style="width:70%"></span><span class="skeleton" style="width:55%"></span><span class="skeleton" style="width:62%;margin-bottom:14px"></span></div>';
+  try{
+    const ex = await fetchBehindScenes(m.imdbId);
+    if(_modalSession !== session) return;   // scheda cambiata nel frattempo
+    if(!ex){ box.innerHTML = ''; return; }
+    const sm = state.movies.find(x=>x.id===m.id);
+    if(sm && sm.imdbId === m.imdbId){ sm.extra = ex; saveState(); }
+    else m.extra = ex;
+    box.innerHTML = behindHTML(ex);
+  }catch(e){
+    if(_modalSession !== session) return;
+    box.innerHTML = '<div class="bs-box"><div class="bs-head">🎞️ Dietro le quinte</div><div class="bs-note">Dettagli non raggiungibili ora (sei offline?). <button type="button" class="btn ghost mini-add" data-bs-refresh>Riprova</button></div></div>';
+  }
+}
+document.getElementById('behindScenesWrap').addEventListener('click', async e=>{
+  if(e.target.closest('[data-bs-refresh]')){
+    const m = state.movies.find(x=>x.id===currentId);
+    if(m) renderBehindScenes(m, true);
+    return;
+  }
+  const add = e.target.closest('[data-wish-add]');
+  if(add){
+    const entry = imdbEntry(add.dataset.wishAdd);
+    if(entry){ const added = await quickAddToWishlist(entry); if(added) add.outerHTML = '<span class="wish-tag">💭 In wishlist</span>'; }
+  }
+});
+
+/* ---------- Scheda persona ---------- */
+const PERSON_CACHE_KEY = 'mpml_person_cache_v1';
+const PERSON_CACHE_MAX = 40;     // piccola: non deve MAI rubare spazio al salvataggio dei film
+let _personCache = null;
+function personCache(){
+  if(_personCache) return _personCache;
+  try{ _personCache = JSON.parse(localStorage.getItem(PERSON_CACHE_KEY) || '{}') || {}; }catch(e){ _personCache = {}; }
+  return _personCache;
+}
+function savePersonCache(){
+  const c = personCache();
+  const qKeys = Object.keys(c).filter(k=>k.startsWith('q:'));
+  if(qKeys.length > PERSON_CACHE_MAX){
+    qKeys.sort((a,b)=>(c[a].at||0)-(c[b].at||0)).slice(0, qKeys.length - PERSON_CACHE_MAX).forEach(k=>delete c[k]);
+  }
+  const nKeys = Object.keys(c).filter(k=>k.startsWith('n:'));
+  if(nKeys.length > 300) nKeys.sort((a,b)=>(c[a].at||0)-(c[b].at||0)).slice(0, nKeys.length - 300).forEach(k=>delete c[k]);
+  try{ localStorage.setItem(PERSON_CACHE_KEY, JSON.stringify(c)); }
+  catch(e){ try{ localStorage.removeItem(PERSON_CACHE_KEY); }catch(_){} _personCache = {}; } // spazio pieno: rinuncia alla cache
+}
+async function resolvePersonQid(name, filmImdb){
+  const c = personCache(); const nk = 'n:' + normKey(name);
+  if(c[nk] && isQid(c[nk].q)) return c[nk].q;
+  let qid = '';
+  if(isTt(filmImdb)){
+    // Ricerca "ancorata" al film: trova ESATTAMENTE quella persona, non un omonimo
+    const rows = await wdSparql(`SELECT ?p WHERE { ?film wdt:P345 "${filmImdb}". VALUES ?rel { wdt:P57 wdt:P161 wdt:P58 wdt:P86 wdt:P344 wdt:P1040 } ?film ?rel ?p. ?p rdfs:label ?l. FILTER(LCASE(STR(?l)) = "${sparqlStr(name.toLowerCase())}") } LIMIT 1`, 8000).catch(()=>[]);
+    if(rows.length) qid = qidOf(rows[0].p.value);
+  }
+  if(!qid){
+    const n = sparqlStr(name);
+    const rows = await wdSparql(`SELECT ?p ?sl WHERE { VALUES ?n { "${n}"@it "${n}"@en } ?p rdfs:label ?n; wdt:P31 wd:Q5; wikibase:sitelinks ?sl; wdt:P106 ?o. VALUES ?o { wd:Q33999 wd:Q10800557 wd:Q2526255 wd:Q3282637 wd:Q28389 wd:Q36834 wd:Q222344 wd:Q2405480 wd:Q10798782 wd:Q7042855 } } ORDER BY DESC(?sl) LIMIT 1`, 9000);
+    if(rows.length) qid = qidOf(rows[0].p.value);
+  }
+  if(qid){ c[nk] = {q:qid, at:Date.now()}; savePersonCache(); }
+  return qid;
+}
+async function fetchPersonData(qid){
+  if(!isQid(qid)) return null;
+  const c = personCache(); const key = 'q:' + qid;
+  if(c[key] && (Date.now() - (c[key].at||0)) < 30*864e5) return c[key];
+  const [det, aw, fil] = await Promise.all([
+    wdSparql(`SELECT ?pLabel ?img ?birth ?death ?bpLabel ?dpLabel ?imdb ?aIt ?aEn ?desc WHERE {
+      BIND(wd:${qid} AS ?p)
+      OPTIONAL{?p wdt:P18 ?img} OPTIONAL{?p wdt:P569 ?birth} OPTIONAL{?p wdt:P570 ?death}
+      OPTIONAL{?p wdt:P19 ?bp} OPTIONAL{?p wdt:P20 ?dp} OPTIONAL{?p wdt:P345 ?imdb}
+      OPTIONAL{?aIt schema:about ?p; schema:isPartOf <https://it.wikipedia.org/>}
+      OPTIONAL{?aEn schema:about ?p; schema:isPartOf <https://en.wikipedia.org/>}
+      OPTIONAL{?p schema:description ?desc FILTER(LANG(?desc)="it")}
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". }
+    } LIMIT 1`, 9000),
+    wdSparql(`SELECT DISTINCT ?aLabel WHERE { wd:${qid} wdt:P166 ?a. SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". } } LIMIT 60`, 9000).catch(()=>[]),
+    wdSparql(`SELECT ?imdb (GROUP_CONCAT(DISTINCT ?role; separator=",") AS ?roles) WHERE {
+      { ?film wdt:P161 wd:${qid}. BIND("cast" AS ?role) } UNION { ?film wdt:P57 wd:${qid}. BIND("regia" AS ?role) }
+      UNION { ?film wdt:P58 wd:${qid}. BIND("sceneggiatura" AS ?role) } UNION { ?film wdt:P86 wd:${qid}. BIND("musiche" AS ?role) }
+      UNION { ?film wdt:P344 wd:${qid}. BIND("fotografia" AS ?role) } UNION { ?film wdt:P162 wd:${qid}. BIND("produzione" AS ?role) }
+      ?film wdt:P345 ?imdb.
+    } GROUP BY ?imdb LIMIT 800`, 12000).catch(()=>[])
+  ]);
+  const d = det[0] || {};
+  const v = k => (d[k] && d[k].value) || '';
+  let img = v('img');
+  if(img){ img = commonsThumb(decodeURIComponent(img.split('/').pop()), 360); }
+  let films = fil.map(r=>({ t: r.imdb && r.imdb.value, r: ((r.roles && r.roles.value) || '').split(',').filter(Boolean) })).filter(f=>isTt(f.t));
+  // In cache solo i titoli che l'app sa mostrare (film nell'indice): niente episodi TV, cache leggera
+  if(IMDB_INDEX) films = films.filter(f=>imdbEntry(f.t));
+  films = films.slice(0, 300);
+  const label = v('pLabel');
+  const data = {
+    at: Date.now(), qid, name: /^Q\d+$/.test(label) ? '' : label, img,
+    birth: v('birth'), death: v('death'), bp: v('bpLabel'), dp: v('dpLabel'),
+    imdb: /^nm\d+$/.test(v('imdb')) ? v('imdb') : '', aIt: v('aIt'), aEn: v('aEn'), desc: v('desc'),
+    awards: aw.map(r=>r.aLabel && r.aLabel.value).filter(l=>l && !/^Q\d+$/.test(l)),
+    films
+  };
+  const art = data.aIt || data.aEn, lang = data.aIt ? 'it' : 'en';
+  if(art){
+    try{
+      const title = decodeURIComponent(art.split('/wiki/')[1] || '');
+      const r = await fetchWithTimeout(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, 7000);
+      if(r.ok){
+        const j = await r.json();
+        data.bio = (j.extract || '').slice(0, 2400); data.bioLang = lang;
+        if(!data.img && j.thumbnail && j.thumbnail.source) data.img = j.thumbnail.source;
+      }
+    }catch(e){ /* biografia non raggiungibile: non bloccante */ }
+  }
+  c[key] = data; savePersonCache();
+  return data;
+}
+function fmtWdDate(v){
+  const m = String(v||'').match(/^(-?\d{1,4})-(\d{2})-(\d{2})/); if(!m) return '';
+  try{ return new Date(Date.UTC(+m[1], +m[2]-1, +m[3])).toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric', timeZone:'UTC'}); }
+  catch(e){ return `${m[3]}/${m[2]}/${m[1]}`; }
+}
+function ageBetween(b, d){
+  const mb = String(b||'').match(/^(\d{4})-(\d{2})-(\d{2})/); if(!mb) return null;
+  const me = d ? String(d).match(/^(\d{4})-(\d{2})-(\d{2})/) : null;
+  const now = new Date();
+  const ey = me ? +me[1] : now.getUTCFullYear(), em = me ? +me[2] : now.getUTCMonth()+1, ed = me ? +me[3] : now.getUTCDate();
+  let a = ey - (+mb[1]);
+  if(em < +mb[2] || (em === +mb[2] && ed < +mb[3])) a--;
+  return (a >= 0 && a < 130) ? a : null;
+}
+let _personToken = 0, _personState = null;
+async function openPerson(name, opts){
+  opts = opts || {};
+  name = String(name||'').trim(); if(!name) return;
+  const token = ++_personToken;
+  _personState = { name, data:null, note:'', sort:'pop', showAll:false };
+  const overlay = document.getElementById('personOverlay');
+  overlay.classList.add('open'); overlay.scrollTop = 0;
+  const md = overlay.querySelector('.modal'); if(md) md.scrollTop = 0;
+  renderPerson();   // subito: ciò che sa la tua collezione
+  setTimeout(()=>{ const c = document.getElementById('personClose'); if(c) c.focus({preventScroll:true}); }, 30);
+  ensureImdbIndex().then(()=>{ if(token === _personToken) renderPerson(); }).catch(()=>{});
+  try{
+    const qid = isQid(opts.qid) ? opts.qid : await resolvePersonQid(name, opts.imdbId);
+    if(token !== _personToken) return;
+    if(!qid){ _personState.note = 'Nessuna scheda trovata su Wikidata per questo nome: qui sotto quello che risulta dalla tua collezione.'; renderPerson(); return; }
+    const data = await fetchPersonData(qid);
+    if(token !== _personToken) return;
+    _personState.data = data; renderPerson();
+  }catch(e){
+    if(token !== _personToken) return;
+    _personState.note = 'Biografia e filmografia completa non raggiungibili ora (sei offline?). Qui sotto quello che risulta dalla tua collezione.';
+    renderPerson();
+  }
+}
+function renderPerson(){
+  const st = _personState; if(!st) return;
+  const body = document.getElementById('personBody');
+  const d = st.data || {};
+  const name = d.name || st.name;
+  const seen = new Set();
+  const local = moviesWithPerson(st.name).concat(d.name && normKey(d.name) !== normKey(st.name) ? moviesWithPerson(d.name) : [])
+    .filter(m=>{ if(seen.has(m.id)) return false; seen.add(m.id); return true; });
+  const owned = local.filter(m=>(m.lista||'collezione') !== 'wishlist');
+  const wished = local.filter(m=>(m.lista||'collezione') === 'wishlist');
+  const roles = personRolesLocal(st.name);
+  const loading = !st.data && !st.note;
+  const initials = name.split(/\s+/).map(w=>w.charAt(0)).filter(Boolean).slice(0,2).join('').toUpperCase();
+  const img = safeUrl(d.img);
+  let sub = d.desc || [roles.dir ? 'Regia' : '', roles.act ? 'Attore / attrice' : ''].filter(Boolean).join(' · ');
+  let life = '';
+  if(d.birth){ const age = ageBetween(d.birth, d.death); life += `★ ${escapeHtml(fmtWdDate(d.birth))}${d.bp ? ', ' + escapeHtml(d.bp) : ''}${!d.death && age !== null ? ` · ${age} anni` : ''}`; }
+  if(d.death){ const age = ageBetween(d.birth, d.death); life += `${life ? '<br>' : ''}✝ ${escapeHtml(fmtWdDate(d.death))}${d.dp ? ', ' + escapeHtml(d.dp) : ''}${age !== null ? ` · a ${age} anni` : ''}`; }
+  const links = [];
+  if(d.imdb) links.push(`<a class="btn ghost mini-add" href="https://www.imdb.com/name/${d.imdb}/" target="_blank" rel="noopener">IMDb ↗</a>`);
+  const wiki = safeUrl(d.aIt || d.aEn);
+  if(wiki) links.push(`<a class="btn ghost mini-add" href="${escapeHtml(wiki)}" target="_blank" rel="noopener">Wikipedia ↗</a>`);
+
+  let html = `<div class="person-hero">
+    <div class="person-photo">${img ? `<img src="${escapeHtml(img)}" alt="Foto di ${escapeHtml(name)}" referrerpolicy="no-referrer" onerror="this.remove()">` : escapeHtml(initials || '?')}</div>
+    <div><h2 id="personName">${escapeHtml(name)}</h2>
+      ${sub ? `<div class="person-sub">${escapeHtml(sub)}</div>` : ''}
+      ${life ? `<div class="person-life">${life}</div>` : ''}
+      ${links.length ? `<div class="person-links">${links.join('')}</div>` : ''}
+    </div></div>`;
+  if(loading) html += '<span class="skeleton" style="width:92%;margin:4px 0"></span><span class="skeleton" style="width:80%;margin:10px 0"></span><span class="skeleton" style="width:60%;margin:10px 0 14px"></span>';
+  if(d.bio){
+    html += `<p class="person-bio" id="personBio">${escapeHtml(d.bio)}</p>`;
+    if(d.bio.length > 380) html += '<button type="button" class="bio-more" id="bioMore">Leggi tutto ▾</button>';
+    if(d.bioLang === 'en') html += '<div class="person-note">Biografia disponibile solo in inglese su Wikipedia.</div>';
+  }
+  if(st.note) html += `<div class="person-note">${escapeHtml(st.note)}</div>`;
+  if(d.awards && d.awards.length){
+    const oscar = d.awards.filter(a=>awardRank(a)===0).length;
+    const top = d.awards.slice().sort((a,b)=>awardRank(a)-awardRank(b)).slice(0,6);
+    html += `<div class="person-sec"><h3>🏆 Riconoscimenti <small>${d.awards.length} premi${oscar ? ` · ${oscar} Oscar` : ''}</small></h3><div class="person-awards">${top.map(a=>`<span class="award-chip">${escapeHtml(a)}</span>`).join('')}</div></div>`;
+  }
+  html += `<div class="person-sec"><h3>📼 Nella tua collezione <small>${owned.length} film${wished.length ? ` · ${wished.length} in wishlist` : ''}</small></h3>`;
+  if(owned.length || wished.length){
+    html += `<div class="owned-strip">${owned.concat(wished).map(m=>{
+      const p = safeUrl(m.poster);
+      return `<button type="button" class="owned-item" data-open-movie="${escapeHtml(m.id)}"><div class="op">${p ? `<img src="${escapeHtml(p)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '🎬'}</div><span>${(m.lista||'collezione') === 'wishlist' ? '💭 ' : ''}${escapeHtml(displayTitle(m.titolo))}${m.anno ? ` (${escapeHtml(m.anno)})` : ''}</span></button>`;
+    }).join('')}</div>`;
+  } else html += '<div class="person-note">Ancora nessun suo film nella tua collezione.</div>';
+  html += '</div>';
+  const co = coStars(st.name, 8);
+  if(co.length) html += `<div class="person-sec"><h3>🤝 Spesso insieme a <small>nei tuoi film</small></h3><div class="people-chips" style="margin:0">${co.map(x=>`<button type="button" class="person-chip" data-person="${escapeHtml(x.name)}">${escapeHtml(x.name)} <b>×${x.n}</b></button>`).join('')}</div></div>`;
+
+  let films = [];
+  if(d.films && d.films.length && IMDB_INDEX) films = d.films.map(f=>{ const e = imdbEntry(f.t); return e ? {e, roles:f.r} : null; }).filter(Boolean);
+  else if(IMDB_INDEX && roles.dir) films = directorFilmography(st.name).map(e=>({e, roles:['regia']}));   // offline: regia dall'indice
+  if(films.length){
+    const ow = ownedImdbIds(), wi = wishlistImdbIds();
+    const nOwned = films.filter(f=>ow.has(f.e.id)).length;
+    films.sort(st.sort === 'year' ? (a,b)=>(parseInt(b.e.y)||0)-(parseInt(a.e.y)||0) : (a,b)=>(b.e.v||0)-(a.e.v||0));
+    const shown = st.showAll ? films : films.slice(0, 15);
+    const ROLE_IT = {cast:'attore', regia:'regia', sceneggiatura:'sceneggiatura', musiche:'musiche', fotografia:'fotografia', produzione:'produzione'};
+    html += `<div class="person-sec"><h3>🎞️ Filmografia <small>ne possiedi ${nOwned} di ${films.length}</small></h3>
+      <div class="filmo-tools" style="margin:-4px 0 8px"><button type="button" data-filmo-sort="pop" class="${st.sort === 'pop' ? 'on' : ''}">Più famosi</button><button type="button" data-filmo-sort="year" class="${st.sort === 'year' ? 'on' : ''}">Più recenti</button></div>
+      ${shown.map(f=>{
+        const e = f.e; let status;
+        if(ow.has(e.id)) status = '<span class="owned-tag">✓ Ce l\'hai</span>';
+        else if(wi.has(e.id)) status = '<span class="wish-tag">💭 Wishlist</span>';
+        else status = `<button type="button" class="btn ghost mini-add" data-wish-add="${escapeHtml(e.id)}">+ Wishlist</button>`;
+        const rl = (f.roles||[]).map(r=>ROLE_IT[r] || r).join(', ');
+        return `<div class="filmo-row"><div class="filmo-main"><div class="filmo-title">${escapeHtml(e.it || e.en)}</div><div class="filmo-meta">${escapeHtml(e.y || '—')}${rl ? ' · ' + escapeHtml(rl) : ''}${e.rt ? ` · <span class="r">★ ${escapeHtml(String(e.rt))}</span>` : ''}</div></div>${status}</div>`;
+      }).join('')}
+      ${!st.showAll && films.length > 15 ? `<button type="button" class="btn ghost filmo-more" data-filmo-all>Mostra tutti (${films.length})</button>` : ''}
+    </div>`;
+  } else if(loading){
+    html += '<div class="person-sec"><h3>🎞️ Filmografia</h3><span class="skeleton" style="width:85%;margin:8px 0"></span><span class="skeleton" style="width:70%;margin:10px 0"></span></div>';
+  }
+  body.innerHTML = html;
+}
+document.getElementById('personBody').addEventListener('click', async e=>{
+  const mv = e.target.closest('[data-open-movie]');
+  if(mv){
+    ['personOverlay','statsOverlay','directorsOverlay'].forEach(id=>{ const el = document.getElementById(id); if(el) el.classList.remove('open'); });
+    openModal(mv.dataset.openMovie);
+    return;
+  }
+  const sort = e.target.closest('[data-filmo-sort]');
+  if(sort){ _personState.sort = sort.dataset.filmoSort; renderPerson(); return; }
+  if(e.target.closest('[data-filmo-all]')){ _personState.showAll = true; renderPerson(); return; }
+  if(e.target.closest('#bioMore')){
+    const b = document.getElementById('personBio');
+    const open = b.classList.toggle('expanded');
+    e.target.textContent = open ? 'Riduci ▴' : 'Leggi tutto ▾';
+    return;
+  }
+  const add = e.target.closest('[data-wish-add]');
+  if(add){
+    const entry = imdbEntry(add.dataset.wishAdd);
+    if(entry){ const added = await quickAddToWishlist(entry); if(added) add.outerHTML = '<span class="wish-tag">💭 Wishlist</span>'; }
+  }
+});
+function closePerson(){ document.getElementById('personOverlay').classList.remove('open'); _personToken++; }
+document.getElementById('personClose').addEventListener('click', closePerson);
+document.getElementById('personOverlay').addEventListener('click', e=>{ if(e.target.id === 'personOverlay') closePerson(); });
+/* Qualsiasi chip con data-person (scheda film, dietro le quinte,
+   statistiche, "spesso insieme a") apre la scheda persona. */
+document.addEventListener('click', e=>{
+  const chip = e.target.closest('[data-person]'); if(!chip) return;
+  e.preventDefault();
+  let imdbId = '';
+  if(document.getElementById('movieOverlay').classList.contains('open') && !document.getElementById('personOverlay').classList.contains('open')){
+    const m = state.movies.find(x=>x.id === currentId);
+    if(m && isTt(m.imdbId)) imdbId = m.imdbId;
+  }
+  openPerson(chip.dataset.person, { qid: chip.dataset.personQid, imdbId });
+});
+
+/* ---------- Statistiche: "Le tue star" ---------- */
+function renderStatsStars(){
+  const box = document.getElementById('statsStars'); if(!box) return;
+  const owned = state.movies.filter(m=>(m.lista||'collezione') !== 'wishlist');
+  const tally = field => {
+    const c = {}, d = {};
+    owned.forEach(m=>{ const seen = new Set(); splitNames(m[field]).forEach(n=>{ const k = normKey(n); if(!k || seen.has(k)) return; seen.add(k); c[k] = (c[k]||0)+1; if(!d[k]) d[k] = n; }); });
+    return Object.keys(c).filter(k=>c[k] >= 2).sort((a,b)=>c[b]-c[a] || d[a].localeCompare(d[b],'it')).slice(0,10).map(k=>({name:d[k], n:c[k]}));
+  };
+  const dirs = tally('regista'), actors = tally('cast');
+  const pc = {}, pd = {};
+  owned.forEach(m=>{
+    const ds = [...new Set(splitNames(m.regista))], as = [...new Set(splitNames(m.cast))];
+    ds.forEach(dn=>as.forEach(an=>{ if(normKey(dn) === normKey(an)) return; const k = normKey(dn) + '|' + normKey(an); pc[k] = (pc[k]||0)+1; if(!pd[k]) pd[k] = [dn, an]; }));
+  });
+  const pairs = Object.keys(pc).filter(k=>pc[k] >= 2).sort((a,b)=>pc[b]-pc[a]).slice(0,6).map(k=>({d:pd[k][0], a:pd[k][1], n:pc[k]}));
+  const chips = list => list.map(p=>`<button type="button" class="person-chip" data-person="${escapeHtml(p.name)}">${escapeHtml(p.name)} <b>×${p.n}</b></button>`).join('');
+  let html = '';
+  if(dirs.length) html += `<div class="people-chips-label" style="margin:0 0 8px">Registi più presenti</div><div class="people-chips" style="margin:0 0 14px">${chips(dirs)}</div>`;
+  if(actors.length) html += `<div class="people-chips-label" style="margin:0 0 8px">Attori più presenti</div><div class="people-chips" style="margin:0 0 14px">${chips(actors)}</div>`;
+  if(pairs.length) html += `<div class="people-chips-label" style="margin:0 0 8px">Coppie d'oro regista + attore</div>${pairs.map(p=>`<div class="people-chips" style="margin:0 0 6px"><button type="button" class="person-chip dir" data-person="${escapeHtml(p.d)}">🎬 ${escapeHtml(p.d)}</button><button type="button" class="person-chip" data-person="${escapeHtml(p.a)}">${escapeHtml(p.a)} <b>×${p.n}</b></button></div>`).join('')}`;
+  box.innerHTML = html || '<div style="color:var(--dim2);font-size:13px;">Compila regia e cast dei tuoi film (con 🔎 Cerca film) per scoprire le tue star.</div>';
+}
+
+/* ---------- Foglio "Filtri e ordinamento" (mobile) ----------
+   Sono gli STESSI menu della barra desktop (stessi id, stessa logica di
+   filtro), solo mostrati in un pannello che sale dal basso. Su desktop i
+   pulsanti di questo blocco non sono visibili e nulla cambia. */
+function openFilterSheet(){
+  const p = document.getElementById('filterPanel'); if(!p) return;
+  p.classList.add('open');
+  document.getElementById('filterBackdrop').classList.add('open');
+  document.body.classList.add('sheet-open');
+  setTimeout(()=>{ const f = p.querySelector('select'); if(f) f.focus({preventScroll:true}); }, 320);
+}
+function closeFilterSheet(){
+  const p = document.getElementById('filterPanel'); if(!p) return;
+  const wasOpen = p.classList.contains('open');
+  p.classList.remove('open');
+  document.getElementById('filterBackdrop').classList.remove('open');
+  document.body.classList.remove('sheet-open');
+  if(wasOpen){ const b = document.getElementById('filterSheetBtn'); if(b) b.focus({preventScroll:true}); }
+}
+document.getElementById('filterSheetBtn').addEventListener('click', openFilterSheet);
+document.getElementById('filterSheetClose').addEventListener('click', closeFilterSheet);
+document.getElementById('filterBackdrop').addEventListener('click', closeFilterSheet);
+document.getElementById('filterSheetApply').addEventListener('click', ()=>{ closeFilterSheet(); window.scrollTo({top:0, behavior:'smooth'}); });
+document.getElementById('filterSheetReset').addEventListener('click', ()=>{
+  ['filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato']
+    .forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
+  renderGrid();
+});
+
 /* ---------- Menu iniziale a scomparsa (solo mobile) ----------
    Scorrendo verso il basso tra le locandine l'header (tessera, titolo,
    statistiche) si ritrae per lasciare più spazio alla griglia; scorrendo
@@ -1591,19 +2299,20 @@ registerServiceWorkerBestEffort();
   let ticking = false;
   function update(){
     ticking = false;
-    if(!mq.matches){ header.classList.remove('header-collapsed'); return; }
+    if(!mq.matches){ header.classList.remove('header-collapsed'); document.body.classList.remove('chrome-collapsed'); return; }
     const y = window.scrollY || document.documentElement.scrollTop || 0;
-    if(y <= TOP_SAFE){ header.classList.remove('header-collapsed'); lastY = y; return; }
+    if(y <= TOP_SAFE){ header.classList.remove('header-collapsed'); document.body.classList.remove('chrome-collapsed'); lastY = y; return; }
     const delta = y - lastY;
     if(Math.abs(delta) < THRESHOLD) return;
     if(delta > 0) header.classList.add('header-collapsed');    // scende → nasconde
     else header.classList.remove('header-collapsed');           // sale → mostra
+    document.body.classList.toggle('chrome-collapsed', header.classList.contains('header-collapsed'));
     lastY = y;
   }
   window.addEventListener('scroll', ()=>{
     if(!ticking){ requestAnimationFrame(update); ticking = true; }
   }, {passive:true});
-  const onModeChange = ()=> header.classList.remove('header-collapsed');
+  const onModeChange = ()=>{ header.classList.remove('header-collapsed'); document.body.classList.remove('chrome-collapsed'); closeFilterSheet(); };
   if(mq.addEventListener) mq.addEventListener('change', onModeChange);
   else if(mq.addListener) mq.addListener(onModeChange); // Safari meno recenti
 })();
@@ -1905,6 +2614,7 @@ function movieDecade(m){
    nessun altro film del regista, il pannello resta vuoto senza disturbare
    la scheda. */
 async function renderDirectorGapsPanel(registaField){
+  setTimeout(renderPeopleChips, 0);
   const box = document.getElementById('directorGapsWrap');
   if(!box) return;
   box.innerHTML = '';
@@ -2105,6 +2815,12 @@ function renderGrid(){
   const list = getFiltered();
   const anyFilter = ['search','filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato']
     .some(id=>{ const el = document.getElementById(id); return el && el.value; });
+  const activeSelects = ['filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato']
+    .filter(id=>{ const el = document.getElementById(id); return el && el.value; }).length;
+  const fcEl = document.getElementById('filterCount');
+  if(fcEl) fcEl.textContent = activeSelects ? String(activeSelects) : '';
+  const applyEl = document.getElementById('filterSheetApply');
+  if(applyEl) applyEl.textContent = list.length === 1 ? 'Mostra 1 film' : `Mostra ${list.length} film`;
   const emptyEl = document.getElementById('empty');
   emptyEl.style.display = list.length ? 'none' : 'block';
   if(!list.length){
@@ -2281,8 +2997,8 @@ function renderCofanettoSiblings(m){
   }
   box.innerHTML = siblings.map(s=>{
     const isCurrent = s.id === m.id;
-    const thumb = s.poster
-      ? `<img src="${escapeHtml(s.poster)}" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display='none'">`
+    const thumb = safeUrl(s.poster)
+      ? `<img src="${escapeHtml(safeUrl(s.poster))}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.style.display='none'">`
       : `<div class="ph">🎬</div>`;
     return `<div class="cofanetto-sib${isCurrent?' current':''}" data-id="${s.id}">${thumb}<span>${escapeHtml(displayTitle(s.titolo))}${isCurrent?' (questo)':''}</span></div>`;
   }).join('');
@@ -2307,6 +3023,7 @@ function openModal(id){
   document.getElementById('f_regista').value = m.regista||'';
   document.getElementById('f_genere').value = m.genere||'';
   renderDirectorGapsPanel(m.regista);
+  renderBehindScenes(m);
   document.getElementById('f_tags').value = m.tags||'';
   document.getElementById('f_stato').value = m.stato||'da_vedere';
   document.getElementById('f_lista').value = (m.lista||'collezione');
@@ -2348,6 +3065,7 @@ function normalizeSelectVal(val, options){
   return found || options[0];
 }
 function renderPosterView(m){
+  setModalHero(m && m.poster);
   const box = document.getElementById('posterView');
   box.innerHTML = safeUrl(m.poster) ? `<img src="${escapeHtml(safeUrl(m.poster))}" alt="Locandina di ${escapeHtml(displayTitle(m.titolo))}" referrerpolicy="no-referrer" onerror="posterLoadError(this)" data-titolo="${escapeHtml(displayTitle(m.titolo))}">` : posterFallbackHTML(displayTitle(m.titolo));
 }
@@ -2556,6 +3274,8 @@ document.getElementById('addBtn').addEventListener('click', ()=>{
   document.getElementById('f_regista').value='';
   document.getElementById('f_genere').value='';
   document.getElementById('directorGapsWrap').innerHTML = '';
+  setTimeout(renderPeopleChips, 0);
+  renderBehindScenes(null);
   document.getElementById('f_tags').value='';
   document.getElementById('f_stato').value='da_vedere';
   document.getElementById('f_lista').value = window._draftLista || 'collezione';
@@ -3484,6 +4204,7 @@ document.getElementById('retryFullDetailsBtn').addEventListener('click', async (
   document.getElementById('f_genere').value = m.genere||'';
   document.getElementById('f_regista').value = m.regista||'';
   renderDirectorGapsPanel(m.regista);
+  renderBehindScenes(m);
   document.getElementById('f_cast').value = m.cast||'';
   document.getElementById('f_trama').value = m.trama||'';
   document.getElementById('f_tags').value = m.tags||'';
@@ -3597,6 +4318,7 @@ document.getElementById('tmdbSearchBtn').addEventListener('click', async ()=>{
       document.getElementById('f_genere').value = m.genere||'';
       document.getElementById('f_regista').value = m.regista||'';
       renderDirectorGapsPanel(m.regista);
+      renderBehindScenes(m);
       document.getElementById('f_cast').value = m.cast||'';
       document.getElementById('f_trama').value = m.trama||'';
       document.getElementById('f_tags').value = m.tags||'';
@@ -3996,6 +4718,7 @@ function computeStats(){
   document.getElementById('statsDecades').innerHTML = decadeEntries.length ? barsHTML(decadeEntries, decadeMax) : '<div style="color:var(--dim2);font-size:13px;">Aggiungi l\'anno ai film per vedere questo grafico</div>';
   document.getElementById('statsRegisti').innerHTML = registaEntries.length ? barsHTML(registaEntries, registaMax) : '<div style="color:var(--dim2);font-size:13px;">Aggiungi il regista ai film per vedere questo grafico</div>';
   document.getElementById('statsGeneri').innerHTML = genereEntries.length ? barsHTML(genereEntries, genereMax) : '<div style="color:var(--dim2);font-size:13px;">Aggiungi il genere ai film per vedere questo grafico</div>';
+  renderStatsStars();
 }
 document.getElementById('statsBtn').addEventListener('click', ()=>{
   computeStats();
@@ -4018,7 +4741,7 @@ function spinRoulette(){
   const pick = pool[Math.floor(Math.random()*pool.length)];
   rouletteId = pick.id;
   box.innerHTML = `
-    <div class="roulette-poster">${pick.poster ? `<img src="${escapeHtml(pick.poster)}" referrerpolicy="no-referrer">` : posterFallbackHTML(displayTitle(pick.titolo))}</div>
+    <div class="roulette-poster">${safeUrl(pick.poster) ? `<img src="${escapeHtml(safeUrl(pick.poster))}" alt="Locandina di ${escapeHtml(displayTitle(pick.titolo))}" referrerpolicy="no-referrer">` : posterFallbackHTML(displayTitle(pick.titolo))}</div>
     <div class="roulette-title">${escapeHtml(displayTitle(pick.titolo))}</div>
     <div class="roulette-meta">${escapeHtml(pick.anno||'')}${pick.anno && pick.genere ? ' · ' : ''}${escapeHtml(pick.genere||'')}</div>
   `;
@@ -4044,9 +4767,24 @@ function getFocusable(container){
     'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
   )).filter(el => el.offsetParent !== null);
 }
+/* L'overlay "in primo piano" è l'ULTIMO aperto nell'ordine del DOM (a parità
+   di z-index è quello disegnato sopra): Esc e Tab devono agire su di lui,
+   non sul primo trovato — altrimenti con due finestre sovrapposte (es. scheda
+   persona sopra scheda film) si chiuderebbe quella sotto. */
+function topOverlay(){
+  // Stesso criterio con cui il browser disegna: prima lo z-index più alto,
+  // a parità vince l'ultimo nel DOM. (La scheda persona ha z-index più alto
+  // perché si apre anche SOPRA le statistiche, che nel DOM vengono dopo.)
+  let best = null, bestZ = -Infinity;
+  document.querySelectorAll('.overlay.open').forEach(el=>{
+    const z = parseInt(getComputedStyle(el).zIndex, 10) || 0;
+    if(z >= bestZ){ bestZ = z; best = el; }
+  });
+  return best;
+}
 document.addEventListener('keydown', e=>{
   if(e.key !== 'Tab') return;
-  const open = document.querySelector('.overlay.open');
+  const open = topOverlay();
   if(!open) return;
   const focusable = getFocusable(open);
   if(!focusable.length) return;
@@ -4065,7 +4803,9 @@ document.addEventListener('keydown', e=>{
    Esc = chiude la finestra aperta · "/" = va subito alla ricerca */
 document.addEventListener('keydown', e=>{
   if(e.key === 'Escape'){
-    const open = document.querySelector('.overlay.open');
+    const fp = document.getElementById('filterPanel');
+    if(fp && fp.classList.contains('open')){ closeFilterSheet(); return; }
+    const open = topOverlay();
     if(open){
       if(open.id==='confirmOverlay'){ closeConfirm(false); return; }
       if(open.id==='scanOverlay'){ stopScanner(true); return; }
