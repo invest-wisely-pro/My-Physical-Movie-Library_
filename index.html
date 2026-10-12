@@ -300,8 +300,10 @@ input[type=file]{display:none;}
   font-size:20px; cursor:pointer; line-height:1; z-index:5; transition:.2s;
 }
 .modal-close:hover{color:var(--accent1); border-color:var(--accent1);}
-.modal-body{display:grid; grid-template-columns:280px 1fr; gap:0;}
-@media(max-width:720px){.modal-body{grid-template-columns:1fr;}}
+/* minmax(0,1fr) e non 1fr: con 1fr la colonna si allarga fino al contenuto più largo
+   (es. la fila orizzontale di correlati) e la scheda esce dal riquadro */
+.modal-body{display:grid; grid-template-columns:280px minmax(0, 1fr); gap:0;}
+@media(max-width:720px){.modal-body{grid-template-columns:minmax(0, 1fr);}}
 .modal-poster{
   background:#0a0b11; border-radius:24px 0 0 24px; overflow:hidden; min-height:380px;
   display:flex; flex-direction:column;
@@ -320,7 +322,11 @@ input[type=file]{display:none;}
 .info-help[open] summary{border-bottom:1px solid var(--line); border-radius:12px 12px 0 0;}
 .info-help > p{padding:0 12px 4px;}
 .info-help > p:last-child{padding-bottom:12px;}
-.modal-fields{padding:48px 34px 32px;}
+.modal-fields{padding:48px 34px 32px; min-width:0;}
+.modal-poster{min-width:0;}
+.trailer-bar, .rel-box, .people-chips, .bs-box{max-width:100%; min-width:0;}
+/* Colonna locandina: i pulsanti con testo lungo vanno a capo invece di essere tagliati */
+.modal-poster-tools .btn{white-space:normal; overflow-wrap:anywhere; line-height:1.35; height:auto;}
 .field-row{display:flex; gap:16px; flex-wrap:wrap; margin-bottom:16px;}
 .field{flex:1; min-width:140px;}
 .field.full{flex-basis:100%;}
@@ -680,7 +686,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
   font-family:var(--font-mono, monospace); font-size:12px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--accent3, #ff2e91);}
 .bs-head button{background:none; border:none; color:var(--dim2); cursor:pointer; font-size:14px; padding:2px 6px;}
 .bs-head button:hover{color:var(--accent1);}
-.bs-row{display:grid; grid-template-columns:118px 1fr; gap:10px; padding:9px 14px; border-bottom:1px solid rgba(255,255,255,.05); align-items:start;}
+.bs-row{display:grid; grid-template-columns:118px minmax(0, 1fr); gap:10px; padding:9px 14px; border-bottom:1px solid rgba(255,255,255,.05); align-items:start;}
 .bs-row:last-child{border-bottom:none;}
 .bs-k{font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:var(--dim2); padding-top:6px;}
 .bs-v{display:flex; flex-wrap:wrap; gap:6px; font-size:13.5px; color:var(--cream); line-height:1.5; min-width:0;}
@@ -743,7 +749,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
   .person-links{justify-content:center;}
   .person-photo{width:132px; height:132px;}
   .person-hero h2{font-size:25px;}
-  .bs-row{grid-template-columns:1fr; gap:4px;}
+  .bs-row{grid-template-columns:minmax(0, 1fr); gap:4px;}
   .bs-k{padding-top:0;}
   .modal-hero-bg{height:300px;}
 }
@@ -786,6 +792,63 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
   .link-modal{padding:58px 5vw 40px;}
   .lf-title{font-size:20px;}
   .link-actions .btn{flex:1;}
+}
+
+/* ---------- Trailer: pulsante che apre YouTube ---------- */
+.trailer-bar{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 18px;}
+.trailer-btn{display:inline-flex; align-items:center; gap:10px; padding:11px 18px; border-radius:30px; cursor:pointer;
+  font-family:'Manrope',sans-serif; font-size:14px; font-weight:800; text-decoration:none; color:#fff;
+  background:linear-gradient(135deg, #ff2e2e, #c4101c); border:0; box-shadow:0 8px 22px rgba(255,46,46,.3), 0 3px 0 #7a0a12;
+  transition:transform .12s, box-shadow .12s, filter .12s;}
+.trailer-btn:hover, .trailer-btn:focus-visible{filter:brightness(1.08); transform:translateY(-1px);}
+.trailer-btn:active{transform:translateY(2px); box-shadow:0 2px 8px rgba(255,46,46,.3), 0 1px 0 #7a0a12;}
+.trailer-btn.search{background:rgba(255,255,255,.06); border:1px solid var(--line); box-shadow:none; color:var(--cream); font-weight:700;}
+.trailer-btn.search:hover{border-color:#ff4b4b;}
+.yt-ico{display:inline-flex; align-items:center; justify-content:center; width:26px; height:18px; border-radius:5px; background:#fff; color:#d0101c; font-size:10px; padding-left:2px;}
+.trailer-more{font-size:12.5px; font-weight:700; color:var(--accent1); text-decoration:none; padding:6px 12px; border:1px solid var(--line); border-radius:20px;}
+.trailer-more:hover{border-color:var(--accent1);}
+
+/* ---------- Correlati e consigliati ---------- */
+.rel-box{margin:0 0 18px;}
+.rel-sec{margin-bottom:14px;}
+.rel-head{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin:0 0 10px;
+  font-family:var(--font-mono, monospace); font-size:12px; font-weight:700; letter-spacing:1.4px; text-transform:uppercase; color:var(--accent3, #ff2e91);}
+.rel-head small{font-family:'Manrope',sans-serif; letter-spacing:0; text-transform:none; font-size:12px; font-weight:600; color:var(--dim2);}
+.rel-strip{display:flex; gap:12px; overflow-x:auto; padding:2px 2px 8px; scroll-snap-type:x proximity; scrollbar-width:thin; overscroll-behavior-x:contain;}
+.rel-card{flex:0 0 auto; width:128px; scroll-snap-align:start; display:flex; flex-direction:column; gap:6px;}
+.rel-hit{display:flex; flex-direction:column; gap:4px; text-decoration:none; color:var(--cream); background:none; border:0; padding:0; text-align:left; cursor:pointer; font-family:'Manrope',sans-serif;}
+.rel-art{position:relative; display:block; width:128px; height:190px; border-radius:10px; overflow:hidden; background:#231d34;
+  box-shadow:0 10px 24px rgba(0,0,0,.5); transition:transform .15s, box-shadow .15s;}
+.rel-hit:hover .rel-art, .rel-hit:focus-visible .rel-art{transform:translateY(-3px); box-shadow:0 0 0 2px var(--accent1), 0 14px 30px rgba(0,0,0,.6);}
+.rel-art img{width:100%; height:100%; object-fit:cover;}
+.rel-ph{position:absolute; inset:0; display:flex; align-items:flex-end; padding:10px;}
+.rel-ph span{font-family:var(--font-display, 'Sora'), sans-serif; font-size:14px; line-height:1.15; color:#fff; text-shadow:0 2px 8px rgba(0,0,0,.6);
+  display:-webkit-box; -webkit-line-clamp:4; -webkit-box-orient:vertical; overflow:hidden;}
+.rel-badge{position:absolute; top:6px; right:6px; min-width:24px; height:24px; border-radius:12px; display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:800; padding:0 6px;}
+.rel-badge.own{background:#2bd67b; color:#062312;}
+.rel-badge.wish{background:rgba(167,139,250,.9); color:#160b2b;}
+.rel-title{font-size:12.5px; font-weight:700; line-height:1.3; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.rel-meta{font-size:11.5px; color:var(--dim2);}
+.rel-meta b{color:#f5c518;}
+.rel-why{font-size:11px; color:var(--accent1); line-height:1.3;}
+.rel-add{align-self:flex-start;}
+
+/* ---------- Scheda persona: anagrafica e carriera ---------- */
+.person-facts{border:1px solid var(--line); border-radius:12px; overflow:hidden; margin:2px 0 14px; background:rgba(255,255,255,.025);}
+.pf-row{display:grid; grid-template-columns:140px minmax(0, 1fr); gap:10px; padding:8px 14px; border-bottom:1px solid rgba(255,255,255,.05); font-size:13px;}
+.pf-row:last-child{border-bottom:none;}
+.pf-k{font-size:11px; letter-spacing:.8px; text-transform:uppercase; color:var(--dim2); padding-top:2px;}
+.pf-v{color:var(--cream);}
+.person-bio{white-space:pre-line;}
+.pstat-grid{display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px;}
+.pstat{background:rgba(255,255,255,.035); border:1px solid var(--line); border-radius:12px; padding:12px 10px; text-align:center;}
+.pstat b{display:block; font-family:var(--font-display, 'Sora'), sans-serif; font-weight:400; font-size:20px; color:var(--cream); line-height:1.2;}
+.pstat small{display:block; font-size:10.5px; letter-spacing:.6px; text-transform:uppercase; color:var(--dim2); margin-top:4px;}
+@media (max-width: 640px){
+  .pstat-grid{grid-template-columns:repeat(2, minmax(0, 1fr));}
+  .pf-row{grid-template-columns:minmax(0, 1fr); gap:2px;}
+  .rel-card{width:118px;} .rel-art{width:118px; height:175px;}
 }
 
 /* ---------- Animazione "inserimento videocassetta" al click sulla card ---------- */
@@ -1077,7 +1140,6 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
             <div id="blurayLinkWrap" style="margin-top:8px;"></div>
             <button class="btn ghost" id="retryFullDetailsBtn" style="width:100%; margin-top:8px; display:none;">🔄 Riprova dati completi</button>
             <button class="btn ghost" id="exportSingleNfoBtn" style="width:100%; margin-top:8px;" title="Genera un file .nfo con i metadati di questo film, leggibile da Plex/Jellyfin/Kodi">📀 Esporta .nfo (Plex/Jellyfin)</button>
-            <button class="btn ghost" id="trailerBtn" style="width:100%; margin-top:8px;">▶ Cerca trailer su YouTube</button>
             <details class="info-help">
               <summary>ℹ️ Come funziona il recupero dati (nessuna chiave richiesta)</summary>
               <p style="font-size:11.5px;color:var(--dim2);line-height:1.5;margin:10px 0 0;">Nessuna chiave o registrazione richiesta, in nessun caso. Locandina, anno, trama, genere, regista, cast e tag arrivano da Wikidata/Wikipedia (infrastruttura ufficiale Wikimedia, stabile e gratuita); quando disponibile, arriva anche il voto della critica di Rotten Tomatoes (Tomatometer) e quello di Metacritic. Il voto del pubblico di Rotten Tomatoes (Popcornmeter) e il voto IMDb restano manuali — non sono ridistribuibili liberamente — ma con il link diretto qui sopra li trovi e li copi in pochi secondi. 🍅 rosso = "Fresh" (60% o più), 🟢 splat verde = "Rotten" (sotto 60%), come sul sito originale. Trama e cast possono arrivare in inglese se la voce italiana non esiste: modificali pure a mano. Curiosità e tag restano un recupero "best effort".</p>
@@ -1090,6 +1152,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
       <div class="modal-fields">
         <input type="text" id="f_titolo" class="modal-title-input" placeholder="Titolo del film">
         <div class="badge-row" id="badgeRow"></div>
+        <div id="trailerWrap"></div>
 
         <div class="form-section-title first">📀 La tua copia</div>
         <div class="field-row">
@@ -1188,6 +1251,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
         </div>
         <div id="peopleChips" class="people-chips" aria-label="Regia e cast: tocca un nome per la scheda completa"></div>
         <div id="behindScenesWrap"></div>
+        <div id="relatedWrap"></div>
         <div class="field-row">
           <div class="field full"><label for="f_trama">Trama</label><textarea id="f_trama"></textarea></div>
         </div>
@@ -1843,12 +1907,76 @@ function setModalHero(poster){
   if(v){ bg.style.setProperty('--hero', v); bg.classList.add('on'); }
   else { bg.classList.remove('on'); bg.style.removeProperty('--hero'); }
 }
-async function wdSparql(query, ms){
+/* ---------- Coda delle richieste a Wikidata ----------
+   Il servizio di Wikidata accetta al massimo 5 richieste in parallelo dallo
+   stesso indirizzo (oltre a un tetto di calcolo al minuto): le eccedenti
+   vengono respinte con "429 Too Many Requests". Aprendo una persona dalla
+   scheda di un film partivano ~8 richieste insieme e la filmografia, la più
+   pesante, veniva respinta. Qui: massimo 3 in parallelo, priorità a ciò che
+   stai guardando ("high"), sfondo dopo ("low"), e nuovi tentativi automatici
+   su 429 / errori del server rispettando il Retry-After. */
+const WDQ = { running: 0, runningLow: 0, max: 3, maxLow: 2, queue: [] };
+function wdPump(){
+  // Lo sfondo ("low") occupa al massimo 2 posti: uno resta sempre libero per ciò che stai guardando
+  let i = 0;
+  while(WDQ.running < WDQ.max && i < WDQ.queue.length){
+    const job = WDQ.queue[i];
+    if(job.p === 1 && WDQ.runningLow >= WDQ.maxLow){ i++; continue; }
+    WDQ.queue.splice(i, 1);
+    WDQ.running++; if(job.p === 1) WDQ.runningLow++;
+    Promise.resolve().then(job.fn).then(job.resolve, job.reject).finally(()=>{ WDQ.running--; if(job.p === 1) WDQ.runningLow--; wdPump(); });
+  }
+}
+function wdSchedule(fn, prio){
+  return new Promise((resolve, reject)=>{
+    const job = { fn, resolve, reject, p: prio === 'low' ? 1 : 0 };
+    const at = WDQ.queue.findIndex(j=>j.p > job.p);       // "high" passa davanti ai "low", FIFO all'interno
+    if(at < 0) WDQ.queue.push(job); else WDQ.queue.splice(at, 0, job);
+    wdPump();
+  });
+}
+const sleep = ms => new Promise(r=>setTimeout(r, ms));
+async function wdSparql(query, ms, prio){
   const url = 'https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(query);
-  const res = await fetchWithTimeout(url, ms || 9000, { headers:{ 'Accept':'application/sparql-results+json' } });
-  if(!res.ok) throw new Error('Wikidata HTTP ' + res.status);
-  const d = await res.json();
-  return (d.results && d.results.bindings) || [];
+  return wdSchedule(async ()=>{
+    let wait = 1500, netFails = 0;
+    for(let attempt = 0; attempt < 3; attempt++){
+      let res;
+      try{ res = await fetchWithTimeout(url, ms || 9000, { headers:{ 'Accept':'application/sparql-results+json' } }); }
+      catch(e){
+        // rete assente o timeout: un solo nuovo tentativo, e solo per ciò che stai guardando
+        // (ripetere query di sfondo pesanti sprecherebbe il tempo di calcolo concesso da Wikidata)
+        if(navigator.onLine === false || prio === 'low' || ++netFails > 1) throw e;
+        await sleep(wait); wait *= 2.5; continue;
+      }
+      if(res.ok){ const d = await res.json(); return (d.results && d.results.bindings) || []; }
+      if(res.status === 429 || res.status >= 500){
+        if(attempt === 2) throw new Error('Wikidata HTTP ' + res.status);
+        const ra = parseInt(res.headers && res.headers.get ? res.headers.get('Retry-After') : '', 10);
+        await sleep(ra > 0 && ra <= 30 ? ra * 1000 : wait); wait *= 2.5; continue;
+      }
+      throw new Error('Wikidata HTTP ' + res.status);   // altri errori (query non valida): inutile riprovare
+    }
+    throw new Error('Wikidata: tentativi esauriti');
+  }, prio);
+}
+/* Filmografia di una persona: SELECT DISTINCT senza raggruppamento (meno calcolo
+   lato Wikidata), i ruoli si uniscono qui. Solo titoli presenti nell'indice. */
+async function fetchPersonFilms(qid){
+  const rows = await wdSparql(`SELECT DISTINCT ?imdb ?role WHERE {
+    { ?film wdt:P161 wd:${qid}. BIND("cast" AS ?role) } UNION { ?film wdt:P57 wd:${qid}. BIND("regia" AS ?role) }
+    UNION { ?film wdt:P58 wd:${qid}. BIND("sceneggiatura" AS ?role) } UNION { ?film wdt:P86 wd:${qid}. BIND("musiche" AS ?role) }
+    UNION { ?film wdt:P344 wd:${qid}. BIND("fotografia" AS ?role) } UNION { ?film wdt:P162 wd:${qid}. BIND("produzione" AS ?role) }
+    ?film wdt:P345 ?imdb.
+  } LIMIT 2500`, 20000, 'high');
+  const map = new Map();
+  rows.forEach(r=>{
+    const t = r.imdb && r.imdb.value, role = r.role && r.role.value;
+    if(!isTt(t) || !role) return;
+    if(IMDB_INDEX && !imdbEntry(t)) return;
+    const arr = map.get(t) || []; if(!arr.includes(role)) arr.push(role); map.set(t, arr);
+  });
+  return [...map.entries()].slice(0, 300).map(([t, r])=>({ t, r }));
 }
 function awardRank(l){
   if(/oscar|academy award/i.test(l)) return 0;
@@ -1892,15 +2020,36 @@ function renderPeopleChips(){
   const dirs = splitNames(document.getElementById('f_regista').value).slice(0, 4);
   const cast = splitNames(document.getElementById('f_cast').value).slice(0, 12);
   if(!dirs.length && !cast.length){ box.innerHTML = ''; return; }
+  const mv = state.movies.find(x=>x.id === currentId);
+  const pq = (mv && mv.pq && mv.pq.map) || {};
+  const qa = n => { const q = pq[normKey(n)]; return isQid(q) ? ` data-person-qid="${q}"` : ''; };
   box.innerHTML = '<span class="people-chips-label">Tocca un nome per la scheda completa</span>' +
-    dirs.map(n=>`<button type="button" class="person-chip dir" data-person="${escapeHtml(n)}">🎬 ${escapeHtml(n)}</button>`).join('') +
-    cast.map(n=>`<button type="button" class="person-chip" data-person="${escapeHtml(n)}">${escapeHtml(n)}</button>`).join('');
+    dirs.map(n=>`<button type="button" class="person-chip dir" data-person="${escapeHtml(n)}"${qa(n)}>🎬 ${escapeHtml(n)}</button>`).join('') +
+    cast.map(n=>`<button type="button" class="person-chip" data-person="${escapeHtml(n)}"${qa(n)}>${escapeHtml(n)}</button>`).join('');
 }
 ['f_regista','f_cast'].forEach(id=>{
   const el = document.getElementById(id);
   if(el) el.addEventListener('input', debounce(renderPeopleChips, 250));
 });
 
+/* ---------- Codici Wikidata di regista e cast del film ----------
+   Una richiesta leggera all'apertura del film: con il codice già pronto,
+   toccare un nome apre la persona senza la richiesta di identificazione
+   (un passaggio in meno). Salvato nella scheda, vale anche offline. */
+async function ensurePeopleQids(m){
+  if(!m || !isTt(m.imdbId) || (m.pq && m.pq.t === m.imdbId)) return;
+  const session = _modalSession;
+  try{
+    const rows = await wdSparql(`SELECT ?v ?vLabel WHERE { ?film wdt:P345 "${m.imdbId}". { ?film wdt:P57 ?v } UNION { ?film wdt:P161 ?v } SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". } } LIMIT 150`, 9000);
+    const map = {};
+    rows.forEach(r=>{ const q = qidOf(r.v && r.v.value), l = r.vLabel && r.vLabel.value; if(isQid(q) && l && !/^Q\d+$/.test(l)) map[normKey(l)] = q; });
+    const sm = state.movies.find(x=>x.id === m.id);
+    const target = (sm && sm.imdbId === m.imdbId) ? sm : m;
+    target.pq = { t: m.imdbId, map };
+    if(target === sm) saveState();
+    if(_modalSession === session) renderPeopleChips();
+  }catch(e){ /* senza codici si usa la ricerca per nome, come prima */ }
+}
 /* ---------- Dietro le quinte (per film, da Wikidata via ID IMDb) ---------- */
 const UNIT_SYMBOL = {Q4917:'$', Q4916:'€', Q25224:'£', Q8146:'¥', Q41044:'₽', Q4730:'₹'};
 function fmtMoney(amount, unitQ){
@@ -2002,6 +2151,7 @@ function behindHTML(ex){
 /* I dettagli vengono salvati nella scheda (m.extra): la volta dopo si
    aprono all'istante, anche offline. ↻ forza un aggiornamento. */
 async function renderBehindScenes(m, force){
+  if(!force){ renderTrailer(m); renderRelated(m); ensurePeopleQids(m); }
   const box = document.getElementById('behindScenesWrap'); if(!box) return;
   if(!m || !isTt(m.imdbId)){ box.innerHTML = ''; return; }
   const session = _modalSession;
@@ -2034,12 +2184,13 @@ document.getElementById('behindScenesWrap').addEventListener('click', async e=>{
 });
 
 /* ---------- Scheda persona ---------- */
-const PERSON_CACHE_KEY = 'mpml_person_cache_v1';
-const PERSON_CACHE_MAX = 40;     // piccola: non deve MAI rubare spazio al salvataggio dei film
+const PERSON_CACHE_KEY = 'mpml_person_cache_v3';   // v3: collaboratori di carriera, niente vuoti salvati per errore
+const PERSON_CACHE_MAX = 60;     // piccola: non deve MAI rubare spazio al salvataggio dei film
 let _personCache = null;
 function personCache(){
   if(_personCache) return _personCache;
   try{ _personCache = JSON.parse(localStorage.getItem(PERSON_CACHE_KEY) || '{}') || {}; }catch(e){ _personCache = {}; }
+  try{ localStorage.removeItem('mpml_person_cache_v1'); localStorage.removeItem('mpml_person_cache_v2'); }catch(e){}   // versioni precedenti: liberano spazio (la v2 poteva contenere filmografie vuote salvate per errore)   // la vecchia versione non serve più: libera spazio
   return _personCache;
 }
 function savePersonCache(){
@@ -2070,57 +2221,99 @@ async function resolvePersonQid(name, filmImdb){
   if(qid){ c[nk] = {q:qid, at:Date.now()}; savePersonCache(); }
   return qid;
 }
-async function fetchPersonData(qid){
+async function fetchPersonData(qid, onUpdate){
   if(!isQid(qid)) return null;
   const c = personCache(); const key = 'q:' + qid;
   if(c[key] && (Date.now() - (c[key].at||0)) < 30*864e5) return c[key];
-  const [det, aw, fil] = await Promise.all([
-    wdSparql(`SELECT ?pLabel ?img ?birth ?death ?bpLabel ?dpLabel ?imdb ?aIt ?aEn ?desc WHERE {
+  /* Caricamento PROGRESSIVO: ogni parte aggiorna la scheda appena arriva.
+     Prima la scheda aspettava la richiesta più lenta (i collaboratori) prima
+     di mostrare qualsiasi cosa, anche l'anagrafica già pronta. */
+  const data = { at: Date.now(), qid, name:'', films: null, collab: { cast: [], regia: [] }, awards: [], nominations: 0,
+                 countries: [], spouses: [], jobs: [], failed: [], pending: new Set(['anagrafica','premi','filmografia','collaboratori']) };
+  const emit = () => { if(onUpdate) onUpdate(data); };
+  const done = (part, ok) => { data.pending.delete(part); if(!ok) data.failed.push(part); emit(); };
+  const year = x => { const m = String(x||'').match(/^(\d{4})/); return m ? m[1] : ''; };
+
+  // 1) Anagrafica → subito dopo, in parallelo al resto, la biografia da Wikipedia
+  const pDet = wdSparql(`SELECT ?pLabel ?img ?birth ?death ?bpLabel ?dpLabel ?imdb ?aIt ?aEn ?desc ?height ?birthName ?ws ?we WHERE {
       BIND(wd:${qid} AS ?p)
       OPTIONAL{?p wdt:P18 ?img} OPTIONAL{?p wdt:P569 ?birth} OPTIONAL{?p wdt:P570 ?death}
       OPTIONAL{?p wdt:P19 ?bp} OPTIONAL{?p wdt:P20 ?dp} OPTIONAL{?p wdt:P345 ?imdb}
+      OPTIONAL{?p p:P2048/psn:P2048/wikibase:quantityAmount ?height}
+      OPTIONAL{?p wdt:P1477 ?birthName} OPTIONAL{?p wdt:P2031 ?ws} OPTIONAL{?p wdt:P2032 ?we}
       OPTIONAL{?aIt schema:about ?p; schema:isPartOf <https://it.wikipedia.org/>}
       OPTIONAL{?aEn schema:about ?p; schema:isPartOf <https://en.wikipedia.org/>}
       OPTIONAL{?p schema:description ?desc FILTER(LANG(?desc)="it")}
       SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". }
-    } LIMIT 1`, 9000),
-    wdSparql(`SELECT DISTINCT ?aLabel WHERE { wd:${qid} wdt:P166 ?a. SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". } } LIMIT 60`, 9000).catch(()=>[]),
-    wdSparql(`SELECT ?imdb (GROUP_CONCAT(DISTINCT ?role; separator=",") AS ?roles) WHERE {
-      { ?film wdt:P161 wd:${qid}. BIND("cast" AS ?role) } UNION { ?film wdt:P57 wd:${qid}. BIND("regia" AS ?role) }
-      UNION { ?film wdt:P58 wd:${qid}. BIND("sceneggiatura" AS ?role) } UNION { ?film wdt:P86 wd:${qid}. BIND("musiche" AS ?role) }
-      UNION { ?film wdt:P344 wd:${qid}. BIND("fotografia" AS ?role) } UNION { ?film wdt:P162 wd:${qid}. BIND("produzione" AS ?role) }
-      ?film wdt:P345 ?imdb.
-    } GROUP BY ?imdb LIMIT 800`, 12000).catch(()=>[])
-  ]);
-  const d = det[0] || {};
-  const v = k => (d[k] && d[k].value) || '';
-  let img = v('img');
-  if(img){ img = commonsThumb(decodeURIComponent(img.split('/').pop()), 360); }
-  let films = fil.map(r=>({ t: r.imdb && r.imdb.value, r: ((r.roles && r.roles.value) || '').split(',').filter(Boolean) })).filter(f=>isTt(f.t));
-  // In cache solo i titoli che l'app sa mostrare (film nell'indice): niente episodi TV, cache leggera
-  if(IMDB_INDEX) films = films.filter(f=>imdbEntry(f.t));
-  films = films.slice(0, 300);
-  const label = v('pLabel');
-  const data = {
-    at: Date.now(), qid, name: /^Q\d+$/.test(label) ? '' : label, img,
-    birth: v('birth'), death: v('death'), bp: v('bpLabel'), dp: v('dpLabel'),
-    imdb: /^nm\d+$/.test(v('imdb')) ? v('imdb') : '', aIt: v('aIt'), aEn: v('aEn'), desc: v('desc'),
-    awards: aw.map(r=>r.aLabel && r.aLabel.value).filter(l=>l && !/^Q\d+$/.test(l)),
-    films
-  };
-  const art = data.aIt || data.aEn, lang = data.aIt ? 'it' : 'en';
-  if(art){
-    try{
-      const title = decodeURIComponent(art.split('/wiki/')[1] || '');
-      const r = await fetchWithTimeout(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`, 7000);
-      if(r.ok){
-        const j = await r.json();
-        data.bio = (j.extract || '').slice(0, 2400); data.bioLang = lang;
-        if(!data.img && j.thumbnail && j.thumbnail.source) data.img = j.thumbnail.source;
-      }
-    }catch(e){ /* biografia non raggiungibile: non bloccante */ }
-  }
-  c[key] = data; savePersonCache();
+    } LIMIT 1`, 9000).then(async det=>{
+    const d = det[0] || {};
+    const v = k => (d[k] && d[k].value) || '';
+    let img = v('img');
+    if(img) img = commonsThumb(decodeURIComponent(img.split('/').pop()), 360);
+    const h = parseFloat(v('height')), label = v('pLabel');
+    Object.assign(data, {
+      name: /^Q\d+$/.test(label) ? '' : label, img, birth: v('birth'), death: v('death'), bp: v('bpLabel'), dp: v('dpLabel'),
+      imdb: /^nm\d+$/.test(v('imdb')) ? v('imdb') : '', aIt: v('aIt'), aEn: v('aEn'), desc: v('desc'),
+      birthName: v('birthName'), height: (h > 0.5 && h < 2.6) ? h : 0, activeFrom: year(v('ws')), activeTo: year(v('we'))
+    });
+    done('anagrafica', true);
+    const art = data.aIt || data.aEn, lang = data.aIt ? 'it' : 'en';
+    if(art){
+      try{
+        const title = decodeURIComponent(art.split('/wiki/')[1] || '');
+        const url = `https://${lang}.wikipedia.org/w/api.php?action=query&prop=extracts%7Cpageimages&exintro=1&explaintext=1&piprop=thumbnail&pithumbsize=400&redirects=1&format=json&origin=*&titles=${encodeURIComponent(title)}`;
+        const r = await fetchWithTimeout(url, 8000);
+        if(r.ok){
+          const j = await r.json();
+          const pg = (j.query && j.query.pages) ? (Object.values(j.query.pages)[0] || {}) : {};
+          if(pg.extract){ data.bio = pg.extract.replace(/\n{3,}/g, '\n\n').trim().slice(0, 3600); data.bioLang = lang; }
+          if(!data.img && pg.thumbnail && pg.thumbnail.source) data.img = pg.thumbnail.source;
+          emit();
+        }
+      }catch(e){ /* biografia non raggiungibile: non bloccante */ }
+    }
+  }, ()=>done('anagrafica', false));
+
+  // 2) Premi, candidature, nazionalità, coniugi, mestieri
+  const pMulti = wdSparql(`SELECT ?k ?vLabel WHERE { BIND(wd:${qid} AS ?p)
+      { ?p wdt:P166 ?v. BIND("premio" AS ?k) } UNION { ?p wdt:P1411 ?v. BIND("candidatura" AS ?k) }
+      UNION { ?p wdt:P27 ?v. BIND("paese" AS ?k) } UNION { ?p wdt:P26 ?v. BIND("coniuge" AS ?k) }
+      UNION { ?p wdt:P106 ?v. BIND("mestiere" AS ?k) }
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". } } LIMIT 300`, 9000).then(multi=>{
+    const bag = { premio:[], candidatura:[], paese:[], coniuge:[], mestiere:[] };
+    multi.forEach(r=>{
+      const k = r.k && r.k.value, l = r.vLabel && r.vLabel.value;
+      if(!bag[k] || !l || /^Q\d+$/.test(l)) return;
+      if(!bag[k].includes(l)) bag[k].push(l);
+    });
+    Object.assign(data, { awards: bag.premio.slice(0, 80), nominations: bag.candidatura.length,
+      countries: bag.paese.slice(0, 3), spouses: bag.coniuge.slice(0, 4), jobs: bag.mestiere.slice(0, 6) });
+    done('premi', true);
+  }, ()=>done('premi', false));
+
+  // 3) Filmografia (la parte più importante: priorità alta)
+  const pFil = fetchPersonFilms(qid).then(films=>{ data.films = films; done('filmografia', true); }, ()=>done('filmografia', false));
+
+  // 4) Collaboratori di carriera (sfondo: arrivano per ultimi senza bloccare nulla)
+  const pCol = wdSparql(`SELECT ?k ?co (SAMPLE(?lab) AS ?name) (COUNT(DISTINCT ?film) AS ?n) WHERE {
+      { ?film wdt:P161 wd:${qid}. ?film wdt:P161 ?co. BIND("cast" AS ?k) }
+      UNION { ?film wdt:P57 wd:${qid}. ?film wdt:P161 ?co. BIND("regia" AS ?k) }
+      FILTER(?co != wd:${qid})
+      ?co rdfs:label ?lab. FILTER(LANG(?lab) = "it" || LANG(?lab) = "en")
+    } GROUP BY ?k ?co ORDER BY DESC(?n) LIMIT 40`, 15000, 'low').then(col=>{
+    col.forEach(r=>{
+      const k = r.k && r.k.value, q = qidOf(r.co && r.co.value), nm = r.name && r.name.value, n = parseInt(r.n && r.n.value, 10) || 0;
+      if(!data.collab[k] || !isQid(q) || !nm || /^Q\d+$/.test(nm) || n < 2) return;
+      if(data.collab[k].length < 10) data.collab[k].push({ q, name: nm, n });
+    });
+    done('collaboratori', true);
+  }, ()=>done('collaboratori', false));
+
+  await Promise.allSettled([pDet, pMulti, pFil, pCol]);
+  delete data.pending;
+  if(data.failed.includes('anagrafica') && data.failed.includes('filmografia')) throw new Error('Wikidata non raggiungibile');
+  // In cache solo le schede complete: una scheda parziale si mostra, ma alla prossima apertura si riprova
+  if(!data.failed.length){ c[key] = data; savePersonCache(); }
   return data;
 }
 function fmtWdDate(v){
@@ -2153,14 +2346,49 @@ async function openPerson(name, opts){
     const qid = isQid(opts.qid) ? opts.qid : await resolvePersonQid(name, opts.imdbId);
     if(token !== _personToken) return;
     if(!qid){ _personState.note = 'Nessuna scheda trovata su Wikidata per questo nome: qui sotto quello che risulta dalla tua collezione.'; renderPerson(); return; }
-    const data = await fetchPersonData(qid);
+    const data = await fetchPersonData(qid, d=>{ if(token === _personToken){ _personState.data = d; renderPerson(); } });
     if(token !== _personToken) return;
     _personState.data = data; renderPerson();
+    // Filmografia mancante: un nuovo tentativo in sottofondo, la scheda si aggiorna da sola
+    if(data && data.failed && data.failed.includes('filmografia') && navigator.onLine !== false){
+      _personState.retrying = true; renderPerson();
+      await sleep(4000);
+      if(token !== _personToken) return;
+      try{
+        const films = await fetchPersonFilms(qid);
+        if(token !== _personToken) return;
+        data.films = films;
+        data.failed = data.failed.filter(x=>x !== 'filmografia');
+        if(!data.failed.length){ const c = personCache(); c['q:' + qid] = data; savePersonCache(); }
+      }catch(e){ /* resta l'avviso: riaprire più tardi */ }
+      if(token !== _personToken) return;
+      _personState.retrying = false; renderPerson();
+    }
   }catch(e){
     if(token !== _personToken) return;
     _personState.note = 'Biografia e filmografia completa non raggiungibili ora (sei offline?). Qui sotto quello che risulta dalla tua collezione.';
     renderPerson();
   }
+}
+function personCareer(films, selfName){
+  const years = films.map(f=>parseInt(f.e.y, 10)).filter(y=>y > 1880);
+  const rated = films.filter(f=>f.e.rt && (f.e.v||0) >= 1000);
+  const avg = rated.length ? rated.reduce((a,f)=>a + parseFloat(f.e.rt), 0) / rated.length : 0;
+  const dec = {}; years.forEach(y=>{ const d = Math.floor(y/10)*10; dec[d] = (dec[d]||0) + 1; });
+  const bestDec = Object.keys(dec).sort((a,b)=>dec[b]-dec[a])[0];
+  const top = films.filter(f=>f.e.rt && (f.e.v||0) >= 25000).sort((a,b)=>parseFloat(b.e.rt) - parseFloat(a.e.rt)).slice(0, 5);
+  const gc = {}; films.forEach(f=>(f.e.g || '').split(',').map(x=>x.trim()).filter(Boolean).forEach(g=>{ gc[g] = (gc[g]||0) + 1; }));
+  const genres = Object.keys(gc).sort((a,b)=>gc[b]-gc[a]).slice(0, 5).map(g=>({ g, n: gc[g] }));
+  const sk = normKey(selfName), dc = {}, dd = {};
+  films.filter(f=>(f.roles||[]).some(r=>r !== 'regia')).forEach(f=>splitNames(f.e.dir).forEach(n=>{ const k = normKey(n); if(!k || k === sk) return; dc[k] = (dc[k]||0) + 1; if(!dd[k]) dd[k] = n; }));
+  const directors = Object.keys(dc).filter(k=>dc[k] >= 2).sort((a,b)=>dc[b]-dc[a]).slice(0, 6).map(k=>({ name: dd[k], n: dc[k] }));
+  return { count: films.length, first: years.length ? Math.min(...years) : 0, last: years.length ? Math.max(...years) : 0, avg, bestDec, top, genres, directors };
+}
+function filmoStatus(e){
+  const own = state.movies.find(m=>m.imdbId === e.id && (m.lista||'collezione') !== 'wishlist');
+  if(own) return `<button type="button" class="owned-tag" data-open-movie="${escapeHtml(own.id)}" style="cursor:pointer">✓ Ce l'hai</button>`;
+  if(state.movies.some(m=>m.imdbId === e.id)) return '<span class="wish-tag">💭 Wishlist</span>';
+  return `<button type="button" class="btn ghost mini-add" data-wish-add="${escapeHtml(e.id)}">+ Wishlist</button>`;
 }
 function renderPerson(){
   const st = _personState; if(!st) return;
@@ -2173,10 +2401,13 @@ function renderPerson(){
   const owned = local.filter(m=>(m.lista||'collezione') !== 'wishlist');
   const wished = local.filter(m=>(m.lista||'collezione') === 'wishlist');
   const roles = personRolesLocal(st.name);
-  const loading = !st.data && !st.note;
+  const pend = part => !!(d.pending && d.pending.has(part));
+  const loading = (!st.data && !st.note) || pend('anagrafica');          // anagrafica e biografia in arrivo
+  const filmoLoading = (!st.data && !st.note) || pend('filmografia');    // filmografia in arrivo
   const initials = name.split(/\s+/).map(w=>w.charAt(0)).filter(Boolean).slice(0,2).join('').toUpperCase();
   const img = safeUrl(d.img);
-  let sub = d.desc || [roles.dir ? 'Regia' : '', roles.act ? 'Attore / attrice' : ''].filter(Boolean).join(' · ');
+  const jobs = (d.jobs && d.jobs.length) ? d.jobs.slice(0, 4).join(' · ') : '';
+  const sub = d.desc || jobs || [roles.dir ? 'Regia' : '', roles.act ? 'Attore / attrice' : ''].filter(Boolean).join(' · ');
   let life = '';
   if(d.birth){ const age = ageBetween(d.birth, d.death); life += `★ ${escapeHtml(fmtWdDate(d.birth))}${d.bp ? ', ' + escapeHtml(d.bp) : ''}${!d.death && age !== null ? ` · ${age} anni` : ''}`; }
   if(d.death){ const age = ageBetween(d.birth, d.death); life += `${life ? '<br>' : ''}✝ ${escapeHtml(fmtWdDate(d.death))}${d.dp ? ', ' + escapeHtml(d.dp) : ''}${age !== null ? ` · a ${age} anni` : ''}`; }
@@ -2192,6 +2423,15 @@ function renderPerson(){
       ${life ? `<div class="person-life">${life}</div>` : ''}
       ${links.length ? `<div class="person-links">${links.join('')}</div>` : ''}
     </div></div>`;
+  // Scheda anagrafica
+  const facts = [];
+  if(d.birthName && normKey(d.birthName) !== normKey(name)) facts.push(['Nome di nascita', escapeHtml(d.birthName)]);
+  if(d.countries && d.countries.length) facts.push(['Nazionalità', escapeHtml(d.countries.join(' · '))]);
+  if(d.height) facts.push(['Altezza', escapeHtml(d.height.toFixed(2).replace('.', ',') + ' m')]);
+  if(d.activeFrom) facts.push(['Attività', escapeHtml(d.activeFrom + (d.activeTo ? ' – ' + d.activeTo : ' – oggi'))]);
+  if(d.jobs && d.jobs.length > 1) facts.push(['Mestieri', escapeHtml(d.jobs.join(' · '))]);
+  if(d.spouses && d.spouses.length) facts.push([d.spouses.length > 1 ? 'Coniugi' : 'Coniuge', escapeHtml(d.spouses.join(' · '))]);
+  if(facts.length) html += `<div class="person-facts">${facts.map(([k,v])=>`<div class="pf-row"><span class="pf-k">${k}</span><span class="pf-v">${v}</span></div>`).join('')}</div>`;
   if(loading) html += '<span class="skeleton" style="width:92%;margin:4px 0"></span><span class="skeleton" style="width:80%;margin:10px 0"></span><span class="skeleton" style="width:60%;margin:10px 0 14px"></span>';
   if(d.bio){
     html += `<p class="person-bio" id="personBio">${escapeHtml(d.bio)}</p>`;
@@ -2199,10 +2439,39 @@ function renderPerson(){
     if(d.bioLang === 'en') html += '<div class="person-note">Biografia disponibile solo in inglese su Wikipedia.</div>';
   }
   if(st.note) html += `<div class="person-note">${escapeHtml(st.note)}</div>`;
-  if(d.awards && d.awards.length){
-    const oscar = d.awards.filter(a=>awardRank(a)===0).length;
-    const top = d.awards.slice().sort((a,b)=>awardRank(a)-awardRank(b)).slice(0,6);
-    html += `<div class="person-sec"><h3>🏆 Riconoscimenti <small>${d.awards.length} premi${oscar ? ` · ${oscar} Oscar` : ''}</small></h3><div class="person-awards">${top.map(a=>`<span class="award-chip">${escapeHtml(a)}</span>`).join('')}</div></div>`;
+  if(d.failed && d.failed.length && !d.pending){   // avviso solo a richieste concluse
+    const filmoMissing = d.failed.includes('filmografia') && !(IMDB_INDEX && roles.dir);
+    if(st.retrying && d.failed.includes('filmografia')) html += '<div class="person-note">⏳ La filmografia sta arrivando da Wikidata (server occupato): riprovo in automatico, la scheda si aggiorna da sola.</div>';
+    else html += `<div class="person-note">⚠️ ${filmoMissing ? 'La filmografia non è arrivata da Wikidata (connessione lenta o server occupato).' : 'Alcune informazioni (' + escapeHtml(d.failed.join(', ')) + ') non sono arrivate da Wikidata.'} Riapri la scheda tra poco per riprovare: non viene salvato niente di incompleto.</div>`;
+  }
+
+  // Filmografia (online da Wikidata, oppure offline dall'indice per i registi)
+  let films = [];
+  if(d.films && d.films.length && IMDB_INDEX) films = d.films.map(f=>{ const e = imdbEntry(f.t); return e ? {e, roles:f.r} : null; }).filter(Boolean);
+  else if(IMDB_INDEX && roles.dir) films = directorFilmography(st.name).map(e=>({e, roles:['regia']}));
+
+  if(films.length){
+    const k = personCareer(films, name);
+    const tiles = [
+      [String(k.count), k.count === 1 ? 'film' : 'film in carriera'],
+      [k.first ? (k.first === k.last ? String(k.first) : `${k.first}–${k.last}`) : '—', 'anni di film'],
+      [k.avg ? k.avg.toFixed(1).replace('.', ',') : '—', 'voto medio IMDb'],
+      [k.bestDec ? `Anni ${String(k.bestDec).slice(2)}` : '—', 'decennio più prolifico']
+    ];
+    html += `<div class="person-sec"><h3>📊 Carriera in numeri</h3><div class="pstat-grid">${tiles.map(([b,s])=>`<div class="pstat"><b>${escapeHtml(b)}</b><small>${escapeHtml(s)}</small></div>`).join('')}</div>
+      ${k.genres.length ? `<div class="people-chips" style="margin:12px 0 0">${k.genres.map(g=>`<span class="person-chip" style="cursor:default">🎭 ${escapeHtml(g.g)} <b>${g.n}</b></span>`).join('')}</div>` : ''}</div>`;
+    if(k.top.length) html += `<div class="person-sec"><h3>⭐ I suoi film più amati <small>voto IMDb, film con molti voti</small></h3>${k.top.map(f=>`<div class="filmo-row"><div class="filmo-main"><div class="filmo-title">${escapeHtml(f.e.it || f.e.en)}</div><div class="filmo-meta">${escapeHtml(f.e.y || '—')} · <span class="r">★ ${escapeHtml(String(f.e.rt))}</span></div></div>${filmoStatus(f.e)}</div>`).join('')}</div>`;
+    if(k.directors.length) html += `<div class="person-sec"><h3>🎬 Registi con cui ha lavorato di più</h3><div class="people-chips" style="margin:0">${k.directors.map(x=>`<button type="button" class="person-chip dir" data-person="${escapeHtml(x.name)}">🎬 ${escapeHtml(x.name)} <b>×${x.n}</b></button>`).join('')}</div></div>`;
+  }
+  // Collaboratori ricorrenti su tutta la carriera (Wikidata): stessa ricchezza per attori e registi
+  const chipsQ = list => list.map(x=>`<button type="button" class="person-chip" data-person="${escapeHtml(x.name)}" data-person-qid="${escapeHtml(x.q)}">${escapeHtml(x.name)} <b>×${x.n}</b></button>`).join('');
+  if(d.collab && d.collab.cast && d.collab.cast.length) html += `<div class="person-sec"><h3>🎭 Attori con cui ha recitato più spesso <small>in tutta la carriera</small></h3><div class="people-chips" style="margin:0">${chipsQ(d.collab.cast.slice(0, 8))}</div></div>`;
+  if(d.collab && d.collab.regia && d.collab.regia.length) html += `<div class="person-sec"><h3>🎭 I suoi attori preferiti <small>nei film che ha diretto</small></h3><div class="people-chips" style="margin:0">${chipsQ(d.collab.regia.slice(0, 8))}</div></div>`;
+  if((d.awards && d.awards.length) || d.nominations){
+    const aw = d.awards || [];
+    const oscar = aw.filter(a=>awardRank(a)===0).length;
+    const top = aw.slice().sort((a,b)=>awardRank(a)-awardRank(b)).slice(0, 8);
+    html += `<div class="person-sec"><h3>🏆 Riconoscimenti <small>${aw.length} premi${d.nominations ? ` · ${d.nominations} candidature` : ''}${oscar ? ` · ${oscar} Oscar` : ''}</small></h3><div class="person-awards">${top.map(a=>`<span class="award-chip">${escapeHtml(a)}</span>`).join('')}</div></div>`;
   }
   html += `<div class="person-sec"><h3>📼 Nella tua collezione <small>${owned.length} film${wished.length ? ` · ${wished.length} in wishlist` : ''}</small></h3>`;
   if(owned.length || wished.length){
@@ -2215,11 +2484,8 @@ function renderPerson(){
   const co = coStars(st.name, 8);
   if(co.length) html += `<div class="person-sec"><h3>🤝 Spesso insieme a <small>nei tuoi film</small></h3><div class="people-chips" style="margin:0">${co.map(x=>`<button type="button" class="person-chip" data-person="${escapeHtml(x.name)}">${escapeHtml(x.name)} <b>×${x.n}</b></button>`).join('')}</div></div>`;
 
-  let films = [];
-  if(d.films && d.films.length && IMDB_INDEX) films = d.films.map(f=>{ const e = imdbEntry(f.t); return e ? {e, roles:f.r} : null; }).filter(Boolean);
-  else if(IMDB_INDEX && roles.dir) films = directorFilmography(st.name).map(e=>({e, roles:['regia']}));   // offline: regia dall'indice
   if(films.length){
-    const ow = ownedImdbIds(), wi = wishlistImdbIds();
+    const ow = ownedImdbIds();
     const nOwned = films.filter(f=>ow.has(f.e.id)).length;
     films.sort(st.sort === 'year' ? (a,b)=>(parseInt(b.e.y)||0)-(parseInt(a.e.y)||0) : (a,b)=>(b.e.v||0)-(a.e.v||0));
     const shown = st.showAll ? films : films.slice(0, 15);
@@ -2227,16 +2493,13 @@ function renderPerson(){
     html += `<div class="person-sec"><h3>🎞️ Filmografia <small>ne possiedi ${nOwned} di ${films.length}</small></h3>
       <div class="filmo-tools" style="margin:-4px 0 8px"><button type="button" data-filmo-sort="pop" class="${st.sort === 'pop' ? 'on' : ''}">Più famosi</button><button type="button" data-filmo-sort="year" class="${st.sort === 'year' ? 'on' : ''}">Più recenti</button></div>
       ${shown.map(f=>{
-        const e = f.e; let status;
-        if(ow.has(e.id)) status = '<span class="owned-tag">✓ Ce l\'hai</span>';
-        else if(wi.has(e.id)) status = '<span class="wish-tag">💭 Wishlist</span>';
-        else status = `<button type="button" class="btn ghost mini-add" data-wish-add="${escapeHtml(e.id)}">+ Wishlist</button>`;
+        const e = f.e;
         const rl = (f.roles||[]).map(r=>ROLE_IT[r] || r).join(', ');
-        return `<div class="filmo-row"><div class="filmo-main"><div class="filmo-title">${escapeHtml(e.it || e.en)}</div><div class="filmo-meta">${escapeHtml(e.y || '—')}${rl ? ' · ' + escapeHtml(rl) : ''}${e.rt ? ` · <span class="r">★ ${escapeHtml(String(e.rt))}</span>` : ''}</div></div>${status}</div>`;
+        return `<div class="filmo-row"><div class="filmo-main"><div class="filmo-title">${escapeHtml(e.it || e.en)}</div><div class="filmo-meta">${escapeHtml(e.y || '—')}${rl ? ' · ' + escapeHtml(rl) : ''}${e.rt ? ` · <span class="r">★ ${escapeHtml(String(e.rt))}</span>` : ''}</div></div>${filmoStatus(e)}</div>`;
       }).join('')}
       ${!st.showAll && films.length > 15 ? `<button type="button" class="btn ghost filmo-more" data-filmo-all>Mostra tutti (${films.length})</button>` : ''}
     </div>`;
-  } else if(loading){
+  } else if(filmoLoading){
     html += '<div class="person-sec"><h3>🎞️ Filmografia</h3><span class="skeleton" style="width:85%;margin:8px 0"></span><span class="skeleton" style="width:70%;margin:10px 0"></span></div>';
   }
   body.innerHTML = html;
@@ -2555,6 +2818,194 @@ document.getElementById('linkBody').addEventListener('keydown', e=>{
   if(e.key === 'Enter' && e.target.id === 'linkSearchInput'){ e.preventDefault(); _link.query = e.target.value.trim(); renderLink(); }
 });
 
+/* =====================================================================
+   TRAILER (YouTube) + CORRELATI E CONSIGLIATI
+   Trailer: Wikidata registra l'ID del video YouTube ufficiale (P1651).
+   Un pulsante apre il trailer su YouTube (niente lettore incorporato).
+   Correlati/consigliati: film che condividono saga, regista, autori o
+   attori (Wikidata), incrociati con l'indice offline. Tutto salvato nella
+   scheda, così funziona anche offline dalla seconda apertura.
+   ===================================================================== */
+const YT_ID = /^[A-Za-z0-9_-]{11}$/;
+async function fetchTrailerIds(imdbId){
+  if(!isTt(imdbId)) return [];
+  const rows = await wdSparql(`SELECT DISTINCT ?yt WHERE { ?film wdt:P345 "${imdbId}"; wdt:P1651 ?yt. } LIMIT 6`, 8000);
+  return rows.map(r=>r.yt && r.yt.value).filter(v=>YT_ID.test(v || ''));
+}
+function trailerSearchUrl(titolo){ return 'https://www.youtube.com/results?search_query=' + encodeURIComponent((titolo || '') + ' trailer ITA'); }
+/* Niente lettore incorporato: un pulsante che apre il trailer su YouTube
+   (su Android si apre l'app di YouTube). Il lettore dentro la pagina era
+   inaffidabile quando l'app è aperta come file sul telefono. */
+function trailerHTML(ids){
+  ids = (ids || []).filter(v=>YT_ID.test(v || ''));
+  if(!ids.length){
+    return '<div class="trailer-bar"><button type="button" class="trailer-btn search" data-yt-search>🔎 Cerca il trailer su YouTube</button></div>';
+  }
+  return `<div class="trailer-bar">
+    <a class="trailer-btn" href="https://www.youtube.com/watch?v=${ids[0]}" target="_blank" rel="noopener"><span class="yt-ico" aria-hidden="true">▶</span> Guarda il trailer su YouTube</a>
+    ${ids.slice(1, 3).map((x, n)=>`<a class="trailer-more" href="https://www.youtube.com/watch?v=${x}" target="_blank" rel="noopener">Trailer ${n + 2}</a>`).join('')}
+  </div>`;
+}
+async function renderTrailer(m){
+  const box = document.getElementById('trailerWrap'); if(!box) return;
+  if(!m || !isTt(m.imdbId)){ box.innerHTML = trailerHTML([]); return; }   // ricerca per titolo
+  if(m.ytAt){ box.innerHTML = trailerHTML(m.yt); return; }
+  box.innerHTML = trailerHTML([]);   // subito utilizzabile mentre controllo Wikidata
+  const session = _modalSession;
+  try{
+    const ids = await fetchTrailerIds(m.imdbId);
+    if(_modalSession !== session) return;
+    const sm = state.movies.find(x=>x.id === m.id);
+    const target = (sm && sm.imdbId === m.imdbId) ? sm : m;
+    target.yt = ids; target.ytAt = Date.now();
+    if(target === sm) saveState();
+    box.innerHTML = trailerHTML(ids);
+  }catch(e){ /* offline: resta il pulsante di ricerca, che funziona comunque */ }
+}
+document.getElementById('trailerWrap').addEventListener('click', e=>{
+  if(!e.target.closest('[data-yt-search]')) return;
+  const title = document.getElementById('f_titolo').value.trim();
+  if(!title){ toast('Inserisci prima un titolo'); return; }
+  window.open(trailerSearchUrl(title), '_blank', 'noopener');
+});
+
+/* ---------- Correlati e consigliati ---------- */
+const REL_W = { saga:6, fonte:4, regia:4, sceneggiatura:2, musiche:1.2, cast:1.5 };
+async function fetchRelatedRaw(imdbId){
+  const u = (p, why) => `{ ?film wdt:${p} ?f. ?other wdt:${p} ?f. BIND("${why}" AS ?why) }`;
+  const q = parts => `SELECT ?imdb (GROUP_CONCAT(?why; separator="|") AS ?whys) WHERE {
+    ?film wdt:P345 "${imdbId}".
+    ${parts}
+    FILTER(?other != ?film)
+    ?other wdt:P345 ?imdb.
+  } GROUP BY ?imdb LIMIT 1500`;
+  // Due richieste: una leggera (saga, regia, autori) e una pesante (attori in comune).
+  // Se la pesante va in timeout, i correlati restano comunque precisi e online.
+  const light = () => wdSparql(q(`${u('P179','saga')} UNION ${u('P144','fonte')} UNION ${u('P57','regia')} UNION ${u('P58','sceneggiatura')} UNION ${u('P86','musiche')}`), 12000, 'low');
+  const heavy = () => wdSparql(q(u('P161','cast')), 15000, 'low');
+  const [r1, r2] = await Promise.allSettled([light(), heavy()]);   // i nuovi tentativi li fa wdSparql
+  if(r1.status === 'rejected' && r2.status === 'rejected') throw r1.reason;
+  const map = new Map();
+  [r1, r2].forEach(res=>{
+    if(res.status !== 'fulfilled') return;
+    res.value.forEach(row=>{
+      const t = row.imdb && row.imdb.value; if(!isTt(t) || t === imdbId) return;
+      const w = map.get(t) || {};
+      (row.whys && row.whys.value || '').split('|').forEach(k=>{ if(REL_W[k]) w[k] = (w[k]||0) + 1; });
+      if(Object.keys(w).length) map.set(t, w);
+    });
+  });
+  const out = [...map.entries()].map(([t, w])=>({ t, w }));
+  out.partial = (r1.status !== 'fulfilled' || r2.status !== 'fulfilled');
+  return out;
+}
+function relGenres(e){ return new Set((e && e.g || '').split(',').map(x=>normKey(x)).filter(Boolean)); }
+function relScore(item, self){
+  const e = imdbEntry(item.t); if(!e) return null;
+  let s = 0;
+  Object.keys(item.w).forEach(k=>{ s += REL_W[k] * (k === 'cast' ? Math.min(item.w[k], 5) : item.w[k]); });
+  const g1 = relGenres(self), g2 = relGenres(e); let ov = 0; g2.forEach(g=>{ if(g1.has(g)) ov++; });
+  s += ov * 1.2 + Math.log10((e.v||0) + 1) * 0.6;
+  const y1 = parseInt(self && self.y, 10), y2 = parseInt(e.y, 10);
+  if(y1 && y2 && Math.abs(y1 - y2) <= 6) s += 0.8;
+  return { e, w: item.w, s, ov };
+}
+function relWhy(r){
+  const w = r.w || {}, out = [];
+  if(w.saga) out.push('Stessa saga');
+  if(w.fonte) out.push('Stessa opera d\'origine');
+  if(w.regia) out.push('Stesso regista');
+  if(w.cast) out.push(w.cast === 1 ? '1 attore in comune' : `${w.cast} attori in comune`);
+  if(w.sceneggiatura) out.push('Stesso sceneggiatore');
+  if(w.musiche) out.push('Stesso compositore');
+  if(!out.length && r.ov >= 2) out.push('Generi simili');
+  return out.slice(0,2).join(' · ');
+}
+/* Senza rete (e senza cache): solo indice offline — stesso regista e generi simili */
+function relatedOffline(self){
+  if(!IMDB_INDEX || !self) return [];
+  const g1 = relGenres(self), dirs = splitNames(self.dir), y1 = parseInt(self.y, 10) || 0;
+  const out = [];
+  IMDB_INDEX.forEach(e=>{
+    if(e.id === self.id || (e.v||0) < 15000) return;
+    const sameDir = dirs.length && e.dir && dirs.some(n=>directorMatches(e.dir, n));
+    let ov = 0; relGenres(e).forEach(g=>{ if(g1.has(g)) ov++; });
+    if(!sameDir && ov < 2) return;
+    const y2 = parseInt(e.y, 10) || 0;
+    let s = (sameDir ? 4 : 0) + ov * 1.2 + Math.log10((e.v||0) + 1) * 0.6 + (y1 && y2 && Math.abs(y1-y2) <= 6 ? 0.8 : 0);
+    out.push({ e, w: sameDir ? { regia:1 } : {}, s, ov });
+  });
+  return out.sort((a,b)=>b.s - a.s).slice(0, 40);
+}
+function relCardHTML(r){
+  const e = r.e;
+  const owned = state.movies.find(m=>m.imdbId === e.id && (m.lista||'collezione') !== 'wishlist');
+  const wished = !owned && state.movies.find(m=>m.imdbId === e.id);
+  const p = owned ? safeUrl(owned.poster) : '';
+  const title = e.it || e.en;
+  const hue = [...title].reduce((a,c)=>a + c.charCodeAt(0), 0) % 360;
+  const art = p
+    ? `<img src="${escapeHtml(p)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`
+    : `<span class="rel-ph" style="background:linear-gradient(160deg, hsl(${hue},70%,28%), hsl(${(hue+60)%360},75%,14%))"><span>${escapeHtml(title)}</span></span>`;
+  const status = owned ? '<span class="rel-badge own">✓</span>' : (wished ? '<span class="rel-badge wish">💭</span>' : '');
+  const why = relWhy(r);
+  const body = `<span class="rel-art">${art}${status}</span>
+    <span class="rel-title">${escapeHtml(title)}</span>
+    <span class="rel-meta">${escapeHtml(e.y || '')}${e.rt ? ` · <b>★ ${escapeHtml(String(e.rt))}</b>` : ''}</span>
+    ${why ? `<span class="rel-why">${escapeHtml(why)}</span>` : ''}`;
+  if(owned) return `<div class="rel-card"><button type="button" class="rel-hit" data-open-movie="${escapeHtml(owned.id)}" aria-label="Apri ${escapeHtml(title)}">${body}</button></div>`;
+  return `<div class="rel-card"><a class="rel-hit" href="https://www.imdb.com/title/${e.id}/" target="_blank" rel="noopener" aria-label="${escapeHtml(title)} su IMDb">${body}</a>
+    ${wished ? '' : `<button type="button" class="btn ghost mini-add rel-add" data-wish-add="${e.id}">+ Wishlist</button>`}</div>`;
+}
+function relatedHTML(list, offline){
+  const corr = list.filter(r=>r.w.saga || r.w.fonte || r.w.regia).slice(0, 12);
+  const corrIds = new Set(corr.map(r=>r.e.id));
+  const cons = list.filter(r=>!corrIds.has(r.e.id) && (r.e.v||0) >= 5000
+    && !state.movies.some(m=>m.imdbId === r.e.id && (m.lista||'collezione') !== 'wishlist')).slice(0, 14);
+  if(!corr.length && !cons.length) return '';
+  const strip = (title, sub, arr) => arr.length ? `<div class="rel-sec"><div class="rel-head"><span>${title}</span><small>${sub}</small></div><div class="rel-strip">${arr.map(relCardHTML).join('')}</div></div>` : '';
+  return `<div class="rel-box">${strip('🎬 Correlati', 'stessa saga, regista o opera d\'origine', corr)}${strip('✨ Consigliati', offline ? 'generi simili (offline)' : 'in base a questo film — che non hai ancora', cons)}${offline ? '<div class="bs-note">Wikidata non ha risposto (connessione assente o server lento): questi sono calcolati dall\'indice offline. Riapri la scheda più tardi per i risultati completi, con attori e autori in comune.</div>' : ''}</div>`;
+}
+async function renderRelated(m, force){
+  const box = document.getElementById('relatedWrap'); if(!box) return;
+  if(!m || !isTt(m.imdbId)){ box.innerHTML = ''; return; }
+  await ensureImdbIndex();
+  if(!IMDB_INDEX){ box.innerHTML = ''; return; }
+  const self = imdbEntry(m.imdbId) || { id: m.imdbId, g: m.genere || '', y: m.anno || '', dir: m.regista || '' };
+  const session = _modalSession;
+  const build = raw => raw.map(it=>relScore(it, self)).filter(Boolean).sort((a,b)=>b.s - a.s);
+  if(m.rel && m.relAt && !force){ box.innerHTML = relatedHTML(build(m.rel), false); return; }
+  box.innerHTML = '<div class="rel-box"><div class="rel-head"><span>🎬 Correlati e consigliati</span></div><span class="skeleton" style="width:80%"></span><span class="skeleton" style="width:60%;margin-bottom:14px"></span></div>';
+  try{
+    const raw = await fetchRelatedRaw(m.imdbId);
+    if(_modalSession !== session) return;
+    const scored = build(raw);
+    // In cache solo i 40 più rilevanti (id + motivi): leggera e utile offline
+    // Risultato parziale (una delle due richieste fallita): si mostra ma non si salva,
+    // così alla prossima apertura riprova a ottenere quello completo.
+    if(!raw.partial){
+      const keep = scored.slice(0, 40).map(r=>({ t: r.e.id, w: r.w }));
+      const sm = state.movies.find(x=>x.id === m.id);
+      const target = (sm && sm.imdbId === m.imdbId) ? sm : m;
+      target.rel = keep; target.relAt = Date.now();
+      if(target === sm) saveState();
+    }
+    box.innerHTML = relatedHTML(scored, false);
+  }catch(err){
+    if(_modalSession !== session) return;
+    box.innerHTML = relatedHTML(relatedOffline(self), true);
+  }
+}
+document.getElementById('relatedWrap').addEventListener('click', async e=>{
+  const mv = e.target.closest('[data-open-movie]');
+  if(mv){ openModal(mv.dataset.openMovie); const md = document.querySelector('#movieOverlay .modal'); if(md) md.scrollTop = 0; return; }
+  const add = e.target.closest('[data-wish-add]');
+  if(add){
+    const entry = imdbEntry(add.dataset.wishAdd);
+    if(entry){ const added = await quickAddToWishlist(entry); if(added){ add.outerHTML = '<span class="wish-tag rel-add">💭 In wishlist</span>'; } }
+  }
+});
+
 /* ---------- Foglio "Filtri e ordinamento" (mobile) ----------
    Sono gli STESSI menu della barra desktop (stessi id, stessa logica di
    filtro), solo mostrati in un pannello che sale dal basso. Su desktop i
@@ -2719,8 +3170,13 @@ function buildNfoXml(m){
   const imdbVal = parseVotoNumber(m.votoImdb);
   const rtVal = parseInt(m.votoRT);
   xml += '  <ratings>\n';
-  if(imdbVal !== null) xml += `    <rating name="imdb" max="10"><value>${imdbVal.toFixed(1)}</value></rating>\n`;
+  // IMDb è il voto predefinito (stelle ed elenchi in Kodi), con il numero di voti dall'indice offline
+  const idxE = (typeof imdbEntry === 'function' && m.imdbId) ? imdbEntry(m.imdbId) : null;
+  const imdbVotes = parseInt(String(m.imdbVotes || '').replace(/\D/g, ''), 10) || (idxE && idxE.v) || 0;
+  if(imdbVal !== null) xml += `    <rating name="imdb" max="10" default="true"><value>${imdbVal.toFixed(1)}</value>${imdbVotes ? `<votes>${imdbVotes}</votes>` : ''}</rating>\n`;
   if(!isNaN(rtVal)) xml += `    <rating name="tomatometerallcritics" max="100"><value>${rtVal}</value></rating>\n`;
+  const rtAud = parseInt(m.votoRTPubblico);
+  if(!isNaN(rtAud)) xml += `    <rating name="tomatometerallaudience" max="100"><value>${rtAud}</value></rating>\n`;
   xml += '  </ratings>\n';
   (tagList ? tagList(m) : []).forEach(t=>{ xml += xmlTag('tag', t); });
   xml += xmlTag('premiered', m.anno ? `${m.anno}-01-01` : '');
@@ -4968,12 +5424,6 @@ document.getElementById('viewToggleBtn').addEventListener('click', ()=>{
 });
 
 /* ---------- Trailer YouTube (nessuna API, solo link di ricerca) ---------- */
-document.getElementById('trailerBtn').addEventListener('click', ()=>{
-  const title = document.getElementById('f_titolo').value.trim();
-  if(!title){ toast('Inserisci prima un titolo'); return; }
-  const url = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(title + ' trailer ITA');
-  window.open(url, '_blank');
-});
 
 /* ---------- Statistiche avanzate ---------- */
 function barsHTML(entries, maxCount){
