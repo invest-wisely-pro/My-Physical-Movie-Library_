@@ -802,12 +802,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
   transition:transform .12s, box-shadow .12s, filter .12s;}
 .trailer-btn:hover, .trailer-btn:focus-visible{filter:brightness(1.08); transform:translateY(-1px);}
 .trailer-btn:active{transform:translateY(2px); box-shadow:0 2px 8px rgba(255,46,46,.3), 0 1px 0 #7a0a12;}
-.trailer-btn.search{background:rgba(255,255,255,.06); border:1px solid var(--line); box-shadow:none; color:var(--cream); font-weight:700;}
-.trailer-btn.search:hover{border-color:#ff4b4b;}
 .yt-ico{display:inline-flex; align-items:center; justify-content:center; width:26px; height:18px; border-radius:5px; background:#fff; color:#d0101c; font-size:10px; padding-left:2px;}
-.trailer-more{font-size:12.5px; font-weight:700; color:var(--accent1); text-decoration:none; padding:6px 12px; border:1px solid var(--line); border-radius:20px;}
-.trailer-more:hover{border-color:var(--accent1);}
-
 /* ---------- Correlati e consigliati ---------- */
 .rel-box{margin:0 0 18px;}
 .rel-sec{margin-bottom:14px;}
@@ -850,6 +845,25 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
   .pf-row{grid-template-columns:minmax(0, 1fr); gap:2px;}
   .rel-card{width:118px;} .rel-art{width:118px; height:175px;}
 }
+
+/* ---------- Accadde oggi + collezione in numeri ---------- */
+.today-banner{display:flex; align-items:center; gap:12px; margin:0 0 22px; padding:12px 16px; border-radius:14px;
+  border:1px solid rgba(255,210,63,.35); background:linear-gradient(90deg, rgba(255,210,63,.10), rgba(255,46,145,.08));
+  font-size:14px; color:var(--cream); line-height:1.5;}
+.today-ico{font-size:22px; flex:0 0 auto;}
+.today-link, .num-link{background:none; border:0; padding:0; font:inherit; font-weight:800; color:var(--gold, #ffd23f); cursor:pointer;
+  text-decoration:underline; text-decoration-style:dotted; text-underline-offset:3px;}
+.num-link{color:var(--cream);}
+.today-link:hover, .num-link:hover{color:var(--accent1);}
+
+.scan-hint{border-color:var(--accent1) !important; color:var(--accent1) !important; box-shadow:0 0 0 3px rgba(45,226,230,.25), 0 0 22px rgba(45,226,230,.35) !important; animation:scanpulse 1.6s ease-in-out infinite;}
+@keyframes scanpulse{50%{box-shadow:0 0 0 6px rgba(45,226,230,.12), 0 0 30px rgba(45,226,230,.45);}}
+
+.backup-banner{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 14px; padding:12px 16px; border-radius:14px;
+  border:1px solid rgba(45,226,230,.35); background:linear-gradient(90deg, rgba(45,226,230,.10), rgba(160,32,240,.08)); font-size:13.5px; line-height:1.5; color:var(--cream);}
+.bk-msg{flex:1 1 260px; min-width:0;}
+.bk-actions{display:flex; gap:8px; flex:0 0 auto;}
+.bk-actions .btn{padding:8px 14px;}
 
 /* ---------- Animazione "inserimento videocassetta" al click sulla card ---------- */
 .card.inserting{
@@ -1020,6 +1034,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
         <button class="btn ghost" id="integrityBtn" title="Controlla film senza poster, genere o anno, e titoli duplicati">🔍 Controlla libreria</button>
         <button class="btn ghost" id="bulkEnrichBtn">🍅 Arricchisci con Rotten Tomatoes</button>
         <button class="btn ghost" id="exportNfoBtn" title="Genera un file .nfo per film, leggibile da Plex/Jellyfin/Kodi — utile se possiedi anche copie digitali dei tuoi dischi">📀 Esporta NFO per Plex/Jellyfin</button>
+        <button class="btn ghost" id="bsPrefetchBtn" title="Scarica una volta sola Dietro le quinte, correlati e schede di registi e attori ricorrenti: poi si aprono all'istante, anche offline">⚡ Precarica tutto (uso offline)</button>
         <button class="btn ghost" id="directorsOverlayBtn" title="Registi di cui possiedi già film: cosa ti manca della loro filmografia?">🎬 Registi da completare</button>
         <button class="btn ghost" id="installAppBtn" title="Aggiungi l'app alla schermata Home del telefono">📲 Installa sul telefono</button>
       </div>
@@ -1041,6 +1056,8 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 </div>
 
 <div class="grid-wrap">
+  <div id="backupBanner"></div>
+  <div id="todayBanner"></div>
   <div id="grid"></div>
   <div class="table-wrap" id="tableWrap">
     <table class="movie-table">
@@ -1343,6 +1360,10 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
       <div id="statsGeneri"></div>
     </div>
     <div class="stats-section">
+      <h3>🎞️ La tua collezione in numeri</h3>
+      <div id="statsNumbers"></div>
+    </div>
+    <div class="stats-section">
       <h3>⭐ Le tue star</h3>
       <div id="statsStars"></div>
     </div>
@@ -1543,6 +1564,7 @@ function cleanupMovies(){
     m.numero_film = parseInt(m.numero_film) || 1;
     m.cofanetto = (m.cofanetto||'').replace(/\s+/g,' ').trim();
     if(!m.lista) m.lista = 'collezione';
+    delete m.yt; delete m.ytAt;   // vecchi ID trailer da Wikidata: non più usati
     if(!m.aggiunto) m.aggiunto = Date.now();
     // Sicurezza: ripulisce ad ogni avvio eventuali link con schema pericoloso
     // (javascript:, data:, ecc.) salvati prima di questa protezione, o
@@ -1598,8 +1620,37 @@ async function saveState(){
 function downloadBackupNow(){
   const today = new Date().toISOString().slice(0,10);
   downloadJson(state, `my_physical_movie_library_backup_${today}.json`);
+  markBackupDone();
   toast(`Backup scaricato ✓ (${state.movies.length} film)`);
 }
+/* ---------- Promemoria backup ----------
+   La collezione vive nella memoria del browser: se il telefono si rompe o
+   si cancellano i dati del browser, senza una copia la si perde. Il
+   promemoria compare se l'ultima copia ha più di 30 giorni (o se non ne è
+   mai stata fatta una, dopo i primi 3 giorni d'uso); "Più tardi" = 7 giorni. */
+const BK = { last: 'mpml_last_backup', first: 'mpml_first_seen', snooze: 'mpml_backup_snooze' };
+function bkGet(k){ try{ return parseInt(localStorage.getItem(k), 10) || 0; }catch(e){ return 0; } }
+function bkSet(k, v){ try{ localStorage.setItem(k, String(v)); }catch(e){} }
+function markBackupDone(){ bkSet(BK.last, Date.now()); renderBackupBanner(); }
+function renderBackupBanner(){
+  const box = document.getElementById('backupBanner'); if(!box) return;
+  const now = Date.now();
+  if(!bkGet(BK.first)) bkSet(BK.first, now);
+  const owned = state.movies.filter(m=>(m.lista||'collezione') !== 'wishlist');
+  if(!owned.length || now < bkGet(BK.snooze)){ box.innerHTML = ''; return; }
+  const last = bkGet(BK.last), days = last ? Math.floor((now - last) / 864e5) : 0;
+  if(last ? days < 30 : (now - bkGet(BK.first)) < 3 * 864e5){ box.innerHTML = ''; return; }
+  const added = last ? state.movies.filter(m=>(m.aggiunto || 0) > last).length : 0;
+  const msg = last
+    ? `<b>Ultimo backup: ${days} giorni fa</b>${added ? ` · da allora hai aggiunto ${added} ${added === 1 ? 'film' : 'film'}` : ''}. Se il telefono si rompe o cancelli i dati del browser, recuperi tutto solo da una copia.`
+    : `<b>Non hai ancora salvato una copia della tua collezione.</b> Se il telefono si rompe o cancelli i dati del browser, la perderesti: bastano due secondi.`;
+  box.innerHTML = `<div class="backup-banner"><span class="today-ico">💾</span><span class="bk-msg">${msg}</span>
+    <span class="bk-actions"><button type="button" class="btn solid" data-bk-now>Scarica backup</button><button type="button" class="btn ghost" data-bk-later>Più tardi</button></span></div>`;
+}
+document.getElementById('backupBanner').addEventListener('click', e=>{
+  if(e.target.closest('[data-bk-now]')){ downloadBackupNow(); return; }
+  if(e.target.closest('[data-bk-later]')){ bkSet(BK.snooze, Date.now() + 7 * 864e5); renderBackupBanner(); toast('Ok, te lo ricordo tra una settimana'); }
+});
 window.addEventListener('beforeunload', e=>{
   if(_saveInFlight || _saveDirty || _saveFailed){ e.preventDefault(); e.returnValue = ''; }
 });
@@ -1962,13 +2013,13 @@ async function wdSparql(query, ms, prio){
 }
 /* Filmografia di una persona: SELECT DISTINCT senza raggruppamento (meno calcolo
    lato Wikidata), i ruoli si uniscono qui. Solo titoli presenti nell'indice. */
-async function fetchPersonFilms(qid){
+async function fetchPersonFilms(qid, prio){
   const rows = await wdSparql(`SELECT DISTINCT ?imdb ?role WHERE {
     { ?film wdt:P161 wd:${qid}. BIND("cast" AS ?role) } UNION { ?film wdt:P57 wd:${qid}. BIND("regia" AS ?role) }
     UNION { ?film wdt:P58 wd:${qid}. BIND("sceneggiatura" AS ?role) } UNION { ?film wdt:P86 wd:${qid}. BIND("musiche" AS ?role) }
     UNION { ?film wdt:P344 wd:${qid}. BIND("fotografia" AS ?role) } UNION { ?film wdt:P162 wd:${qid}. BIND("produzione" AS ?role) }
     ?film wdt:P345 ?imdb.
-  } LIMIT 2500`, 20000, 'high');
+  } LIMIT 2500`, 20000, prio || 'high');
   const map = new Map();
   rows.forEach(r=>{
     const t = r.imdb && r.imdb.value, role = r.role && r.role.value;
@@ -2036,11 +2087,11 @@ function renderPeopleChips(){
    Una richiesta leggera all'apertura del film: con il codice già pronto,
    toccare un nome apre la persona senza la richiesta di identificazione
    (un passaggio in meno). Salvato nella scheda, vale anche offline. */
-async function ensurePeopleQids(m){
+async function ensurePeopleQids(m, prio){
   if(!m || !isTt(m.imdbId) || (m.pq && m.pq.t === m.imdbId)) return;
   const session = _modalSession;
   try{
-    const rows = await wdSparql(`SELECT ?v ?vLabel WHERE { ?film wdt:P345 "${m.imdbId}". { ?film wdt:P57 ?v } UNION { ?film wdt:P161 ?v } SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". } } LIMIT 150`, 9000);
+    const rows = await wdSparql(`SELECT ?v ?vLabel WHERE { ?film wdt:P345 "${m.imdbId}". { ?film wdt:P57 ?v } UNION { ?film wdt:P161 ?v } SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". } } LIMIT 150`, 9000, prio);
     const map = {};
     rows.forEach(r=>{ const q = qidOf(r.v && r.v.value), l = r.vLabel && r.vLabel.value; if(isQid(q) && l && !/^Q\d+$/.test(l)) map[normKey(l)] = q; });
     const sm = state.movies.find(x=>x.id === m.id);
@@ -2061,24 +2112,38 @@ function fmtMoney(amount, unitQ){
   if(!sym) return txt;
   return sym === '€' ? txt + ' €' : sym + ' ' + txt;
 }
-async function fetchBehindScenes(imdbId){
+async function fetchBehindScenes(imdbId, prio){
   if(!isTt(imdbId)) return null;
+  /* Tre richieste leggere invece di una enorme: nelle ore di traffico la
+     richiesta unica superava il tempo massimo e falliva in blocco. Ora se
+     una parte tarda, le altre si vedono comunque. */
   const rel = (p, k, extra) => `{ ?film wdt:${p} ?v. BIND("${k}" AS ?k)${extra||''} }`;
-  const q = `SELECT ?k ?v ?vLabel ?vImdb ?amount ?unit WHERE {
+  const q = body => `SELECT ?k ?v ?vLabel ?vImdb ?amount ?unit ?date WHERE {
   ?film wdt:P345 "${imdbId}".
-  ${rel('P58','sceneggiatura')} UNION ${rel('P86','musiche')} UNION ${rel('P344','fotografia')} UNION ${rel('P1040','montaggio')}
-  UNION ${rel('P272','produzione')} UNION ${rel('P495','paese')} UNION ${rel('P364','lingua')} UNION ${rel('P144','tratto')}
-  UNION ${rel('P915','location')} UNION ${rel('P166','premio')} UNION ${rel('P1411','candidatura')}
-  UNION ${rel('P155','prequel',' OPTIONAL{ ?v wdt:P345 ?vImdb }')} UNION ${rel('P156','sequel',' OPTIONAL{ ?v wdt:P345 ?vImdb }')}
-  UNION { ?film p:P2130/psv:P2130 ?qv. ?qv wikibase:quantityAmount ?amount; wikibase:quantityUnit ?unit. BIND("budget" AS ?k) }
-  UNION { ?film p:P2142/psv:P2142 ?qv2. ?qv2 wikibase:quantityAmount ?amount; wikibase:quantityUnit ?unit. BIND("incassi" AS ?k) }
+  ${body}
   SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". }
-} LIMIT 400`;
-  const rows = await wdSparql(q, 11000);
+} LIMIT 300`;
+  const parts = {
+    autori: q(`${rel('P58','sceneggiatura')} UNION ${rel('P86','musiche')} UNION ${rel('P344','fotografia')} UNION ${rel('P1040','montaggio')}
+  UNION ${rel('P272','produzione')} UNION ${rel('P495','paese')} UNION ${rel('P364','lingua')} UNION ${rel('P144','tratto')}
+  UNION ${rel('P155','prequel',' OPTIONAL{ ?v wdt:P345 ?vImdb }')} UNION ${rel('P156','sequel',' OPTIONAL{ ?v wdt:P345 ?vImdb }')}
+  UNION ${rel('P840','ambientazione')} UNION ${rel('P674','personaggi')} UNION ${rel('P2515','costumi')} UNION ${rel('P2554','scenografia')}`),
+    premi: q(`${rel('P166','premio')} UNION ${rel('P1411','candidatura')}`),
+    produzione: q(`${rel('P915','location')}
+  UNION { ?film p:P577/psv:P577 ?dv. ?dv wikibase:timeValue ?date; wikibase:timePrecision ?prec. FILTER(?prec >= 11) BIND("uscita" AS ?k) }
+  UNION { ?film p:P2130/psv:P2130 ?qv. ?qv wikibase:quantityAmount ?amount; wikibase:quantityUnit ?unit. BIND("budget" AS ?k) }
+  UNION { ?film p:P2142/psv:P2142 ?qv2. ?qv2 wikibase:quantityAmount ?amount; wikibase:quantityUnit ?unit. BIND("incassi" AS ?k) }`)
+  };
   const ex = { at: Date.now() };
   let budget = null, incassi = null;
-  rows.forEach(r=>{
+  const failed = [];
+  const parse = rows => rows.forEach(r=>{
     const k = r.k && r.k.value; if(!k) return;
+    if(k === 'uscita'){   // solo date precise al giorno; si tiene la prima uscita
+      const dt = r.date && String(r.date.value).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if(dt && (!ex.uscita || dt[0] < ex.uscita)) ex.uscita = dt[0];
+      return;
+    }
     if(k === 'budget' || k === 'incassi'){
       const amt = r.amount ? parseFloat(r.amount.value) : 0; if(!amt) return;
       const unit = qidOf(r.unit && r.unit.value);
@@ -2091,18 +2156,24 @@ async function fetchBehindScenes(imdbId){
     const item = { q: qidOf(r.v && r.v.value), l: label };
     if(r.vImdb && isTt(r.vImdb.value)) item.t = r.vImdb.value;
     ex[k] = ex[k] || [];
-    if(!ex[k].some(x=>x.q===item.q)) ex[k].push(item);
+    if(!ex[k].some(x=>x.q === item.q)) ex[k].push(item);
   });
+  await Promise.all(Object.entries(parts).map(([name, query]) =>
+    wdSparql(query, 20000, prio).then(parse, ()=>failed.push(name))));
+  if(failed.length === Object.keys(parts).length) throw new Error('Wikidata non raggiungibile');
   if(budget) ex.budget = budget;
   if(incassi) ex.incassi = incassi;
   ['premio','candidatura'].forEach(k=>{ if(ex[k]) ex[k] = ex[k].slice(0, 40); });
-  ['location','produzione','sceneggiatura','musiche','fotografia','montaggio','paese','lingua','tratto'].forEach(k=>{ if(ex[k]) ex[k] = ex[k].slice(0, 8); });
-  if(!Object.keys(ex).some(k=>k!=='at')) ex.empty = true;
+  ['location','produzione','sceneggiatura','musiche','fotografia','montaggio','paese','lingua','tratto','ambientazione','personaggi','costumi','scenografia'].forEach(k=>{ if(ex[k]) ex[k] = ex[k].slice(0, 8); });
+  ex.v = 2;   // versione dei dettagli: le schede salvate prima si aggiornano da sole
+  if(failed.length) ex.partial = failed;            // parziale: si mostra ma non si salva
+  else if(!Object.keys(ex).some(k=>k !== 'at')) ex.empty = true;
   return ex;
 }
 const BS_LABELS = [['sceneggiatura','Sceneggiatura'],['musiche','Musiche'],['fotografia','Fotografia'],['montaggio','Montaggio'],
-  ['produzione','Produzione'],['paese','Paese'],['lingua','Lingua originale'],['tratto','Tratto da'],['location','Girato a']];
-const BS_PERSON_KEYS = new Set(['sceneggiatura','musiche','fotografia','montaggio']);
+  ['costumi','Costumi'],['scenografia','Scenografia'],['produzione','Produzione'],['paese','Paese'],['lingua','Lingua originale'],
+  ['tratto','Tratto da'],['personaggi','Personaggi'],['ambientazione','Ambientato a'],['location','Girato a']];
+const BS_PERSON_KEYS = new Set(['sceneggiatura','musiche','fotografia','montaggio','costumi','scenografia']);
 function sagaItemHTML(it){
   const entry = it.t ? imdbEntry(it.t) : null;
   const title = entry ? (entry.it || entry.en) : it.l;
@@ -2112,10 +2183,24 @@ function sagaItemHTML(it){
   else if(entry) status = `<button type="button" class="btn ghost mini-add" data-wish-add="${escapeHtml(it.t)}">+ Wishlist</button>`;
   return `<span class="bs-saga"><span class="plain">${escapeHtml(title)}${entry && entry.y ? ` <span style="color:var(--dim2)">(${escapeHtml(entry.y)})</span>` : ''}</span>${status}</span>`;
 }
+/* Anniversario d'uscita: quanti giorni mancano al prossimo (0 = oggi) e quanti anni compie */
+function anniversaryOf(dateStr, today){
+  const m = String(dateStr||'').match(/^(\d{4})-(\d{2})-(\d{2})$/); if(!m) return null;
+  const t = today || new Date(); const t0 = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+  let next = new Date(t0.getFullYear(), +m[2]-1, +m[3]);
+  if(next < t0) next = new Date(t0.getFullYear() + 1, +m[2]-1, +m[3]);
+  const days = Math.round((next - t0) / 864e5), years = next.getFullYear() - (+m[1]);
+  return years > 0 ? { days, years } : null;
+}
 function behindHTML(ex){
   const head = '<div class="bs-head">🎞️ Dietro le quinte <button type="button" data-bs-refresh title="Aggiorna da Wikidata" aria-label="Aggiorna dietro le quinte">↻</button></div>';
   if(!ex || ex.empty) return `<div class="bs-box">${head}<div class="bs-note">Wikidata non ha ancora dettagli extra su questo film.</div></div>`;
   const rows = [];
+  if(ex.uscita){
+    const an = anniversaryOf(ex.uscita);
+    const extra = an && an.days === 0 ? ` <span class="award-chip">🎂 Oggi compie ${an.years} anni</span>` : (an && an.days <= 7 ? ` <span class="plain" style="color:var(--dim)">· tra ${an.days} ${an.days === 1 ? 'giorno' : 'giorni'} compie ${an.years} anni</span>` : '');
+    rows.push(`<div class="bs-row"><div class="bs-k">Uscita</div><div class="bs-v"><span class="plain">${escapeHtml(fmtWdDate(ex.uscita))}</span>${extra}</div></div>`);
+  }
   BS_LABELS.forEach(([k, label])=>{
     const items = ex[k]; if(!items || !items.length) return;
     const v = BS_PERSON_KEYS.has(k)
@@ -2148,28 +2233,185 @@ function behindHTML(ex){
   if(!rows.length) return `<div class="bs-box">${head}<div class="bs-note">Wikidata non ha ancora dettagli extra su questo film.</div></div>`;
   return `<div class="bs-box">${head}${rows.join('')}</div>`;
 }
-/* I dettagli vengono salvati nella scheda (m.extra): la volta dopo si
-   aprono all'istante, anche offline. ↻ forza un aggiornamento. */
-async function renderBehindScenes(m, force){
-  if(!force){ renderTrailer(m); renderRelated(m); ensurePeopleQids(m); }
+/* I dettagli vengono salvati nella scheda (m.extra) solo quando sono
+   completi: la volta dopo si aprono all'istante, anche offline. Se Wikidata
+   è occupato si riprova da solo in sottofondo (dopo 6 e poi 20 secondi). */
+const BS_HEAD = '<div class="bs-head">🎞️ Dietro le quinte</div>';
+function bsNote(text, withRetry){
+  return `<div class="bs-box">${BS_HEAD}<div class="bs-note">${text}${withRetry ? ' <button type="button" class="btn ghost mini-add" data-bs-refresh>Riprova ora</button>' : ''}</div></div>`;
+}
+async function renderBehindScenes(m, force, attempt){
+  if(!force && !attempt){ renderTrailer(m); renderRelated(m); ensurePeopleQids(m); }
   const box = document.getElementById('behindScenesWrap'); if(!box) return;
   if(!m || !isTt(m.imdbId)){ box.innerHTML = ''; return; }
   const session = _modalSession;
-  if(m.extra && m.extra.at && !force){ box.innerHTML = behindHTML(m.extra); return; }
-  box.innerHTML = '<div class="bs-box"><div class="bs-head">🎞️ Dietro le quinte</div><span class="skeleton" style="width:70%"></span><span class="skeleton" style="width:55%"></span><span class="skeleton" style="width:62%;margin-bottom:14px"></span></div>';
+  attempt = attempt || 0;
+  if(m.extra && m.extra.at && !m.extra.partial && !force){
+    box.innerHTML = behindHTML(m.extra);
+    if((m.extra.v || 1) < 2 && navigator.onLine !== false){
+      // dettagli salvati con la versione precedente: aggiornamento silenzioso (righe nuove, data d'uscita)
+      fetchBehindScenes(m.imdbId, 'low').then(ex=>{
+        if(!ex || ex.partial) return;
+        const sm = state.movies.find(x=>x.id === m.id);
+        if(sm && sm.imdbId === m.imdbId){ sm.extra = ex; saveState(); renderTodayBanner(); }
+        if(_modalSession === session) box.innerHTML = behindHTML(ex);
+      }).catch(()=>{});
+    }
+    return;
+  }
+  if(navigator.onLine === false){
+    box.innerHTML = bsNote('📴 Sei offline: i dettagli compariranno quando torni online.', true);
+    return;
+  }
+  if(!attempt) box.innerHTML = `<div class="bs-box">${BS_HEAD}<span class="skeleton" style="width:70%"></span><span class="skeleton" style="width:55%"></span><span class="skeleton" style="width:62%;margin-bottom:14px"></span></div>`;
+  const retryLater = (msg) => {
+    const waits = [6000, 20000];
+    if(attempt < waits.length){
+      box.innerHTML = bsNote(`⏳ ${msg} Riprovo in automatico tra ${waits[attempt]/1000} secondi.`, true);
+      setTimeout(()=>{ if(_modalSession === session) renderBehindScenes(m, true, attempt + 1); }, waits[attempt]);
+    } else {
+      box.innerHTML = bsNote('Wikidata non ha risposto nemmeno riprovando: è un rallentamento del loro servizio, non della tua connessione.', true);
+    }
+  };
   try{
     const ex = await fetchBehindScenes(m.imdbId);
     if(_modalSession !== session) return;   // scheda cambiata nel frattempo
     if(!ex){ box.innerHTML = ''; return; }
-    const sm = state.movies.find(x=>x.id===m.id);
-    if(sm && sm.imdbId === m.imdbId){ sm.extra = ex; saveState(); }
-    else m.extra = ex;
+    const sm = state.movies.find(x=>x.id === m.id);
+    const target = (sm && sm.imdbId === m.imdbId) ? sm : m;
+    if(!ex.partial){ target.extra = ex; if(target === sm) saveState(); }
     box.innerHTML = behindHTML(ex);
+    if(ex.partial){
+      // Mostra subito ciò che è arrivato, poi completa in sottofondo
+      const waits = [6000, 20000];
+      if(attempt < waits.length){
+        box.insertAdjacentHTML('beforeend', `<div class="bs-note">⏳ Alcuni dettagli (${escapeHtml(ex.partial.join(', '))}) stanno arrivando: riprovo in automatico.</div>`);
+        setTimeout(()=>{ if(_modalSession === session) renderBehindScenes(m, true, attempt + 1); }, waits[attempt]);
+      }
+    }
   }catch(e){
     if(_modalSession !== session) return;
-    box.innerHTML = '<div class="bs-box"><div class="bs-head">🎞️ Dietro le quinte</div><div class="bs-note">Dettagli non raggiungibili ora (sei offline?). <button type="button" class="btn ghost mini-add" data-bs-refresh>Riprova</button></div></div>';
+    if(navigator.onLine === false) box.innerHTML = bsNote('📴 Sei offline: i dettagli compariranno quando torni online.', true);
+    else retryLater('Wikidata è occupato in questo momento.');
   }
 }
+/* ---------- ⚡ Precarica tutto (uso offline) ----------
+   Quattro fasi, in priorità di sfondo (puoi usare l'app mentre lavora):
+   1) Dietro le quinte  2) codici Wikidata del cast  3) correlati
+   4) schede persona di registi e attori ricorrenti della tua collezione.
+   Ogni elemento si salva appena pronto; rilanciando riparte da dove era. */
+const _pf = { running: false, cancel: false };
+function pfButton(){
+  const b = document.getElementById('bsPrefetchBtn'); if(!b) return;
+  b.textContent = _pf.running ? '⏹ Interrompi il precaricamento' : '⚡ Precarica tutto (uso offline)';
+}
+async function pfBehind(report){
+  const todo = state.movies.filter(m=>isTt(m.imdbId) && !(m.extra && m.extra.at && !m.extra.partial && (m.extra.v || 1) >= 2));
+  let ok = 0, ko = 0;
+  for(let i = 0; i < todo.length && !_pf.cancel; i++){
+    const m = todo[i]; report(i + 1, todo.length, displayTitle(m.titolo));
+    try{ const ex = await fetchBehindScenes(m.imdbId, 'low'); if(ex && !ex.partial){ m.extra = ex; ok++; saveState(); } else ko++; }catch(e){ ko++; }
+    await sleep(300);
+  }
+  return { ok, ko, n: todo.length };
+}
+async function pfPeopleQids(report){
+  const todo = state.movies.filter(m=>isTt(m.imdbId) && !(m.pq && m.pq.t === m.imdbId));
+  let ok = 0, ko = 0;
+  for(let i = 0; i < todo.length && !_pf.cancel; i++){
+    const m = todo[i]; report(i + 1, todo.length, displayTitle(m.titolo));
+    await ensurePeopleQids(m, 'low');
+    if(m.pq && m.pq.t === m.imdbId) ok++; else ko++;
+    await sleep(200);
+  }
+  return { ok, ko, n: todo.length };
+}
+async function pfRelated(report){
+  const todo = state.movies.filter(m=>isTt(m.imdbId) && (m.lista||'collezione') !== 'wishlist' && !(m.rel && m.relAt));
+  let ok = 0, ko = 0;
+  for(let i = 0; i < todo.length && !_pf.cancel; i++){
+    const m = todo[i]; report(i + 1, todo.length, displayTitle(m.titolo));
+    try{
+      const raw = await fetchRelatedRaw(m.imdbId);
+      if(raw.partial) ko++;
+      else {
+        const self = imdbEntry(m.imdbId) || { id: m.imdbId, g: m.genere || '', y: m.anno || '', dir: m.regista || '' };
+        const scored = raw.map(it=>relScore(it, self)).filter(Boolean).sort((a,b)=>b.s - a.s);
+        m.rel = scored.slice(0, 40).map(r=>({ t: r.e.id, w: r.w })); m.relAt = Date.now();
+        saveState(); ok++;
+      }
+    }catch(e){ ko++; }
+    await sleep(400);
+  }
+  return { ok, ko, n: todo.length };
+}
+/* Chi precaricare: tutti i registi dei tuoi film e gli attori presenti in
+   almeno 2 di essi (quelli che apri davvero), non tutti i ~mille del cast. */
+function prefetchPersonTargets(){
+  const map = new Map();
+  state.movies.filter(m=>(m.lista||'collezione') !== 'wishlist').forEach(m=>{
+    const seen = new Set();
+    const add = (n, isDir) => {
+      const k = normKey(n); if(!k || seen.has(k)) return; seen.add(k);
+      const o = map.get(k) || { name: n, n: 0, dir: false, films: [] };
+      o.n++; if(isDir) o.dir = true; if(isTt(m.imdbId)) o.films.push(m);
+      map.set(k, o);
+    };
+    splitNames(m.regista).slice(0, 2).forEach(n=>add(n, true));
+    splitNames(m.cast).forEach(n=>add(n, false));
+  });
+  return [...map.values()].filter(o=>o.dir || o.n >= 2).sort((a,b)=>b.n - a.n).slice(0, 140);
+}
+async function pfPeople(report){
+  const targets = prefetchPersonTargets();
+  let ok = 0, ko = 0;
+  for(let i = 0; i < targets.length && !_pf.cancel; i++){
+    const o = targets[i]; report(i + 1, targets.length, o.name);
+    try{
+      let qid = '';
+      for(const fm of o.films){ const q = fm.pq && fm.pq.map && fm.pq.map[normKey(o.name)]; if(isQid(q)){ qid = q; break; } }
+      if(!qid) qid = await resolvePersonQid(o.name, o.films[0] && o.films[0].imdbId);
+      if(!qid){ ko++; continue; }
+      const c = personCache(), cached = c['q:' + qid];
+      if(cached && (Date.now() - (cached.at||0)) < 30*864e5){ ok++; continue; }   // già fresca: niente richieste
+      const data = await fetchPersonData(qid, null, 'low');
+      if(data && !(data.failed && data.failed.length)) ok++; else ko++;
+    }catch(e){ ko++; }
+    await sleep(400);
+  }
+  return { ok, ko, n: targets.length };
+}
+async function prefetchAll(){
+  if(_pf.running){ _pf.cancel = true; toast('⏹ Interrompo il precaricamento…'); return; }
+  if(navigator.onLine === false){ toast('📴 Serve la connessione per precaricare'); return; }
+  _pf.running = true; _pf.cancel = false; pfButton();
+  const phases = [['Dietro le quinte', pfBehind], ['Codici del cast', pfPeopleQids], ['Correlati', pfRelated], ['Schede persona', pfPeople]];
+  let ko = 0;
+  for(let p = 0; p < phases.length && !_pf.cancel; p++){
+    const [label, fn] = phases[p];
+    const r = await fn((i, n, title)=>toast(`⚡ Fase ${p + 1}/4 · ${label}: ${i} di ${n}${title ? ' · ' + title : ''}`));
+    ko += r.ko || 0;
+    if(navigator.onLine === false){ _pf.cancel = true; }
+  }
+  const stopped = _pf.cancel;
+  _pf.running = false; _pf.cancel = false; pfButton();
+  renderAll();
+  toast(stopped ? '⏹ Precaricamento interrotto: quello già scaricato resta salvato. Rilancialo per riprendere.'
+                : `✓ Precaricamento completato${ko ? ` · ${ko} elementi non disponibili ora (rilancialo più tardi)` : ''}: ora tutto si apre all'istante, anche offline`);
+}
+/* Compatibilità: solo la fase "Dietro le quinte" */
+async function prefetchAllBehindScenes(){
+  const r = await pfBehind((i, n, title)=>toast(`🎞️ Dietro le quinte: ${i} di ${n} · ${title}`));
+  renderTodayBanner();
+  toast(r.n ? `✓ Precaricati ${r.ok} film${r.ko ? ` · ${r.ko} non disponibili ora` : ''}` : '✓ Dietro le quinte è già salvato per tutti i film collegati');
+  return r;
+}
+document.getElementById('bsPrefetchBtn').addEventListener('click', ()=>{
+  const dd = document.getElementById('toolsDropdown'); if(dd) dd.classList.remove('open');
+  const bd = document.getElementById('toolsBackdrop'); if(bd) bd.classList.remove('open');
+  prefetchAll();
+});
+pfButton();
 document.getElementById('behindScenesWrap').addEventListener('click', async e=>{
   if(e.target.closest('[data-bs-refresh]')){
     const m = state.movies.find(x=>x.id===currentId);
@@ -2185,7 +2427,7 @@ document.getElementById('behindScenesWrap').addEventListener('click', async e=>{
 
 /* ---------- Scheda persona ---------- */
 const PERSON_CACHE_KEY = 'mpml_person_cache_v3';   // v3: collaboratori di carriera, niente vuoti salvati per errore
-const PERSON_CACHE_MAX = 60;     // piccola: non deve MAI rubare spazio al salvataggio dei film
+const PERSON_CACHE_MAX = 150;     // piccola: non deve MAI rubare spazio al salvataggio dei film
 let _personCache = null;
 function personCache(){
   if(_personCache) return _personCache;
@@ -2201,7 +2443,14 @@ function savePersonCache(){
   }
   const nKeys = Object.keys(c).filter(k=>k.startsWith('n:'));
   if(nKeys.length > 300) nKeys.sort((a,b)=>(c[a].at||0)-(c[b].at||0)).slice(0, nKeys.length - 300).forEach(k=>delete c[k]);
-  try{ localStorage.setItem(PERSON_CACHE_KEY, JSON.stringify(c)); }
+  // Controllo di dimensione: oltre ~2,4 milioni di caratteri si eliminano le schede più vecchie,
+  // così la cache non può mai togliere spazio al salvataggio della collezione
+  let json = JSON.stringify(c);
+  if(json.length > 2400000){
+    const old = Object.keys(c).filter(k=>k.startsWith('q:')).sort((a,b)=>(c[a].at||0)-(c[b].at||0));
+    while(json.length > 2000000 && old.length){ delete c[old.shift()]; json = JSON.stringify(c); }
+  }
+  try{ localStorage.setItem(PERSON_CACHE_KEY, json); }
   catch(e){ try{ localStorage.removeItem(PERSON_CACHE_KEY); }catch(_){} _personCache = {}; } // spazio pieno: rinuncia alla cache
 }
 async function resolvePersonQid(name, filmImdb){
@@ -2221,7 +2470,7 @@ async function resolvePersonQid(name, filmImdb){
   if(qid){ c[nk] = {q:qid, at:Date.now()}; savePersonCache(); }
   return qid;
 }
-async function fetchPersonData(qid, onUpdate){
+async function fetchPersonData(qid, onUpdate, prio){
   if(!isQid(qid)) return null;
   const c = personCache(); const key = 'q:' + qid;
   if(c[key] && (Date.now() - (c[key].at||0)) < 30*864e5) return c[key];
@@ -2245,7 +2494,7 @@ async function fetchPersonData(qid, onUpdate){
       OPTIONAL{?aEn schema:about ?p; schema:isPartOf <https://en.wikipedia.org/>}
       OPTIONAL{?p schema:description ?desc FILTER(LANG(?desc)="it")}
       SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". }
-    } LIMIT 1`, 9000).then(async det=>{
+    } LIMIT 1`, 9000, prio).then(async det=>{
     const d = det[0] || {};
     const v = k => (d[k] && d[k].value) || '';
     let img = v('img');
@@ -2279,7 +2528,7 @@ async function fetchPersonData(qid, onUpdate){
       { ?p wdt:P166 ?v. BIND("premio" AS ?k) } UNION { ?p wdt:P1411 ?v. BIND("candidatura" AS ?k) }
       UNION { ?p wdt:P27 ?v. BIND("paese" AS ?k) } UNION { ?p wdt:P26 ?v. BIND("coniuge" AS ?k) }
       UNION { ?p wdt:P106 ?v. BIND("mestiere" AS ?k) }
-      SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". } } LIMIT 300`, 9000).then(multi=>{
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". } } LIMIT 300`, 9000, prio).then(multi=>{
     const bag = { premio:[], candidatura:[], paese:[], coniuge:[], mestiere:[] };
     multi.forEach(r=>{
       const k = r.k && r.k.value, l = r.vLabel && r.vLabel.value;
@@ -2292,7 +2541,7 @@ async function fetchPersonData(qid, onUpdate){
   }, ()=>done('premi', false));
 
   // 3) Filmografia (la parte più importante: priorità alta)
-  const pFil = fetchPersonFilms(qid).then(films=>{ data.films = films; done('filmografia', true); }, ()=>done('filmografia', false));
+  const pFil = fetchPersonFilms(qid, prio).then(films=>{ data.films = films; done('filmografia', true); }, ()=>done('filmografia', false));
 
   // 4) Collaboratori di carriera (sfondo: arrivano per ultimi senza bloccare nulla)
   const pCol = wdSparql(`SELECT ?k ?co (SAMPLE(?lab) AS ?name) (COUNT(DISTINCT ?film) AS ?n) WHERE {
@@ -2542,6 +2791,63 @@ document.addEventListener('click', e=>{
   openPerson(chip.dataset.person, { qid: chip.dataset.personQid, imdbId });
 });
 
+/* ---------- Statistiche: "La tua collezione in numeri" (tutto offline) ---------- */
+function renderStatsNumbers(){
+  const box = document.getElementById('statsNumbers'); if(!box) return;
+  const owned = state.movies.filter(m=>(m.lista||'collezione') !== 'wishlist');
+  if(!owned.length){ box.innerHTML = ''; return; }
+  const mins = m => {
+    const x = parseInt(String(m.durata || '').replace(/\D/g, ''), 10); if(x > 20 && x < 600) return x;
+    const e = isTt(m.imdbId) ? imdbEntry(m.imdbId) : null; const r = e ? parseInt(e.r, 10) : 0;
+    return (r > 20 && r < 600) ? r : 0;
+  };
+  let tot = 0, todo = 0, known = 0;
+  owned.forEach(m=>{ const x = mins(m); if(!x) return; tot += x; known++; if((m.stato||'da_vedere') === 'da_vedere') todo += x; });
+  const nFilms = owned.reduce((a,m)=>a + (parseInt(m.numero_film, 10) || 1), 0);
+  const imdbVals = owned.map(m=>parseVotoNumber(m.votoImdb)).filter(v=>v !== null && v > 0);
+  const avg = imdbVals.length ? imdbVals.reduce((a,b)=>a + b, 0) / imdbVals.length : 0;
+  const hours = Math.round(tot / 60);
+  const tiles = [
+    [String(nFilms), 'film in collezione'],
+    [hours ? `${hours} h` : '—', hours ? `${(tot/60/24).toFixed(1).replace('.', ',')} giorni di fila` : 'durata non nota'],
+    [todo ? `${Math.round(todo/60)} h` : '0 h', 'ancora da vedere'],
+    [avg ? avg.toFixed(1).replace('.', ',') : '—', 'voto medio IMDb']
+  ];
+  const link = m => `<button type="button" class="num-link" data-open-movie="${escapeHtml(m.id)}">${escapeHtml(displayTitle(m.titolo))}</button>`;
+  const rows = [];
+  const withEx = owned.filter(m=>m.extra && m.extra.at && !m.extra.partial);
+  const aw = withEx.map(m=>({ m, n: (m.extra.premio||[]).length, osc: (m.extra.premio||[]).filter(a=>awardRank(a.l) === 0).length }))
+    .filter(x=>x.n > 0).sort((a,b)=>b.osc - a.osc || b.n - a.n)[0];
+  if(aw) rows.push(['🏆 Il più premiato', `${link(aw.m)} · ${aw.n} premi${aw.osc ? ` · ${aw.osc} Oscar` : ''}`]);
+  const usd = withEx.filter(m=>m.extra.incassi && m.extra.incassi.u === 'Q4917' && m.extra.incassi.a > 0).sort((a,b)=>b.extra.incassi.a - a.extra.incassi.a);
+  if(usd.length){
+    const totBO = usd.reduce((a,m)=>a + m.extra.incassi.a, 0);
+    rows.push(['💰 Il più visto al cinema', `${link(usd[0])} · ${escapeHtml(fmtMoney(usd[0].extra.incassi.a, 'Q4917'))} · in tutto la tua collezione ha incassato ${escapeHtml(fmtMoney(totBO, 'Q4917'))}`]);
+  }
+  const yrs = owned.map(m=>({ m, y: parseInt(m.anno, 10) })).filter(x=>x.y > 1880).sort((a,b)=>a.y - b.y);
+  if(yrs.length) rows.push(['📅 Il più vecchio e il più recente', `${link(yrs[0].m)} (${yrs[0].y}) · ${link(yrs[yrs.length-1].m)} (${yrs[yrs.length-1].y})`]);
+  const count = (arr) => { const c = {}; arr.forEach(x=>{ c[x] = (c[x]||0) + 1; }); return Object.entries(c).sort((a,b)=>b[1] - a[1]); };
+  const dec = count(yrs.map(x=>Math.floor(x.y/10)*10));
+  const gen = count(owned.flatMap(m=>splitNames(m.genere).map(g=>g.charAt(0).toUpperCase() + g.slice(1).toLowerCase())));
+  if(dec.length || gen.length) rows.push(['❤️ I tuoi preferiti', [dec.length ? `gli anni ${String(dec[0][0]).slice(2)} (${dec[0][1]} film)` : '', gen.length ? `il genere ${escapeHtml(gen[0][0])} (${gen[0][1]})` : ''].filter(Boolean).join(' · ')]);
+  const paesi = count(withEx.flatMap(m=>(m.extra.paese||[]).map(p=>p.l)));
+  if(paesi.length) rows.push(['🌍 Da dove arrivano', paesi.slice(0, 4).map(([p, n])=>`${escapeHtml(p)} (${n})`).join(' · ')]);
+  const under = owned.map(m=>({ m, me: parseInt(m.votoPersonale, 10) || 0, im: parseVotoNumber(m.votoImdb) }))
+    .filter(x=>x.me && x.im !== null && x.me - x.im >= 1).sort((a,b)=>(b.me - b.im) - (a.me - a.im))[0];
+  if(under) rows.push(['💎 Il tuo film del cuore', `${link(under.m)} · per te ${under.me}, per IMDb ${String(under.im).replace('.', ',')}: lo ami più di tutti`]);
+  const fmt = count(owned.map(m=>formatoLabel(m.formato)));
+  if(fmt.length) rows.push(['💿 Formati', fmt.map(([f, n])=>`${escapeHtml(f)} ${Math.round(n / owned.length * 100)}%`).join(' · ')]);
+  const missing = owned.filter(m=>isTt(m.imdbId) && !(m.extra && m.extra.at && !m.extra.partial)).length;
+  box.innerHTML = `<div class="pstat-grid" style="margin-bottom:12px">${tiles.map(([b, sm])=>`<div class="pstat"><b>${escapeHtml(b)}</b><small>${escapeHtml(sm)}</small></div>`).join('')}</div>
+    ${rows.length ? `<div class="bs-box">${rows.map(([k, v])=>`<div class="bs-row"><div class="bs-k">${k}</div><div class="bs-v"><span class="plain">${v}</span></div></div>`).join('')}</div>` : ''}
+    ${known < owned.length ? `<div class="bs-note" style="padding:6px 2px">Durata nota per ${known} titoli su ${owned.length} (i cofanetti non hanno una durata unica).</div>` : ''}
+    ${missing ? `<div class="bs-note" style="padding:2px 2px 6px">Premi, incassi e paesi sono calcolati sui film con "Dietro le quinte" salvato: ne mancano ${missing}. Usa ⚙️ Strumenti → ⚡ Precarica tutto per completarli.</div>` : ''}`;
+}
+document.getElementById('statsNumbers').addEventListener('click', e=>{
+  const b = e.target.closest('[data-open-movie]'); if(!b) return;
+  document.getElementById('statsOverlay').classList.remove('open');
+  openModal(b.dataset.openMovie);
+});
 /* ---------- Statistiche: "Le tue star" ---------- */
 function renderStatsStars(){
   const box = document.getElementById('statsStars'); if(!box) return;
@@ -2775,7 +3081,7 @@ async function linkEnrichAll(){
       applyWikidataDetails(tmp, d || {});
       Object.keys(tmp).forEach(k=>{ if(tmp[k] && !m[k]) m[k] = tmp[k]; });
       if(!safeUrl(m.poster)){ const p = await fetchPosterByImdb(m.imdbId).catch(()=>''); if(p) m.poster = p; }
-      if(!m.extra){ const ex = await fetchBehindScenes(m.imdbId).catch(()=>null); if(ex) m.extra = ex; }
+      if(!m.extra){ const ex = await fetchBehindScenes(m.imdbId, 'low').catch(()=>null); if(ex && !ex.partial) m.extra = ex; }
       E.ok++;
     }catch(err){ E.fail++; }
     E.done++;
@@ -2820,53 +3126,31 @@ document.getElementById('linkBody').addEventListener('keydown', e=>{
 
 /* =====================================================================
    TRAILER (YouTube) + CORRELATI E CONSIGLIATI
-   Trailer: Wikidata registra l'ID del video YouTube ufficiale (P1651).
-   Un pulsante apre il trailer su YouTube (niente lettore incorporato).
+   Trailer: un pulsante apre la ricerca del trailer su YouTube.
    Correlati/consigliati: film che condividono saga, regista, autori o
    attori (Wikidata), incrociati con l'indice offline. Tutto salvato nella
    scheda, così funziona anche offline dalla seconda apertura.
    ===================================================================== */
-const YT_ID = /^[A-Za-z0-9_-]{11}$/;
-async function fetchTrailerIds(imdbId){
-  if(!isTt(imdbId)) return [];
-  const rows = await wdSparql(`SELECT DISTINCT ?yt WHERE { ?film wdt:P345 "${imdbId}"; wdt:P1651 ?yt. } LIMIT 6`, 8000);
-  return rows.map(r=>r.yt && r.yt.value).filter(v=>YT_ID.test(v || ''));
+/* Trailer: SEMPRE la ricerca di YouTube (titolo + anno + "trailer ITA").
+   Il "video YouTube" registrato su Wikidata a volte è il film intero in
+   vendita/noleggio, non il trailer: meglio la ricerca, che porta ai trailer.
+   Nessuna richiesta a Wikidata → la scheda carica anche più in fretta. */
+function trailerSearchUrl(titolo, anno){
+  const y = /^\d{4}$/.test(String(anno||'').trim()) ? ' ' + String(anno).trim() : '';
+  return 'https://www.youtube.com/results?search_query=' + encodeURIComponent((titolo || '').trim() + y + ' trailer ITA');
 }
-function trailerSearchUrl(titolo){ return 'https://www.youtube.com/results?search_query=' + encodeURIComponent((titolo || '') + ' trailer ITA'); }
-/* Niente lettore incorporato: un pulsante che apre il trailer su YouTube
-   (su Android si apre l'app di YouTube). Il lettore dentro la pagina era
-   inaffidabile quando l'app è aperta come file sul telefono. */
-function trailerHTML(ids){
-  ids = (ids || []).filter(v=>YT_ID.test(v || ''));
-  if(!ids.length){
-    return '<div class="trailer-bar"><button type="button" class="trailer-btn search" data-yt-search>🔎 Cerca il trailer su YouTube</button></div>';
-  }
-  return `<div class="trailer-bar">
-    <a class="trailer-btn" href="https://www.youtube.com/watch?v=${ids[0]}" target="_blank" rel="noopener"><span class="yt-ico" aria-hidden="true">▶</span> Guarda il trailer su YouTube</a>
-    ${ids.slice(1, 3).map((x, n)=>`<a class="trailer-more" href="https://www.youtube.com/watch?v=${x}" target="_blank" rel="noopener">Trailer ${n + 2}</a>`).join('')}
-  </div>`;
+function trailerHTML(){
+  return '<div class="trailer-bar"><button type="button" class="trailer-btn" data-yt-search><span class="yt-ico" aria-hidden="true">▶</span> Cerca il trailer su YouTube</button></div>';
 }
-async function renderTrailer(m){
+function renderTrailer(m){
   const box = document.getElementById('trailerWrap'); if(!box) return;
-  if(!m || !isTt(m.imdbId)){ box.innerHTML = trailerHTML([]); return; }   // ricerca per titolo
-  if(m.ytAt){ box.innerHTML = trailerHTML(m.yt); return; }
-  box.innerHTML = trailerHTML([]);   // subito utilizzabile mentre controllo Wikidata
-  const session = _modalSession;
-  try{
-    const ids = await fetchTrailerIds(m.imdbId);
-    if(_modalSession !== session) return;
-    const sm = state.movies.find(x=>x.id === m.id);
-    const target = (sm && sm.imdbId === m.imdbId) ? sm : m;
-    target.yt = ids; target.ytAt = Date.now();
-    if(target === sm) saveState();
-    box.innerHTML = trailerHTML(ids);
-  }catch(e){ /* offline: resta il pulsante di ricerca, che funziona comunque */ }
+  box.innerHTML = trailerHTML();
 }
 document.getElementById('trailerWrap').addEventListener('click', e=>{
   if(!e.target.closest('[data-yt-search]')) return;
   const title = document.getElementById('f_titolo').value.trim();
   if(!title){ toast('Inserisci prima un titolo'); return; }
-  window.open(trailerSearchUrl(title), '_blank', 'noopener');
+  window.open(trailerSearchUrl(title, document.getElementById('f_anno').value), '_blank', 'noopener');
 });
 
 /* ---------- Correlati e consigliati ---------- */
@@ -2966,7 +3250,25 @@ function relatedHTML(list, offline){
   const strip = (title, sub, arr) => arr.length ? `<div class="rel-sec"><div class="rel-head"><span>${title}</span><small>${sub}</small></div><div class="rel-strip">${arr.map(relCardHTML).join('')}</div></div>` : '';
   return `<div class="rel-box">${strip('🎬 Correlati', 'stessa saga, regista o opera d\'origine', corr)}${strip('✨ Consigliati', offline ? 'generi simili (offline)' : 'in base a questo film — che non hai ancora', cons)}${offline ? '<div class="bs-note">Wikidata non ha risposto (connessione assente o server lento): questi sono calcolati dall\'indice offline. Riapri la scheda più tardi per i risultati completi, con attori e autori in comune.</div>' : ''}</div>`;
 }
-async function renderRelated(m, force){
+/* I correlati sono la ricerca più pesante: partono solo quando il riquadro
+   sta per entrare in vista (scorrendo), così all'apertura del film non
+   intasano Wikidata mentre servono i dettagli. Dalla cache: subito. */
+let _relObserver = null;
+function renderRelated(m, force){
+  if(_relObserver){ _relObserver.disconnect(); _relObserver = null; }
+  const box = document.getElementById('relatedWrap'); if(!box) return;
+  if(!m || !isTt(m.imdbId)){ box.innerHTML = ''; return; }
+  if((m.rel && m.relAt && !force) || typeof IntersectionObserver === 'undefined') return renderRelatedNow(m, force);
+  const session = _modalSession;
+  box.innerHTML = '<div class="rel-box"><div class="rel-head"><span>🎬 Correlati e consigliati</span><small>si caricano quando scorri fin qui</small></div></div>';
+  _relObserver = new IntersectionObserver(entries=>{
+    if(!entries.some(en=>en.isIntersecting)) return;
+    _relObserver.disconnect(); _relObserver = null;
+    if(_modalSession === session) renderRelatedNow(m, force);
+  }, { rootMargin: '300px 0px' });
+  _relObserver.observe(box);
+}
+async function renderRelatedNow(m, force){
   const box = document.getElementById('relatedWrap'); if(!box) return;
   if(!m || !isTt(m.imdbId)){ box.innerHTML = ''; return; }
   await ensureImdbIndex();
@@ -3569,7 +3871,30 @@ function cardHTML(m){
   </div>`;
 }
 
+/* "Accadde oggi": i tuoi film che compiono gli anni dall'uscita oggi (o nei
+   prossimi 7 giorni). Usa le date salvate in "Dietro le quinte". */
+function renderTodayBanner(){
+  const box = document.getElementById('todayBanner'); if(!box) return;
+  const items = [];
+  state.movies.forEach(m=>{
+    if((m.lista||'collezione') === 'wishlist' || !m.extra || !m.extra.uscita) return;
+    const an = anniversaryOf(m.extra.uscita); if(an && an.days <= 7) items.push({ m, an });
+  });
+  if(!items.length){ box.innerHTML = ''; return; }
+  items.sort((a,b)=>a.an.days - b.an.days || b.an.years - a.an.years);
+  const today = items.filter(x=>x.an.days === 0), soon = items.filter(x=>x.an.days > 0);
+  const link = x => `<button type="button" class="today-link" data-open-movie="${escapeHtml(x.m.id)}">${escapeHtml(displayTitle(x.m.titolo))}</button>`;
+  let html = '';
+  if(today.length) html = `<span class="today-ico">🎂</span><span><b>Accadde oggi:</b> ${today.slice(0,3).map(x=>`${link(x)} è uscito ${x.an.years} anni fa`).join(' · ')}${today.length > 3 ? ` e altri ${today.length - 3}` : ''}</span>`;
+  else html = `<span class="today-ico">📅</span><span><b>In arrivo:</b> ${soon.slice(0,2).map(x=>`tra ${x.an.days} ${x.an.days === 1 ? 'giorno' : 'giorni'} ${link(x)} compie ${x.an.years} anni`).join(' · ')}</span>`;
+  box.innerHTML = `<div class="today-banner">${html}</div>`;
+}
+document.getElementById('todayBanner').addEventListener('click', e=>{
+  const b = e.target.closest('[data-open-movie]'); if(b) openModal(b.dataset.openMovie);
+});
 function renderGrid(){
+  renderTodayBanner();
+  renderBackupBanner();
   const list = getFiltered();
   const anyFilter = ['search','filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato']
     .some(id=>{ const el = document.getElementById(id); return el && el.value; });
@@ -4285,6 +4610,7 @@ function buildExportRows(){
   }));
 }
 document.getElementById('exportBtn').addEventListener('click', ()=>{
+  markBackupDone();
   if(!xlsxReady()) return;
   const ws = XLSX.utils.json_to_sheet(buildExportRows());
   const wb = XLSX.utils.book_new();
@@ -4293,6 +4619,7 @@ document.getElementById('exportBtn').addEventListener('click', ()=>{
   toast('Excel esportato ✓');
 });
 document.getElementById('exportCsvBtn').addEventListener('click', ()=>{
+  markBackupDone();
   // Export CSV nativo: funziona sempre, anche senza la libreria Excel
   const rows = buildExportRows();
   const csv = csvStringify(rows, exportHeaders());
@@ -5158,7 +5485,7 @@ document.getElementById('bulkEnrichBtn').addEventListener('click', async ()=>{
    c'è, si apre la sua scheda ("già in collezione!"); se non c'è, puoi
    aggiungerlo al volo con il barcode precompilato — o metterlo in
    wishlist direttamente dal negozio. */
-let _scanStream = null, _scanTimer = null, _scanRaf = null, _scanReads = [];
+let _scanStream = null, _scanTimer = null, _scanRaf = null, _scanReads = [], _scanFrame = 0;
 function findByBarcode(code){
   const c = String(code||'').replace(/\s+/g,'').trim();
   if(!c) return null;
@@ -5209,16 +5536,63 @@ function loadQuagga(){
     document.head.appendChild(sc);
   });
 }
-function quaggaDecodeDataUrl(dataUrl, sizeHint){
+function quaggaDecodeDataUrl(dataUrl, sizeHint, opt){
+  opt = opt || {};
   return new Promise(resolve=>{
     try{
       window.Quagga.decodeSingle({
         src: dataUrl, numOfWorkers: 0, locate: true,
+        locator: { patchSize: opt.patch || 'medium', halfSample: opt.half !== false },
         inputStream: { size: sizeHint || 1280 },
         decoder: { readers: ['ean_reader','ean_8_reader','upc_reader','upc_e_reader','code_128_reader'] }
       }, r => resolve(r && r.codeResult && r.codeResult.code ? r.codeResult.code : null));
     }catch(e){ resolve(null); }
   });
+}
+/* Foto difficili (storte, sgranate, poca luce): più tentativi con impostazioni
+   diverse del localizzatore, poi un filtro mediano anti-grana. Ogni lettura è
+   comunque verificata con la cifra di controllo EAN: niente codici sbagliati. */
+const QUAGGA_TRIES = [ { size:1600, half:true }, { size:1000, half:false }, { size:1600, half:false, patch:'large' }, { size:800, half:true, patch:'small' } ];
+function denoiseDataUrl(dataUrl, maxW){
+  return new Promise(resolve=>{
+    const img = new Image();
+    img.onload = ()=>{
+      try{
+        const scale = Math.min(1, (maxW || 1000) / (img.naturalWidth || img.width));
+        const W = Math.max(1, Math.round((img.naturalWidth || img.width) * scale)), H = Math.max(1, Math.round((img.naturalHeight || img.height) * scale));
+        const c = document.createElement('canvas'); c.width = W; c.height = H;
+        const ctx = c.getContext('2d'); ctx.drawImage(img, 0, 0, W, H);
+        const id = ctx.getImageData(0, 0, W, H), px = id.data;
+        const g = new Uint8ClampedArray(W * H);
+        for(let i = 0, j = 0; i < px.length; i += 4, j++) g[j] = (px[i] * 77 + px[i+1] * 150 + px[i+2] * 29) >> 8;
+        const out = new Uint8ClampedArray(W * H), win = new Array(9);
+        for(let y = 0; y < H; y++){
+          for(let x = 0; x < W; x++){
+            let n = 0;
+            for(let dy = -1; dy <= 1; dy++){ const yy = Math.min(H-1, Math.max(0, y+dy));
+              for(let dx = -1; dx <= 1; dx++){ const xx = Math.min(W-1, Math.max(0, x+dx)); win[n++] = g[yy*W + xx]; } }
+            for(let a = 1; a < 9; a++){ const v = win[a]; let b = a - 1; while(b >= 0 && win[b] > v){ win[b+1] = win[b]; b--; } win[b+1] = v; }
+            out[y*W + x] = win[4];
+          }
+        }
+        for(let i = 0, j = 0; i < px.length; i += 4, j++){ px[i] = px[i+1] = px[i+2] = out[j]; px[i+3] = 255; }
+        ctx.putImageData(id, 0, 0);
+        resolve(c.toDataURL('image/png'));
+      }catch(e){ resolve(null); }
+    };
+    img.onerror = ()=>resolve(null);
+    img.src = dataUrl;
+  });
+}
+async function quaggaDecodeRobust(dataUrl){
+  const st = document.getElementById('scanStatus');
+  const total = QUAGGA_TRIES.length + 2; let n = 0;
+  const step = () => { n++; if(st) st.textContent = `Analizzo la foto… tentativo ${n} di ${total}`; };
+  for(const t of QUAGGA_TRIES){ step(); const c = await quaggaDecodeDataUrl(dataUrl, t.size, t); if(c && eanChecksumOk(c)) return c; }
+  if(st) st.textContent = 'Foto difficile: tolgo la grana e riprovo…';
+  const clean = await denoiseDataUrl(dataUrl, 1000);
+  if(clean){ for(const t of QUAGGA_TRIES.slice(0, 2)){ step(); const c = await quaggaDecodeDataUrl(clean, t.size, t); if(c && eanChecksumOk(c)) return c; } }
+  return null;
 }
 function frameToDataUrl(video, maxW){
   if(!video.videoWidth) return null;
@@ -5265,11 +5639,15 @@ async function openScanner(){
   const videoWrap = document.getElementById('scanVideoWrap');
   document.getElementById('scanManual').value = '';
   _scanReads = [];
+  document.getElementById('scanPhotoBtn').classList.remove('scan-hint');
   overlay.classList.add('open');
   const hasCamera = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
   if(!hasCamera){
     videoWrap.style.display = 'none';
-    status.textContent = 'Fotocamera non disponibile in questo contesto. Digita il codice qui sotto o usa "🖼️ Da foto": il controllo è identico.';
+    status.textContent = window.isSecureContext === false
+      ? 'Il browser non concede la fotocamera dal vivo alle pagine aperte come file. Tocca "🖼️ Da foto": scatti una foto al codice e la leggo io (funziona sempre).'
+      : 'Fotocamera non disponibile su questo dispositivo. Tocca "🖼️ Da foto" o digita il codice qui sotto.';
+    document.getElementById('scanPhotoBtn').classList.add('scan-hint');
     document.getElementById('scanManual').focus();
     return;
   }
@@ -5331,7 +5709,8 @@ async function openScanner(){
       if(!_scanStream) return;
       const dataUrl = frameToDataUrl(video, 1280);
       if(dataUrl){
-        const code = await quaggaDecodeDataUrl(dataUrl, 1280);
+        const t = QUAGGA_TRIES[(_scanFrame = (_scanFrame || 0) + 1) % 3];   // impostazioni alternate
+        const code = await quaggaDecodeDataUrl(dataUrl, Math.min(1280, t.size), t);
         if(code && acceptRead(code, true)){ handleScannedCode(code); return; }
         if(code) status.textContent = `Letto ${code} — confermo con una seconda lettura…`;
       }
@@ -5341,7 +5720,12 @@ async function openScanner(){
   }catch(e){
     console.error(e);
     videoWrap.style.display = 'none';
-    status.textContent = 'Fotocamera negata o non disponibile. Digita il codice qui sotto o usa "🖼️ Da foto": il controllo è identico.';
+    const nm = e && e.name;
+    status.textContent = nm === 'NotAllowedError' || nm === 'SecurityError'
+      ? 'Permesso fotocamera negato. Puoi riattivarlo dalle impostazioni del sito nel browser, oppure tocca "🖼️ Da foto": scatti una foto al codice e la leggo io.'
+      : nm === 'NotFoundError' ? 'Nessuna fotocamera trovata. Tocca "🖼️ Da foto" o digita il codice qui sotto.'
+      : 'Fotocamera non disponibile ora. Tocca "🖼️ Da foto" (scatti e leggo io) o digita il codice qui sotto.';
+    document.getElementById('scanPhotoBtn').classList.add('scan-hint');
     document.getElementById('scanManual').focus();
   }
 }
@@ -5369,8 +5753,8 @@ async function decodePhotoFile(file){
   }catch(e){ /* si passa al motore JS */ }
   try{
     await loadQuagga();
-    const code = await quaggaDecodeDataUrl(dataUrl, 1600);
-    if(code && eanChecksumOk(code)){ handleScannedCode(code); return; }
+    const code = await quaggaDecodeRobust(dataUrl);
+    if(code){ handleScannedCode(code); return; }
   }catch(e){ /* CDN assente */ }
   status.textContent = 'Nessun codice leggibile nella foto: riprova più da vicino, dritto e con più luce — o digita il codice qui sotto.';
 }
@@ -5471,6 +5855,7 @@ function computeStats(){
   document.getElementById('statsRegisti').innerHTML = registaEntries.length ? barsHTML(registaEntries, registaMax) : '<div style="color:var(--dim2);font-size:13px;">Aggiungi il regista ai film per vedere questo grafico</div>';
   document.getElementById('statsGeneri').innerHTML = genereEntries.length ? barsHTML(genereEntries, genereMax) : '<div style="color:var(--dim2);font-size:13px;">Aggiungi il genere ai film per vedere questo grafico</div>';
   renderStatsStars();
+  renderStatsNumbers();
 }
 document.getElementById('statsBtn').addEventListener('click', ()=>{
   computeStats();
