@@ -178,6 +178,9 @@ select{cursor:pointer; appearance:none; padding-right:30px;
   background:linear-gradient(160deg, var(--card-hi), var(--card)); backdrop-filter:blur(20px);
   border:1px solid var(--line); border-radius:14px; padding:10px;
   box-shadow:0 20px 50px rgba(0,0,0,.55); z-index:60;
+  /* Il menu è più lungo dello schermo e la barra resta fissa: scorrimento interno
+     (l'altezza esatta la calcola il JS all'apertura, questo è il ripiego) */
+  max-height:calc(100vh - 120px); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin;
 }
 .tools-dropdown.open{display:flex;}
 .tools-dropdown .btn{width:100%; text-align:left; justify-content:flex-start; white-space:normal; line-height:1.4;}
@@ -894,6 +897,39 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 .demo-t small{color:var(--dim2); font-weight:600;}
 .demo-why{font-size:12px; color:var(--accent1);}
 
+/* ---------- Che umore hai stasera? ---------- */
+.mood-rail{display:flex; align-items:center; gap:8px; overflow-x:auto; margin:0 0 22px; padding:2px 2px 6px; scrollbar-width:none; overscroll-behavior-x:contain;}
+.mood-rail::-webkit-scrollbar{display:none;}
+.mood-rail-label{flex:0 0 auto; font-family:var(--font-mono, monospace); font-size:12px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; color:var(--accent3, #ff2e91); margin-right:4px;}
+.mood-chip{flex:0 0 auto; display:inline-flex; align-items:center; gap:6px; padding:8px 14px; border-radius:30px; cursor:pointer; white-space:nowrap;
+  font-family:'Manrope',sans-serif; font-size:13px; font-weight:700; color:var(--cream); background:rgba(255,255,255,.05); border:1px solid var(--line);
+  transition:border-color .15s, background .15s, transform .12s;}
+.mood-chip:hover{border-color:var(--accent1); background:rgba(45,226,230,.08); transform:translateY(-1px);}
+.mood-chip.on{border-color:var(--accent3, #ff2e91); background:rgba(255,46,145,.14); color:#fff;}
+.mood-rail.in-overlay{margin:0 0 14px; padding-right:40px;}
+/* Col mouse la rotellina non scorre in orizzontale e la barra è nascosta:
+   su computer e schermi larghi gli stati d'animo vanno a capo, tutti visibili */
+@media (hover: hover) and (pointer: fine), (min-width: 1000px){
+  .mood-rail{flex-wrap:wrap; overflow-x:visible;}
+  .mood-rail-label{flex-basis:100%; margin:0 0 2px;}
+}
+/* Su telefono: scorrimento col dito, sfumatura a destra = "ce ne sono altri" */
+@media (max-width: 999px) and (hover: none){
+  .mood-rail{-webkit-mask-image:linear-gradient(90deg, #000 88%, transparent); mask-image:linear-gradient(90deg, #000 88%, transparent); padding-right:28px;}
+}
+.mood-title{font-family:var(--font-display, 'Sora'), sans-serif; font-weight:400; font-size:24px; margin:0 0 14px; color:var(--cream);}
+.mood-shuffle{margin-left:auto; background:none; border:1px solid var(--line); border-radius:20px; color:var(--accent1); font-weight:700; font-size:12px; padding:4px 12px; cursor:pointer; font-family:'Manrope',sans-serif; letter-spacing:0; text-transform:none;}
+.mood-shuffle:hover{border-color:var(--accent1);}
+
+/* ---------- Età consigliata + azzeramento ---------- */
+.age-chip{display:inline-flex; align-items:center; gap:4px; font-family:var(--font-mono, monospace); font-size:11px; font-weight:800; letter-spacing:.5px;
+  padding:4px 10px; border-radius:20px; border:1px solid; white-space:nowrap;}
+.age-kids{color:#7dffb0; background:rgba(60,255,150,.10); border-color:rgba(60,255,150,.35);}
+.age-teen{color:#ffd23f; background:rgba(255,210,63,.10); border-color:rgba(255,210,63,.4);}
+.age-adult{color:#ff6b6b; background:rgba(255,80,80,.12); border-color:rgba(255,80,80,.45);}
+.danger-btn{color:#ff8a8a !important; border-color:rgba(255,80,80,.35) !important;}
+.danger-btn:hover{color:#ffb3b3 !important; border-color:#ff5c5c !important;}
+
 /* ---------- Animazione "inserimento videocassetta" al click sulla card ---------- */
 .card.inserting{
   animation:vhsInsert .55s cubic-bezier(.5,0,.85,1) forwards;
@@ -1076,6 +1112,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
         <button class="btn ghost" id="demoBtn" title="I dischi della tua collezione migliori per far vedere l'impianto">🎬 Serata demo</button>
         <button class="btn ghost" id="bsPrefetchBtn" title="Scarica una volta sola Dietro le quinte, correlati e schede di registi e attori ricorrenti: poi si aprono all'istante, anche offline">⚡ Precarica tutto (uso offline)</button>
         <button class="btn ghost" id="directorsOverlayBtn" title="Registi di cui possiedi già film: cosa ti manca della loro filmografia?">🎬 Registi da completare</button>
+        <button class="btn ghost danger-btn" id="resetLibBtn" title="Cancella tutti i film e riparti da zero (prima scarica un backup di sicurezza)">🗑️ Azzera la libreria</button>
         <button class="btn ghost" id="installAppBtn" title="Aggiungi l'app alla schermata Home del telefono">📲 Installa sul telefono</button>
       </div>
     </div>
@@ -1098,6 +1135,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 <div class="grid-wrap">
   <div id="backupBanner"></div>
   <div id="todayBanner"></div>
+  <div class="mood-rail" id="moodRail" aria-label="Che umore hai stasera?"><span class="mood-rail-label">🎭 Che umore hai stasera?</span><button type="button" class="mood-chip" data-mood="adrenalina">💥 Adrenalina</button><button type="button" class="mood-chip" data-mood="risate">😂 Risate</button><button type="button" class="mood-chip" data-mood="emozioni">😢 Voglia di emozionarmi</button><button type="button" class="mood-chip" data-mood="paura">👻 Paura</button><button type="button" class="mood-chip" data-mood="evadere">🚀 Evadere dalla realtà</button><button type="button" class="mood-chip" data-mood="mistero">🕵️ Mistero</button><button type="button" class="mood-chip" data-mood="romantico">❤️ Romantico</button><button type="button" class="mood-chip" data-mood="famiglia">👨‍👩‍👧 In famiglia</button><button type="button" class="mood-chip" data-mood="epico">🏔️ Epico</button><button type="button" class="mood-chip" data-mood="anni80">📼 Nostalgia anni 80</button><button type="button" class="mood-chip" data-mood="breve">⏱️ Serata breve</button><button type="button" class="mood-chip" data-mood="capolavori">🏆 Solo capolavori</button></div>
   <div id="grid"></div>
   <div class="table-wrap" id="tableWrap">
     <table class="movie-table">
@@ -1372,6 +1410,14 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 
 
 <!-- Stats modal -->
+<!-- Che umore hai stasera? -->
+<div class="overlay" id="moodOverlay">
+  <div class="modal settings-modal" style="max-width:780px;">
+    <button class="modal-close" id="moodClose" aria-label="Chiudi">&times;</button>
+    <div id="moodBody"></div>
+  </div>
+</div>
+
 <!-- Serata demo -->
 <div class="overlay" id="demoOverlay">
   <div class="modal settings-modal" style="max-width:640px;">
@@ -1678,6 +1724,35 @@ function downloadBackupNow(){
   markBackupDone();
   toast(`Backup scaricato ✓ (${state.movies.length} film)`);
 }
+/* ---------- Azzera la libreria ----------
+   Doppia conferma e backup di sicurezza automatico PRIMA di cancellare:
+   si può sempre tornare indietro con "📤 Ripristina backup". Dopo
+   l'azzeramento l'app non ricarica i film d'esempio (resta vuota). */
+async function resetLibrary(){
+  const n = state.movies.length;
+  if(!n){ toast('La libreria è già vuota'); return; }
+  const ok1 = await askConfirm(`Stai per cancellare TUTTI i tuoi ${n} film, con voti, prestiti, wishlist e dettagli salvati. Prima scarico un backup di sicurezza nei Download, così potrai sempre tornare indietro con "📤 Ripristina backup". Continuare?`);
+  if(!ok1) return;
+  downloadBackupNow();
+  await sleep(500);
+  const ok2 = await askConfirm(`Ultima conferma: cancello davvero tutti i ${n} film e riparto da zero? Dall'app non si può annullare: solo ripristinando il backup appena scaricato.`);
+  if(!ok2){ toast('Nessuna modifica: la libreria è intatta'); return; }
+  state.movies = [];
+  try{ localStorage.removeItem(PERSON_CACHE_KEY); }catch(e){}
+  _personCache = null; _filmsMem.clear();
+  ['search','filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato','filterTech']
+    .forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
+  document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));
+  currentId = null;
+  await saveState();
+  renderAll();
+  toast('🗑️ Libreria azzerata: si riparte da zero. Il backup di sicurezza è nei Download.');
+}
+document.getElementById('resetLibBtn').addEventListener('click', ()=>{
+  const dd = document.getElementById('toolsDropdown'); if(dd) dd.classList.remove('open');
+  const bd = document.getElementById('toolsBackdrop'); if(bd) bd.classList.remove('open');
+  resetLibrary();
+});
 /* ---------- Promemoria backup ----------
    La collezione vive nella memoria del browser: se il telefono si rompe o
    si cancellano i dati del browser, senza una copia la si perde. Il
@@ -2222,6 +2297,7 @@ async function fetchBehindScenes(imdbId, prio){
   UNION ${rel('P155','prequel',' OPTIONAL{ ?v wdt:P345 ?vImdb }')} UNION ${rel('P156','sequel',' OPTIONAL{ ?v wdt:P345 ?vImdb }')}
   UNION ${rel('P840','ambientazione')} UNION ${rel('P674','personaggi')} UNION ${rel('P2515','costumi')} UNION ${rel('P2554','scenografia')}`),
     premi: q(`${rel('P166','premio')} UNION ${rel('P1411','candidatura')}`),
+    eta: q(`${rel('P1981','fsk')} UNION ${rel('P2629','bbfc')} UNION ${rel('P1657','mpa')}`),
     produzione: q(`${rel('P915','location')}
   UNION { ?film p:P577/psv:P577 ?dv. ?dv wikibase:timeValue ?date; wikibase:timePrecision ?prec. FILTER(?prec >= 11) BIND("uscita" AS ?k) }
   UNION { ?film p:P2130/psv:P2130 ?qv. ?qv wikibase:quantityAmount ?amount; wikibase:quantityUnit ?unit. BIND("budget" AS ?k) }
@@ -2258,7 +2334,8 @@ async function fetchBehindScenes(imdbId, prio){
   if(incassi) ex.incassi = incassi;
   ['premio','candidatura'].forEach(k=>{ if(ex[k]) ex[k] = ex[k].slice(0, 40); });
   ['location','produzione','sceneggiatura','musiche','fotografia','montaggio','paese','lingua','tratto','ambientazione','personaggi','costumi','scenografia'].forEach(k=>{ if(ex[k]) ex[k] = ex[k].slice(0, 8); });
-  ex.v = 2;   // versione dei dettagli: le schede salvate prima si aggiornano da sole
+  const eta = ageFromRatings(ex); if(eta) ex.eta = eta;
+  ex.v = 3;   // versione dei dettagli: le schede salvate prima si aggiornano da sole
   if(failed.length) ex.partial = failed;            // parziale: si mostra ma non si salva
   else if(!Object.keys(ex).some(k=>k !== 'at')) ex.empty = true;
   return ex;
@@ -2285,10 +2362,39 @@ function anniversaryOf(dateStr, today){
   const days = Math.round((next - t0) / 864e5), years = next.getFullYear() - (+m[1]);
   return years > 0 ? { days, years } : null;
 }
+/* Età consigliata dalle classificazioni ufficiali: FSK (Germania, età esplicite,
+   vicino agli standard europei) ha la precedenza, poi BBFC (UK), poi MPA (USA). */
+function ageFromRatings(ex){
+  if(!ex) return null;
+  const labs = k => (ex[k] || []).map(x=>String(x.l || '').toUpperCase());
+  const fsk = labs('fsk').map(l=>{ const m = l.match(/(\d{1,2})/); return m ? parseInt(m[1], 10) : null; }).filter(n=>n !== null && n <= 18);
+  if(fsk.length) return { age: Math.max(...fsk), src: 'FSK ' + Math.max(...fsk) };
+  const bb = labs('bbfc').map(l=>l.replace(/BBFC\s*/, '').trim());
+  const bmap = l => /R\s*-?18|^18/.test(l) ? 18 : /^15/.test(l) ? 15 : /^12/.test(l) ? 12 : /^PG/.test(l) ? 8 : /^U\b|^U$/.test(l) ? 0 : null;
+  const b = bb.map(bmap).filter(n=>n !== null);
+  if(b.length){ const a = Math.max(...b); return { age: a, src: 'BBFC ' + bb[b.indexOf(a)] }; }
+  const mp = labs('mpa');
+  const mmap = l => /NC-?17/.test(l) ? 18 : /PG-?13/.test(l) ? 13 : /^PG\b|^PG$/.test(l) ? 8 : /^R\b|^R$|RATED R/.test(l) ? 17 : /^G\b|^G$/.test(l) ? 0 : null;
+  const mv = mp.map(mmap).filter(n=>n !== null);
+  if(mv.length){ const a = Math.max(...mv); return { age: a, src: 'MPA ' + mp[mv.indexOf(a)] }; }
+  return null;
+}
+function ageLabel(a){ return a === 0 ? 'Per tutti' : `${a}+`; }
+function ageChipHTML(ex){
+  const e = ex && (ex.eta || ageFromRatings(ex)); if(!e) return '';
+  const cls = e.age >= 16 ? 'age-adult' : e.age >= 12 ? 'age-teen' : 'age-kids';
+  return `<span class="age-chip ${cls}" title="Età consigliata (${escapeHtml(e.src)})">${e.age === 0 ? '👪' : '🔞'} ${escapeHtml(ageLabel(e.age))}</span>`;
+}
+function setAgeChip(ex){ const el = document.getElementById('ageChip'); if(el) el.innerHTML = ageChipHTML(ex); }
 function behindHTML(ex){
   const head = '<div class="bs-head">🎞️ Dietro le quinte <button type="button" data-bs-refresh title="Aggiorna da Wikidata" aria-label="Aggiorna dietro le quinte">↻</button></div>';
   if(!ex || ex.empty) return `<div class="bs-box">${head}<div class="bs-note">Wikidata non ha ancora dettagli extra su questo film.</div></div>`;
   const rows = [];
+  const eta = ex.eta || ageFromRatings(ex);
+  if(eta){
+    const src = ['fsk','bbfc','mpa'].flatMap(k=>(ex[k]||[]).slice(0,1).map(x=>(k === 'fsk' ? '' : k.toUpperCase() + ' ') + x.l)).filter(Boolean).join(' · ');
+    rows.push(`<div class="bs-row"><div class="bs-k">Età consigliata</div><div class="bs-v">${ageChipHTML(ex)}<span class="plain" style="color:var(--dim)">${escapeHtml(src)}</span></div></div>`);
+  }
   if(ex.uscita){
     const an = anniversaryOf(ex.uscita);
     const extra = an && an.days === 0 ? ` <span class="award-chip">🎂 Oggi compie ${an.years} anni</span>` : (an && an.days <= 7 ? ` <span class="plain" style="color:var(--dim)">· tra ${an.days} ${an.days === 1 ? 'giorno' : 'giorni'} compie ${an.years} anni</span>` : '');
@@ -2341,13 +2447,13 @@ async function renderBehindScenes(m, force, attempt){
   attempt = attempt || 0;
   if(m.extra && m.extra.at && !m.extra.partial && !force){
     box.innerHTML = behindHTML(m.extra);
-    if((m.extra.v || 1) < 2 && navigator.onLine !== false){
+    if((m.extra.v || 1) < 3 && navigator.onLine !== false){
       // dettagli salvati con la versione precedente: aggiornamento silenzioso (righe nuove, data d'uscita)
       fetchBehindScenes(m.imdbId, 'low').then(ex=>{
         if(!ex || ex.partial) return;
         const sm = state.movies.find(x=>x.id === m.id);
         if(sm && sm.imdbId === m.imdbId){ sm.extra = ex; saveState(); renderTodayBanner(); }
-        if(_modalSession === session) box.innerHTML = behindHTML(ex);
+        if(_modalSession === session){ box.innerHTML = behindHTML(ex); setAgeChip(ex); }
       }).catch(()=>{});
     }
     return;
@@ -2374,6 +2480,7 @@ async function renderBehindScenes(m, force, attempt){
     const target = (sm && sm.imdbId === m.imdbId) ? sm : m;
     if(!ex.partial){ target.extra = ex; if(target === sm) saveState(); }
     box.innerHTML = behindHTML(ex);
+    setAgeChip(ex);
     if(ex.partial){
       // Mostra subito ciò che è arrivato, poi completa in sottofondo
       const waits = [6000, 20000];
@@ -2399,7 +2506,7 @@ function pfButton(){
   b.textContent = _pf.running ? '⏹ Interrompi il precaricamento' : '⚡ Precarica tutto (uso offline)';
 }
 async function pfBehind(report){
-  const todo = state.movies.filter(m=>isTt(m.imdbId) && !(m.extra && m.extra.at && !m.extra.partial && (m.extra.v || 1) >= 2));
+  const todo = state.movies.filter(m=>isTt(m.imdbId) && !(m.extra && m.extra.at && !m.extra.partial && (m.extra.v || 1) >= 3));
   let ok = 0, ko = 0;
   for(let i = 0; i < todo.length && !_pf.cancel; i++){
     const m = todo[i]; report(i + 1, todo.length, displayTitle(m.titolo));
@@ -3405,6 +3512,20 @@ document.getElementById('relatedWrap').addEventListener('click', async e=>{
   }
 });
 
+/* Rotellina del mouse sulle file orizzontali (correlati, consigliati, film della
+   persona, stati d'animo): scorre la fila in orizzontale; ai bordi torna a
+   scorrere la pagina. I touchpad che scorrono già in orizzontale non cambiano. */
+document.addEventListener('wheel', e=>{
+  const el = e.target.closest && e.target.closest('.rel-strip, .owned-strip, .mood-rail');
+  if(!el || e.ctrlKey) return;
+  if(Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+  const max = el.scrollWidth - el.clientWidth;
+  if(max <= 1) return;
+  if((e.deltaY < 0 && el.scrollLeft <= 0) || (e.deltaY > 0 && el.scrollLeft >= max - 1)) return;
+  el.scrollLeft = Math.max(0, Math.min(max, el.scrollLeft + e.deltaY));
+  e.preventDefault();
+}, { passive: false });
+
 /* ---------- Foglio "Filtri e ordinamento" (mobile) ----------
    Sono gli STESSI menu della barra desktop (stessi id, stessa logica di
    filtro), solo mostrati in un pannello che sale dal basso. Su desktop i
@@ -4025,6 +4146,113 @@ function renderTechPreview(){
   if(el) el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', renderTechPreview);
 });
 
+/* ---------- 🎭 Che umore hai stasera? ----------
+   Tutto offline: genere (indice + Wikidata, senza accenti né punteggiatura),
+   durata, anno e voti. "Dalla tua collezione" mette prima i film da vedere;
+   "Da scoprire" pesca film famosi e ben votati che non possiedi. */
+const MOODS = [
+  { id:'adrenalina', icon:'💥', label:'Adrenalina', minRt:6.8, test:x=>/azione|thriller|avventura|supereroi|suspense|caper|buddy cop|arti marziali|spionaggio/.test(x.g) },
+  { id:'risate', icon:'😂', label:'Risate', minRt:6.8, test:x=>/commedia|comic|parodia/.test(x.g) && !/horror/.test(x.g) },
+  { id:'emozioni', icon:'😢', label:'Voglia di emozionarmi', minRt:7.2, test:x=>/drammatic|biograf|romantic|docu drama|sentimental/.test(x.g) },
+  { id:'paura', icon:'👻', label:'Paura', minRt:6.3, test:x=>/horror|orrore|slasher|splatter/.test(x.g) },
+  { id:'evadere', icon:'🚀', label:'Evadere dalla realtà', minRt:6.8, test:x=>/fantascienza|fantasy|fantastic|distopic|post apocalittic|supereroi|spaziale/.test(x.g) },
+  { id:'mistero', icon:'🕵️', label:'Mistero', minRt:6.9, test:x=>/giallo|mistero|crime|poliziesc|noir|thriller|suspense|caper/.test(x.g) && !/horror/.test(x.g) },
+  { id:'romantico', icon:'❤️', label:'Romantico', minRt:6.8, test:x=>/romantic|sentimental/.test(x.g) },
+  { id:'famiglia', icon:'👨‍👩‍👧', label:'In famiglia', minRt:6.8, test:x=>/famigli|animazione|ragazzi|family/.test(x.g) && !/horror|thriller/.test(x.g) && !(x.age >= 14) },
+  { id:'epico', icon:'🏔️', label:'Epico', minRt:7.0, test:x=>/\bepico\b|\bepic\b|kolossal/.test(x.g) || (/storico|guerra|avventura|fantasy|western/.test(x.g) && x.r >= 140) },
+  { id:'anni80', icon:'📼', label:'Nostalgia anni 80', minRt:6.8, test:x=>x.y >= 1980 && x.y <= 1989 },
+  { id:'breve', icon:'⏱️', label:'Serata breve', minRt:6.8, test:x=>x.r > 0 && x.r <= 100 },
+  { id:'capolavori', icon:'🏆', label:'Solo capolavori', minRt:8.0, test:x=>x.rt >= 8.0 }
+];
+function moodFeatOwned(m){
+  const e = isTt(m.imdbId) ? imdbEntry(m.imdbId) : null;
+  const d = parseInt(String(m.durata || '').replace(/\D/g, ''), 10);
+  return {
+    g: normKey(((e && e.g) || '') + ' ' + (m.genere || '')),
+    r: (d > 20 && d < 600) ? d : (e ? parseInt(e.r, 10) || 0 : 0),
+    y: parseInt(m.anno, 10) || (e ? parseInt(e.y, 10) || 0 : 0),
+    rt: parseVotoNumber(m.votoImdb) || (e && e.rt ? parseFloat(e.rt) : 0),
+    age: m.extra ? ((m.extra.eta || ageFromRatings(m.extra) || {}).age) : undefined
+  };
+}
+function moodFeatIdx(e){ return { g: normKey(e.g || ''), r: parseInt(e.r, 10) || 0, y: parseInt(e.y, 10) || 0, rt: e.rt ? parseFloat(e.rt) : 0, v: e.v || 0 }; }
+let _mood = { id:null, showAll:false, discover:[] };
+function moodOwned(mood){
+  return state.movies.filter(m=>(m.lista||'collezione') !== 'wishlist' && !(m.prestatoA || '').trim())
+    .map(m=>({ m, f: moodFeatOwned(m) })).filter(x=>mood.test(x.f))
+    .sort((a,b)=>{
+      const ta = (a.m.stato||'da_vedere') === 'da_vedere' ? 0 : 1, tb = (b.m.stato||'da_vedere') === 'da_vedere' ? 0 : 1;
+      return ta - tb || (parseInt(b.m.votoPersonale, 10) || 0) - (parseInt(a.m.votoPersonale, 10) || 0) || b.f.rt - a.f.rt;
+    });
+}
+function moodDiscover(mood){
+  if(!IMDB_INDEX) return [];
+  const have = new Set(state.movies.filter(m=>m.imdbId).map(m=>m.imdbId));
+  const minV = mood.id === 'capolavori' ? 50000 : 20000;
+  const cand = [];
+  IMDB_INDEX.forEach(e=>{
+    if(have.has(e.id) || (e.v || 0) < minV) return;
+    const f = moodFeatIdx(e);
+    if(f.rt < mood.minRt || !mood.test(f)) return;
+    cand.push({ e, s: f.rt * 2 + Math.log10(f.v + 1) });
+  });
+  cand.sort((a,b)=>b.s - a.s);
+  const top = cand.slice(0, 60);
+  for(let i = top.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [top[i], top[j]] = [top[j], top[i]]; }   // varietà a ogni apertura
+  return top.slice(0, 10).map(x=>x.e);
+}
+function moodOwnedCard(m){
+  const p = safeUrl(m.poster), f = moodFeatOwned(m), title = displayTitle(m.titolo);
+  const hue = [...title].reduce((a,c)=>a + c.charCodeAt(0), 0) % 360;
+  const art = p ? `<img src="${escapeHtml(p)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`
+               : `<span class="rel-ph" style="background:linear-gradient(160deg, hsl(${hue},70%,28%), hsl(${(hue+60)%360},75%,14%))"><span>${escapeHtml(title)}</span></span>`;
+  const todo = (m.stato||'da_vedere') === 'da_vedere';
+  return `<div class="rel-card"><button type="button" class="rel-hit" data-open-movie="${escapeHtml(m.id)}">
+    <span class="rel-art">${art}${todo ? '' : '<span class="rel-badge own">✓</span>'}</span>
+    <span class="rel-title">${escapeHtml(title)}</span>
+    <span class="rel-meta">${f.y || ''}${f.r ? ` · ${f.r} min` : ''}${f.rt ? ` · <b>★ ${String(f.rt).replace('.', ',')}</b>` : ''}</span>
+    ${todo ? '<span class="rel-why">Da vedere</span>' : '<span class="rel-why" style="color:var(--dim2)">Già visto</span>'}
+  </button></div>`;
+}
+async function openMood(id){
+  const mood = MOODS.find(x=>x.id === id); if(!mood) return;
+  _mood = { id, showAll:false, discover:[] };
+  document.getElementById('moodOverlay').classList.add('open');
+  await ensureImdbIndex();
+  _mood.discover = moodDiscover(mood);
+  renderMood();
+}
+function renderMood(){
+  const mood = MOODS.find(x=>x.id === _mood.id); if(!mood) return;
+  const owned = moodOwned(mood);
+  const shown = _mood.showAll ? owned : owned.slice(0, 12);
+  const chips = MOODS.map(x=>`<button type="button" class="mood-chip${x.id === mood.id ? ' on' : ''}" data-mood="${x.id}">${x.icon} ${escapeHtml(x.label)}</button>`).join('');
+  let html = `<div class="mood-rail in-overlay">${chips}</div>
+    <h2 class="mood-title">${mood.icon} ${escapeHtml(mood.label)}</h2>
+    <div class="rel-sec"><div class="rel-head"><span>📼 Dalla tua collezione</span><small>${owned.length ? `${owned.length} film · prima quelli da vedere · esclusi i prestati` : 'nessun film per questo umore'}</small></div>`;
+  html += owned.length ? `<div class="rel-strip">${shown.map(x=>moodOwnedCard(x.m)).join('')}</div>${!_mood.showAll && owned.length > 12 ? `<button type="button" class="btn ghost filmo-more" data-mood-all>Mostra tutti (${owned.length})</button>` : ''}`
+                       : '<div class="bs-note" style="padding:4px 0 10px">Nella tua collezione non c\'è niente per questo umore: guarda qui sotto cosa potresti scoprire.</div>';
+  html += `</div><div class="rel-sec"><div class="rel-head"><span>✨ Da scoprire</span><small>film famosi e ben votati che non hai</small>${_mood.discover.length ? '<button type="button" class="mood-shuffle" data-mood-shuffle>🔀 Altri</button>' : ''}</div>`;
+  html += _mood.discover.length ? `<div class="rel-strip">${_mood.discover.map(e=>relCardHTML({ e, w:{}, ov:0 })).join('')}</div>`
+        : `<div class="bs-note" style="padding:4px 0 10px">${IMDB_INDEX ? 'Nessun suggerimento per questo umore.' : 'I suggerimenti usano l\'indice offline, non disponibile in questo browser.'}</div>`;
+  html += '</div><div class="bs-note" style="padding:2px 0 0">Abbinamento in base a genere, durata, anno e voti: può capitare un film un po\' fuori tono.</div>';
+  document.getElementById('moodBody').innerHTML = html;
+}
+document.getElementById('moodRail').addEventListener('click', e=>{
+  const c = e.target.closest('[data-mood]'); if(c) openMood(c.dataset.mood);
+});
+document.getElementById('moodClose').addEventListener('click', ()=>document.getElementById('moodOverlay').classList.remove('open'));
+document.getElementById('moodOverlay').addEventListener('click', async e=>{
+  if(e.target.id === 'moodOverlay'){ e.target.classList.remove('open'); return; }
+  const c = e.target.closest('[data-mood]'); if(c){ openMood(c.dataset.mood); return; }
+  if(e.target.closest('[data-mood-all]')){ _mood.showAll = true; renderMood(); return; }
+  if(e.target.closest('[data-mood-shuffle]')){ _mood.discover = moodDiscover(MOODS.find(x=>x.id === _mood.id)); renderMood(); return; }
+  const mv = e.target.closest('[data-open-movie]');
+  if(mv){ document.getElementById('moodOverlay').classList.remove('open'); openModal(mv.dataset.openMovie); return; }
+  const add = e.target.closest('[data-wish-add]');
+  if(add){ e.preventDefault(); const entry = imdbEntry(add.dataset.wishAdd); if(entry){ const ok = await quickAddToWishlist(entry); if(ok) add.outerHTML = '<span class="wish-tag rel-add">💭 In wishlist</span>'; } }
+});
+
 /* ---------- 🎬 Serata demo: i dischi migliori per far vedere l'impianto ---------- */
 function demoScore(m){
   const t = techOf(m), vv = parseInt(m.votoVideo, 10) || 0, va = parseInt(m.votoAudio, 10) || 0;
@@ -4112,7 +4340,7 @@ function renderGrid(){
   emptyEl.style.display = list.length ? 'none' : 'block';
   if(!list.length){
     emptyEl.textContent = state.movies.length === 0
-      ? '— La tua libreria è vuota: aggiungi il primo film con "+ Aggiungi film" —'
+      ? '— La tua libreria è vuota: aggiungi il primo film con "+ Aggiungi film", scansiona un disco con 📷, oppure importa un CSV o un backup da ⚙️ Strumenti —'
       : '— Nessun film trovato con questi filtri: prova a modificarli o a pulirli —';
   }
   const rc = document.getElementById('resultsCount');
@@ -4343,7 +4571,7 @@ function openModal(id){
   document.getElementById('f_blurayUrl').value = m.blurayUrl || '';
   renderBlurayLink(m);
   document.getElementById('confirmDelete').classList.remove('show');
-  document.getElementById('badgeRow').innerHTML = `<span class="tag">${escapeHtml(formatoLabel(m.formato))}</span><span class="tag">${escapeHtml(custodiaLabel(m.custodia))}</span>${(m.numero_film>1)?`<span class="tag">${m.numero_film} film</span>`:''}${techChipsHTML(techOf(m), false)}`;
+  document.getElementById('badgeRow').innerHTML = `<span class="tag">${escapeHtml(formatoLabel(m.formato))}</span><span class="tag">${escapeHtml(custodiaLabel(m.custodia))}</span>${(m.numero_film>1)?`<span class="tag">${m.numero_film} film</span>`:''}${techChipsHTML(techOf(m), false)}<span id="ageChip">${ageChipHTML(m.extra)}</span>`;
   document.getElementById('movieOverlay').classList.add('open');
 }
 function normalizeSelectVal(val, options){
@@ -4430,11 +4658,23 @@ document.getElementById('f_votoTmdb').addEventListener('blur', e=>{
   updateImdbStars(formatted);
 });
 document.getElementById('movieOverlay').addEventListener('click', e=>{ if(e.target.id==='movieOverlay') closeModal(); });
+/* Altezza del menu Strumenti: dallo spazio sotto il pulsante al fondo della
+   finestra (su telefono il pannello dal basso ha già la sua altezza). */
+function fitToolsDropdown(){
+  const dd = document.getElementById('toolsDropdown');
+  if(!dd || !dd.classList.contains('open')) return;
+  if(getComputedStyle(dd).position === 'fixed'){ dd.style.maxHeight = ''; return; }
+  const top = dd.getBoundingClientRect().top;
+  dd.style.maxHeight = Math.max(220, Math.floor(window.innerHeight - top - 16)) + 'px';
+  dd.scrollTop = 0;
+}
 document.getElementById('toolsMenuBtn').addEventListener('click', e=>{
   e.stopPropagation();
   document.getElementById('toolsDropdown').classList.toggle('open');
   document.getElementById('toolsBackdrop').classList.toggle('open');
+  fitToolsDropdown();
 });
+window.addEventListener('resize', fitToolsDropdown);
 document.getElementById('toolsBackdrop').addEventListener('click', ()=>{
   document.getElementById('toolsDropdown').classList.remove('open');
   document.getElementById('toolsBackdrop').classList.remove('open');
