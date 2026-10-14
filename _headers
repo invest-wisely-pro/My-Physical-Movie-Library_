@@ -1,0 +1,10 @@
+# Netlify: l'app, il service worker e il manifest non vanno tenuti in cache dal browser,
+# così ogni nuova versione pubblicata arriva subito (i dati della collezione restano).
+/index.html
+  Cache-Control: no-cache
+/
+  Cache-Control: no-cache
+/sw.js
+  Cache-Control: no-cache
+/manifest.webmanifest
+  Cache-Control: no-cache

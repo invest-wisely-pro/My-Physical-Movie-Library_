@@ -1,0 +1,41 @@
+MY PHYSICAL MOVIE LIBRARY — VERSIONE WEB
+=========================================
+
+Perché la versione web
+  - Gli aggiornamenti non fanno più perdere i dati: l'indirizzo resta sempre lo stesso.
+  - La fotocamera dal vivo per i codici a barre funziona (i siti https sono "sicuri").
+  - Si installa davvero sul telefono, come un'app, e funziona anche offline.
+  - La tua collezione resta nel TUO telefono: il sito contiene solo l'app, vuota.
+
+PUBBLICARLA (una volta sola, dal PC, circa 5 minuti)
+  1. Apri https://app.netlify.com/drop
+  2. Trascina nella pagina il file ZIP (videoteca-web.zip) così com'è.
+  3. Entro 1 ORA crea un account gratuito e "rivendica" il sito (Claim):
+     altrimenti Netlify lo cancella.
+  4. Ottieni un indirizzo tipo https://nome-casuale.netlify.app
+     Facoltativo: in "Site configuration" → "Change site name" puoi chiamarlo
+     per esempio videoteca-mario.netlify.app
+
+PORTARCI LA TUA COLLEZIONE
+  5. Nell'app che usi oggi: ⚙️ Strumenti → 💾 Backup (scarica il file .json).
+  6. Apri il nuovo indirizzo: la libreria è vuota → tocca "📤 Ripristina un backup"
+     e scegli il file appena scaricato. Fatto.
+  7. Consigliato: ⚙️ Strumenti → ⚡ Precarica tutto (con il Wi-Fi).
+
+INSTALLARLA SUL TELEFONO
+  8. Apri il nuovo indirizzo in Chrome → menu ⋮ → "Installa app"
+     (o "Aggiungi a schermata Home"). Da lì si apre come un'app vera.
+     Ogni dispositivo ha i suoi dati: per spostarli usa Backup / Ripristina.
+
+AGGIORNARLA IN FUTURO
+  Quando avrai una nuova versione: Netlify → il tuo sito → "Deploys" →
+  trascina il nuovo ZIP nel riquadro in fondo. I tuoi dati restano dove sono.
+
+BUONO A SAPERSI
+  - L'indirizzo è pubblico ma non elencato: chi lo conosce vede solo l'app vuota,
+    non i tuoi film. Contiene però l'indice offline dei film (dati IMDb ad uso
+    personale): tieni l'indirizzo per te.
+  - Continua a fare un 💾 Backup ogni tanto (te lo ricorda l'app): è la tua copia
+    di sicurezza se cambi telefono o cancelli i dati del browser.
+  - Contenuto del pacchetto: index.html (l'app), sw.js (funzionamento offline),
+    manifest.webmanifest e icons/ (installazione), _headers (aggiornamenti immediati).
