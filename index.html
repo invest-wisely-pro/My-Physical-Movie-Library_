@@ -757,6 +757,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 /* ---------- Assistente "Collega i film mancanti" ---------- */
 #linkOverlay{z-index:105;}
 #confirmOverlay{z-index:120;} /* le conferme devono stare sopra a qualunque finestra */
+#scanOverlay{z-index:115;}   /* lo scanner si apre anche DALLA scheda film: deve stare sopra, o su telefono l'inquadratura resta coperta */
 .link-modal{max-width:680px; padding:34px 32px 28px;}
 .link-intro{color:var(--dim); font-size:14px; line-height:1.75;}
 .link-intro b{color:var(--cream);}
@@ -864,6 +865,34 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 .bk-msg{flex:1 1 260px; min-width:0;}
 .bk-actions{display:flex; gap:8px; flex:0 0 auto;}
 .bk-actions .btn{padding:8px 14px;}
+
+/* ---------- Formati audio/video e Serata demo ---------- */
+.tech-chips{display:flex; flex-wrap:wrap; gap:5px;}
+.tech-chips:empty{display:none;}
+.tech-preview{margin:-6px 0 16px;}
+.card-tech{margin-top:5px;}
+.tech-chip{display:inline-flex; align-items:center; font-family:var(--font-mono, monospace); font-size:10px; font-weight:800; letter-spacing:.6px;
+  padding:3px 7px; border-radius:5px; color:#fff; background:#3a3350; border:1px solid rgba(255,255,255,.12); white-space:nowrap; line-height:1.2;}
+.badge-row .tech-chip{font-size:11px; padding:5px 10px; border-radius:20px;}
+.tech-chip.dv{background:linear-gradient(135deg, #2b1a5e, #6d2bd9); border-color:rgba(167,139,250,.5);}
+.tech-chip.hdr{background:linear-gradient(135deg, #3a2a10, #b07a16); border-color:rgba(255,200,80,.45);}
+.tech-chip.atmos{background:linear-gradient(135deg, #0b2a4a, #1d6fd1); border-color:rgba(90,170,255,.5);}
+.tech-chip.dtsx{background:linear-gradient(135deg, #3d1608, #d4561c); border-color:rgba(255,140,80,.5);}
+.tech-chip.hd{background:#24323a; border-color:rgba(130,200,220,.35);}
+.tech-chip.imax{background:#1b3a2a; border-color:rgba(100,220,150,.4);}
+.tech-chip.ref{background:linear-gradient(135deg, #5a4300, #e0a800); color:#1a1200; border-color:rgba(255,210,63,.7);}
+.ref-toggle{display:flex; align-items:center; gap:8px; padding:11px 12px; border:1px solid var(--line); border-radius:10px; cursor:pointer; font-size:13.5px; color:var(--cream);}
+.ref-toggle input{width:18px; height:18px; accent-color:#e0a800;}
+.demo-row{display:flex; align-items:center; gap:12px; width:100%; text-align:left; background:rgba(255,255,255,.03); border:1px solid var(--line);
+  border-radius:12px; padding:10px 12px; margin-bottom:8px; cursor:pointer; color:var(--cream); font-family:'Manrope',sans-serif;}
+.demo-row:hover{border-color:var(--accent1);}
+.demo-n{flex:0 0 auto; width:26px; text-align:center; font-family:var(--font-display, 'Sora'), sans-serif; font-size:20px; color:var(--gold, #ffd23f);}
+.demo-art{flex:0 0 auto; width:46px; height:68px; border-radius:6px; overflow:hidden; background:#231d34; display:flex; align-items:center; justify-content:center;}
+.demo-art img{width:100%; height:100%; object-fit:cover;}
+.demo-main{flex:1; min-width:0; display:flex; flex-direction:column; gap:4px;}
+.demo-t{font-weight:800; font-size:14px;}
+.demo-t small{color:var(--dim2); font-weight:600;}
+.demo-why{font-size:12px; color:var(--accent1);}
 
 /* ---------- Animazione "inserimento videocassetta" al click sulla card ---------- */
 .card.inserting{
@@ -992,6 +1021,16 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
       <option value="wishlist">💭 Wishlist</option>
       <option value="prestati">📤 Prestati</option>
     </select>
+    <select id="filterTech">
+      <option value="">Tutti i formati A/V</option>
+      <option value="dv">Dolby Vision</option>
+      <option value="hdr">HDR (qualsiasi)</option>
+      <option value="atmos">Dolby Atmos</option>
+      <option value="dtsx">DTS:X</option>
+      <option value="immersive">Audio immersivo</option>
+      <option value="dvatmos">Dolby Vision + Atmos</option>
+      <option value="ref">⭐ Dischi di riferimento</option>
+    </select>
     <select id="sortBy">
       <option value="az">Titolo A–Z</option>
       <option value="za">Titolo Z–A</option>
@@ -1034,6 +1073,7 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
         <button class="btn ghost" id="integrityBtn" title="Controlla film senza poster, genere o anno, e titoli duplicati">🔍 Controlla libreria</button>
         <button class="btn ghost" id="bulkEnrichBtn">🍅 Arricchisci con Rotten Tomatoes</button>
         <button class="btn ghost" id="exportNfoBtn" title="Genera un file .nfo per film, leggibile da Plex/Jellyfin/Kodi — utile se possiedi anche copie digitali dei tuoi dischi">📀 Esporta NFO per Plex/Jellyfin</button>
+        <button class="btn ghost" id="demoBtn" title="I dischi della tua collezione migliori per far vedere l'impianto">🎬 Serata demo</button>
         <button class="btn ghost" id="bsPrefetchBtn" title="Scarica una volta sola Dietro le quinte, correlati e schede di registi e attori ricorrenti: poi si aprono all'istante, anche offline">⚡ Precarica tutto (uso offline)</button>
         <button class="btn ghost" id="directorsOverlayBtn" title="Registi di cui possiedi già film: cosa ti manca della loro filmografia?">🎬 Registi da completare</button>
         <button class="btn ghost" id="installAppBtn" title="Aggiungi l'app alla schermata Home del telefono">📲 Installa sul telefono</button>
@@ -1263,6 +1303,12 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
           <div class="field"><label for="f_qvideo">Qualità Video</label><input type="text" id="f_qvideo" placeholder="es. HDR10, Dolby Vision"></div>
           <div class="field"><label for="f_qaudio">Qualità Audio</label><input type="text" id="f_qaudio" placeholder="es. Dolby Atmos, DTS-HD"></div>
         </div>
+        <div id="techChips" class="tech-chips tech-preview"></div>
+        <div class="field-row">
+          <div class="field"><label for="f_votoVideo">Il tuo voto video</label><select id="f_votoVideo"><option value="">—</option><option value="1">★☆☆☆☆</option><option value="2">★★☆☆☆</option><option value="3">★★★☆☆</option><option value="4">★★★★☆</option><option value="5">★★★★★</option></select></div>
+          <div class="field"><label for="f_votoAudio">Il tuo voto audio</label><select id="f_votoAudio"><option value="">—</option><option value="1">★☆☆☆☆</option><option value="2">★★☆☆☆</option><option value="3">★★★☆☆</option><option value="4">★★★★☆</option><option value="5">★★★★★</option></select></div>
+          <div class="field"><label for="f_riferimento">Disco di riferimento</label><label class="ref-toggle"><input type="checkbox" id="f_riferimento"> ⭐ Sì, è un disco da demo</label></div>
+        </div>
         <div class="field-row">
           <div class="field full"><label for="f_cast">Cast principale</label><textarea id="f_cast" class="compact" rows="2" placeholder="Separati da virgola"></textarea></div>
         </div>
@@ -1326,6 +1372,15 @@ table.movie-table td.poster-cell .ph{width:34px; height:50px; border-radius:5px;
 
 
 <!-- Stats modal -->
+<!-- Serata demo -->
+<div class="overlay" id="demoOverlay">
+  <div class="modal settings-modal" style="max-width:640px;">
+    <button class="modal-close" id="demoClose" aria-label="Chiudi">&times;</button>
+    <h2 style="margin-top:0; font-family:'Sora',sans-serif; font-size:20px;">🎬 Serata demo</h2>
+    <div id="demoBody"></div>
+  </div>
+</div>
+
 <!-- Assistente: collega i film mancanti a IMDb -->
 <div class="overlay" id="linkOverlay">
   <div class="modal link-modal" role="dialog" aria-modal="true" aria-labelledby="linkTitle">
@@ -1979,12 +2034,25 @@ function wdPump(){
   }
 }
 function wdSchedule(fn, prio){
-  return new Promise((resolve, reject)=>{
-    const job = { fn, resolve, reject, p: prio === 'low' ? 1 : 0 };
+  let job;
+  const p = new Promise((resolve, reject)=>{
+    job = { fn, resolve, reject, p: prio === 'low' ? 1 : 0 };
     const at = WDQ.queue.findIndex(j=>j.p > job.p);       // "high" passa davanti ai "low", FIFO all'interno
     if(at < 0) WDQ.queue.push(job); else WDQ.queue.splice(at, 0, job);
     wdPump();
   });
+  p.job = job;
+  return p;
+}
+/* Una richiesta di sfondo ancora in coda diventa prioritaria (es. hai toccato
+   l'attore la cui filmografia si stava precaricando): passa davanti. */
+function wdBump(job){
+  const i = WDQ.queue.indexOf(job);
+  if(i < 0 || job.p === 0) return;
+  WDQ.queue.splice(i, 1); job.p = 0;
+  const at = WDQ.queue.findIndex(j=>j.p > 0);
+  if(at < 0) WDQ.queue.push(job); else WDQ.queue.splice(at, 0, job);
+  wdPump();
 }
 const sleep = ms => new Promise(r=>setTimeout(r, ms));
 async function wdSparql(query, ms, prio){
@@ -2013,21 +2081,46 @@ async function wdSparql(query, ms, prio){
 }
 /* Filmografia di una persona: SELECT DISTINCT senza raggruppamento (meno calcolo
    lato Wikidata), i ruoli si uniscono qui. Solo titoli presenti nell'indice. */
-async function fetchPersonFilms(qid, prio){
-  const rows = await wdSparql(`SELECT DISTINCT ?imdb ?role WHERE {
+/* Filmografie: memoria per la sessione e richieste condivise. Se una
+   filmografia si sta già precaricando, chi la chiede si aggancia alla stessa
+   richiesta (e, se serve, la porta in testa alla coda) invece di rifarla. */
+const _filmsMem = new Map(), _filmsInflight = new Map();
+function fetchPersonFilms(qid, prio){
+  if(_filmsMem.has(qid)) return Promise.resolve(_filmsMem.get(qid));
+  const inf = _filmsInflight.get(qid);
+  if(inf){ if(prio !== 'low') wdBump(inf.job); return inf.promise; }
+  const req = wdSparql(`SELECT DISTINCT ?imdb ?role WHERE {
     { ?film wdt:P161 wd:${qid}. BIND("cast" AS ?role) } UNION { ?film wdt:P57 wd:${qid}. BIND("regia" AS ?role) }
     UNION { ?film wdt:P58 wd:${qid}. BIND("sceneggiatura" AS ?role) } UNION { ?film wdt:P86 wd:${qid}. BIND("musiche" AS ?role) }
     UNION { ?film wdt:P344 wd:${qid}. BIND("fotografia" AS ?role) } UNION { ?film wdt:P162 wd:${qid}. BIND("produzione" AS ?role) }
     ?film wdt:P345 ?imdb.
   } LIMIT 2500`, 20000, prio || 'high');
-  const map = new Map();
-  rows.forEach(r=>{
-    const t = r.imdb && r.imdb.value, role = r.role && r.role.value;
-    if(!isTt(t) || !role) return;
-    if(IMDB_INDEX && !imdbEntry(t)) return;
-    const arr = map.get(t) || []; if(!arr.includes(role)) arr.push(role); map.set(t, arr);
+  const promise = req.then(rows=>{
+    const map = new Map();
+    rows.forEach(r=>{
+      const t = r.imdb && r.imdb.value, role = r.role && r.role.value;
+      if(!isTt(t) || !role) return;
+      if(IMDB_INDEX && !imdbEntry(t)) return;
+      const arr = map.get(t) || []; if(!arr.includes(role)) arr.push(role); map.set(t, arr);
+    });
+    const films = [...map.entries()].slice(0, 300).map(([t, r])=>({ t, r }));
+    _filmsMem.set(qid, films);
+    return films;
+  }).finally(()=>_filmsInflight.delete(qid));
+  _filmsInflight.set(qid, { promise, job: req.job });
+  return promise;
+}
+/* Mentre leggi la scheda di un film, in sottofondo si preparano le filmografie
+   dei primi 4 attori del cast: toccandone uno, la filmografia è (quasi) pronta. */
+function prefetchCastFilms(m){
+  if(!m || !m.pq || m.pq.t !== m.imdbId || navigator.onLine === false) return;
+  const c = personCache();
+  splitNames(m.cast).slice(0, 4).forEach(n=>{
+    const q = m.pq.map[normKey(n)]; if(!isQid(q)) return;
+    const cached = c['q:' + q];
+    if(cached && (Date.now() - (cached.at || 0)) < 30*864e5) return;   // scheda già salvata: niente da fare
+    fetchPersonFilms(q, 'low').catch(()=>{});
   });
-  return [...map.entries()].slice(0, 300).map(([t, r])=>({ t, r }));
 }
 function awardRank(l){
   if(/oscar|academy award/i.test(l)) return 0;
@@ -2098,7 +2191,7 @@ async function ensurePeopleQids(m, prio){
     const target = (sm && sm.imdbId === m.imdbId) ? sm : m;
     target.pq = { t: m.imdbId, map };
     if(target === sm) saveState();
-    if(_modalSession === session) renderPeopleChips();
+    if(_modalSession === session){ renderPeopleChips(); if(prio !== 'low') prefetchCastFilms(target); }
   }catch(e){ /* senza codici si usa la ricerca per nome, come prima */ }
 }
 /* ---------- Dietro le quinte (per film, da Wikidata via ID IMDb) ---------- */
@@ -2241,7 +2334,7 @@ function bsNote(text, withRetry){
   return `<div class="bs-box">${BS_HEAD}<div class="bs-note">${text}${withRetry ? ' <button type="button" class="btn ghost mini-add" data-bs-refresh>Riprova ora</button>' : ''}</div></div>`;
 }
 async function renderBehindScenes(m, force, attempt){
-  if(!force && !attempt){ renderTrailer(m); renderRelated(m); ensurePeopleQids(m); }
+  if(!force && !attempt){ renderTrailer(m); renderRelated(m); ensurePeopleQids(m); prefetchCastFilms(m); }
   const box = document.getElementById('behindScenesWrap'); if(!box) return;
   if(!m || !isTt(m.imdbId)){ box.innerHTML = ''; return; }
   const session = _modalSession;
@@ -2835,6 +2928,10 @@ function renderStatsNumbers(){
   const under = owned.map(m=>({ m, me: parseInt(m.votoPersonale, 10) || 0, im: parseVotoNumber(m.votoImdb) }))
     .filter(x=>x.me && x.im !== null && x.me - x.im >= 1).sort((a,b)=>(b.me - b.im) - (a.me - a.im))[0];
   if(under) rows.push(['💎 Il tuo film del cuore', `${link(under.m)} · per te ${under.me}, per IMDb ${String(under.im).replace('.', ',')}: lo ami più di tutti`]);
+  const tt = owned.map(techOf);
+  const prem = [[tt.filter(t=>t.hdr === 3).length, 'Dolby Vision'], [tt.filter(t=>t.audio.includes('Dolby Atmos')).length, 'Dolby Atmos'],
+                [tt.filter(t=>t.audio.includes('DTS:X')).length, 'DTS:X'], [tt.filter(t=>t.ref).length, 'di riferimento']].filter(x=>x[0] > 0);
+  if(prem.length) rows.push(['🔊 Formati premium', prem.map(([n, l])=>`${n} ${escapeHtml(l)}`).join(' · ')]);
   const fmt = count(owned.map(m=>formatoLabel(m.formato)));
   if(fmt.length) rows.push(['💿 Formati', fmt.map(([f, n])=>`${escapeHtml(f)} ${Math.round(n / owned.length * 100)}%`).join(' · ')]);
   const missing = owned.filter(m=>isTt(m.imdbId) && !(m.extra && m.extra.at && !m.extra.partial)).length;
@@ -3332,7 +3429,7 @@ document.getElementById('filterSheetClose').addEventListener('click', closeFilte
 document.getElementById('filterBackdrop').addEventListener('click', closeFilterSheet);
 document.getElementById('filterSheetApply').addEventListener('click', ()=>{ closeFilterSheet(); window.scrollTo({top:0, behavior:'smooth'}); });
 document.getElementById('filterSheetReset').addEventListener('click', ()=>{
-  ['filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato']
+  ['filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato','filterTech']
     .forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
   renderGrid();
 });
@@ -3798,6 +3895,7 @@ function getFiltered(){
   const fcof = document.getElementById('filterCofanetto').value;
   const fd = document.getElementById('filterDecennio').value;
   const fs = document.getElementById('filterStato').value;
+  const ftech = document.getElementById('filterTech').value;
   const sb = document.getElementById('sortBy').value;
   let list = state.movies.filter(m=>{
     if(q){
@@ -3811,6 +3909,7 @@ function getFiltered(){
     if(fr && primaryDirector(m) !== fr) return false;
     if(fcof && norm(m.cofanetto) !== norm(fcof)) return false;
     if(fd && movieDecade(m) !== fd) return false;
+    if(ftech && !techMatches(m, ftech)) return false;
     if(fs === 'wishlist'){ if((m.lista||'collezione') !== 'wishlist') return false; }
     else if(fs === 'prestati'){ if(!(m.prestatoA||'').trim()) return false; }
     else if(fs && (m.stato||'da_vedere') !== fs) return false;
@@ -3853,6 +3952,8 @@ function cardHTML(m){
   if(m.votoRTPubblico) votes.push(`<span>🍿 ${escapeHtml(m.votoRTPubblico)}</span>`);
   if(m.votoMeta) votes.push(`<span>Ⓜ️ ${escapeHtml(m.votoMeta)}</span>`);
   const votesRow = votes.length ? `<div class="votes">${votes.join('')}</div>` : '';
+  const techH = techChipsHTML(techOf(m), true);
+  const techRow = techH ? `<div class="tech-chips card-tech">${techH}</div>` : '';
   return `<div class="card" data-id="${m.id}">
     ${safeUrl(m.poster) ? `<img src="${escapeHtml(safeUrl(m.poster))}" alt="Locandina di ${escapeHtml(displayTitle(m.titolo))}" loading="lazy" referrerpolicy="no-referrer" data-titolo="${escapeHtml(displayTitle(m.titolo))}" onerror="posterLoadError(this)">` : posterFallbackHTML(displayTitle(m.titolo))}
     <div class="card-badge">${escapeHtml(formatoLabel(m.formato))} · ${escapeHtml(custodiaLabel(m.custodia))}</div>
@@ -3866,10 +3967,113 @@ function cardHTML(m){
       ${regia}
       ${cofanetto}
       ${votesRow}
+      ${techRow}
       <div class="stars">${stars}</div>
     </div>
   </div>`;
 }
+
+/* ---------- Formati audio/video dei dischi ----------
+   Letti dai campi "Qualità video/audio" che compili tu (nessuna fonte
+   esterna: le valutazioni dei transfer non sono dati liberi). Riconosce
+   anche le varianti di scrittura: "DTS-X" = DTS:X, "Dolby True HD" = TrueHD. */
+function techOf(m){
+  const v = String(m.qvideo || ''), a = String(m.qaudio || '');
+  const video = [], audio = [];
+  let hdr = 0;   // 3 Dolby Vision · 2 HDR10+ · 1 HDR10/HDR · 0 SDR o non indicato
+  if(/dolby\s*vision|\bdv\b/i.test(v)){ video.push('Dolby Vision'); hdr = 3; }
+  if(/hdr\s*10\s*\+|hdr10plus/i.test(v)){ video.push('HDR10+'); hdr = Math.max(hdr, 2); }
+  if(/hdr\s*10(?!\s*\+)|\bhdr\b(?!\s*10)/i.test(v)){ video.push('HDR10'); hdr = Math.max(hdr, 1); }
+  if(/imax/i.test(v)) video.push('IMAX Enhanced');
+  const atmos = /atmos/i.test(a), dtsx = /dts\s*[:\-]?\s*x\b/i.test(a), auro = /auro/i.test(a);
+  if(atmos) audio.push('Dolby Atmos');
+  if(dtsx) audio.push('DTS:X');
+  if(auro) audio.push('Auro-3D');
+  if(/dts[\s-]*hd/i.test(a)) audio.push('DTS-HD MA');
+  if(/true\s*hd/i.test(a) && !atmos) audio.push('Dolby TrueHD');
+  const lossless = /dts[\s-]*hd|true\s*hd|atmos|dts\s*[:\-]?\s*x\b|lpcm|pcm/i.test(a);
+  return { video, audio, hdr, immersive: atmos || dtsx || auro, lossless, uhd: formatoLabel(m.formato) === '4K', ref: !!m.riferimento };
+}
+function techChipsHTML(t, compact){
+  const short = { 'Dolby Vision':'DV', 'HDR10+':'HDR10+', 'HDR10':'HDR', 'IMAX Enhanced':'IMAX', 'Dolby Atmos':'ATMOS', 'DTS:X':'DTS:X', 'Auro-3D':'AURO', 'DTS-HD MA':'DTS-HD', 'Dolby TrueHD':'TRUEHD' };
+  const cls = { 'Dolby Vision':'dv', 'HDR10+':'hdr', 'HDR10':'hdr', 'IMAX Enhanced':'imax', 'Dolby Atmos':'atmos', 'DTS:X':'dtsx', 'Auro-3D':'dtsx', 'DTS-HD MA':'hd', 'Dolby TrueHD':'hd' };
+  let list = t.video.slice(0, compact ? 1 : 3).concat(t.audio.slice(0, compact ? 1 : 3));
+  let html = list.map(x=>`<span class="tech-chip ${cls[x] || ''}">${escapeHtml(compact ? short[x] : x)}</span>`).join('');
+  if(t.ref) html = `<span class="tech-chip ref">${compact ? '⭐ RIF' : '⭐ Disco di riferimento'}</span>` + html;
+  return html;
+}
+function techMatches(m, f){
+  if(!f) return true;
+  const t = techOf(m);
+  if(f === 'dv') return t.hdr === 3;
+  if(f === 'hdr') return t.hdr > 0;
+  if(f === 'atmos') return t.audio.includes('Dolby Atmos');
+  if(f === 'dtsx') return t.audio.includes('DTS:X');
+  if(f === 'immersive') return t.immersive;
+  if(f === 'dvatmos') return t.hdr === 3 && t.audio.includes('Dolby Atmos');
+  if(f === 'ref') return t.ref;
+  return true;
+}
+function renderTechPreview(){
+  const box = document.getElementById('techChips'); if(!box) return;
+  const t = techOf({ qvideo: document.getElementById('f_qvideo').value, qaudio: document.getElementById('f_qaudio').value,
+                     formato: document.getElementById('f_formato').value, riferimento: document.getElementById('f_riferimento').checked });
+  box.innerHTML = techChipsHTML(t, false);
+}
+['f_qvideo','f_qaudio','f_formato','f_riferimento'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener(el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input', renderTechPreview);
+});
+
+/* ---------- 🎬 Serata demo: i dischi migliori per far vedere l'impianto ---------- */
+function demoScore(m){
+  const t = techOf(m), vv = parseInt(m.votoVideo, 10) || 0, va = parseInt(m.votoAudio, 10) || 0;
+  const imdb = parseVotoNumber(m.votoImdb) || 0;
+  return (t.ref ? 6 : 0) + vv * 1.2 + va * 1.2 + t.hdr + (t.immersive ? 2.5 : 0) + (t.lossless ? 0.8 : 0) + (t.uhd ? 1 : 0) + imdb * 0.1;
+}
+function demoWhy(m){
+  const t = techOf(m), bits = [];
+  if(t.ref) bits.push('disco di riferimento per te');
+  if(m.votoVideo) bits.push(`video ${'★'.repeat(parseInt(m.votoVideo, 10))}`);
+  if(m.votoAudio) bits.push(`audio ${'★'.repeat(parseInt(m.votoAudio, 10))}`);
+  if(!m.votoVideo && t.hdr === 3) bits.push('Dolby Vision');
+  if(!m.votoAudio && t.immersive) bits.push(t.audio.includes('Dolby Atmos') ? 'audio Dolby Atmos' : 'audio immersivo');
+  return bits.slice(0, 3).join(' · ');
+}
+function openDemoNight(){
+  const pool = state.movies.filter(m=>(m.lista||'collezione') !== 'wishlist' && !(m.prestatoA || '').trim() && formatoLabel(m.formato) !== 'Digitale');
+  const scored = pool.map(m=>({ m, s: demoScore(m) })).filter(x=>x.s >= 3).sort((a,b)=>b.s - a.s).slice(0, 8);
+  const withData = pool.filter(m=>m.qvideo || m.qaudio || m.votoVideo || m.votoAudio || m.riferimento).length;
+  const body = document.getElementById('demoBody');
+  if(!scored.length){
+    body.innerHTML = '<p class="link-intro">Non ho ancora abbastanza informazioni per proporti una serata demo. Compila nei tuoi dischi i campi <b>Qualità video</b> e <b>Qualità audio</b> (es. "Dolby Vision", "Dolby Atmos"), oppure dai il tuo voto video e audio.</p>';
+  } else {
+    body.innerHTML = `<p class="link-intro" style="margin-top:0">I dischi della tua collezione che fanno brillare di più l'impianto: formati HDR e audio immersivo, i tuoi voti e i dischi che hai segnato come riferimento. Esclusi quelli in prestito e i digitali.</p>
+      ${scored.map((x, i)=>{
+        const p = safeUrl(x.m.poster), t = techOf(x.m);
+        return `<button type="button" class="demo-row" data-open-movie="${escapeHtml(x.m.id)}">
+          <span class="demo-n">${i + 1}</span>
+          <span class="demo-art">${p ? `<img src="${escapeHtml(p)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : '🎬'}</span>
+          <span class="demo-main"><span class="demo-t">${escapeHtml(displayTitle(x.m.titolo))}${x.m.anno ? ` <small>(${escapeHtml(x.m.anno)})</small>` : ''}</span>
+            <span class="demo-why">${escapeHtml(demoWhy(x.m))}</span>
+            <span class="tech-chips">${techChipsHTML(t, false)}</span></span>
+        </button>`;
+      }).join('')}
+      ${withData < pool.length ? `<div class="bs-note" style="padding:8px 2px">Valutati ${withData} dischi su ${pool.length}: più campi qualità e voti compili, più la scelta è precisa.</div>` : ''}`;
+  }
+  document.getElementById('demoOverlay').classList.add('open');
+}
+document.getElementById('demoBtn').addEventListener('click', ()=>{
+  const dd = document.getElementById('toolsDropdown'); if(dd) dd.classList.remove('open');
+  const bd = document.getElementById('toolsBackdrop'); if(bd) bd.classList.remove('open');
+  openDemoNight();
+});
+document.getElementById('demoClose').addEventListener('click', ()=>document.getElementById('demoOverlay').classList.remove('open'));
+document.getElementById('demoOverlay').addEventListener('click', e=>{
+  if(e.target.id === 'demoOverlay'){ e.target.classList.remove('open'); return; }
+  const b = e.target.closest('[data-open-movie]');
+  if(b){ document.getElementById('demoOverlay').classList.remove('open'); openModal(b.dataset.openMovie); }
+});
 
 /* "Accadde oggi": i tuoi film che compiono gli anni dall'uscita oggi (o nei
    prossimi 7 giorni). Usa le date salvate in "Dietro le quinte". */
@@ -3896,9 +4100,9 @@ function renderGrid(){
   renderTodayBanner();
   renderBackupBanner();
   const list = getFiltered();
-  const anyFilter = ['search','filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato']
+  const anyFilter = ['search','filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato','filterTech']
     .some(id=>{ const el = document.getElementById(id); return el && el.value; });
-  const activeSelects = ['filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato']
+  const activeSelects = ['filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato','filterTech']
     .filter(id=>{ const el = document.getElementById(id); return el && el.value; }).length;
   const fcEl = document.getElementById('filterCount');
   if(fcEl) fcEl.textContent = activeSelects ? String(activeSelects) : '';
@@ -4122,6 +4326,10 @@ function openModal(id){
   renderRatingBadges(m);
   document.getElementById('f_qvideo').value = m.qvideo||'';
   document.getElementById('f_qaudio').value = m.qaudio||'';
+  document.getElementById('f_votoVideo').value = m.votoVideo ? String(m.votoVideo) : '';
+  document.getElementById('f_votoAudio').value = m.votoAudio ? String(m.votoAudio) : '';
+  document.getElementById('f_riferimento').checked = !!m.riferimento;
+  renderTechPreview();
   document.getElementById('f_cast').value = m.cast||'';
   document.getElementById('f_trama').value = m.trama||'';
   document.getElementById('f_premi').value = m.premi||'';
@@ -4135,7 +4343,7 @@ function openModal(id){
   document.getElementById('f_blurayUrl').value = m.blurayUrl || '';
   renderBlurayLink(m);
   document.getElementById('confirmDelete').classList.remove('show');
-  document.getElementById('badgeRow').innerHTML = `<span class="tag">${escapeHtml(formatoLabel(m.formato))}</span><span class="tag">${escapeHtml(custodiaLabel(m.custodia))}</span>${(m.numero_film>1)?`<span class="tag">${m.numero_film} film</span>`:''}`;
+  document.getElementById('badgeRow').innerHTML = `<span class="tag">${escapeHtml(formatoLabel(m.formato))}</span><span class="tag">${escapeHtml(custodiaLabel(m.custodia))}</span>${(m.numero_film>1)?`<span class="tag">${m.numero_film} film</span>`:''}${techChipsHTML(techOf(m), false)}`;
   document.getElementById('movieOverlay').classList.add('open');
 }
 function normalizeSelectVal(val, options){
@@ -4299,6 +4507,9 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
   if(!m.aggiunto) m.aggiunto = Date.now();
   m.qvideo = document.getElementById('f_qvideo').value.trim();
   m.qaudio = document.getElementById('f_qaudio').value.trim();
+  m.votoVideo = parseInt(document.getElementById('f_votoVideo').value, 10) || 0;
+  m.votoAudio = parseInt(document.getElementById('f_votoAudio').value, 10) || 0;
+  m.riferimento = document.getElementById('f_riferimento').checked;
   m.cast = document.getElementById('f_cast').value.trim();
   m.trama = document.getElementById('f_trama').value.trim();
   m.premi = document.getElementById('f_premi').value.trim();
@@ -4375,6 +4586,8 @@ document.getElementById('addBtn').addEventListener('click', ()=>{
   renderRatingBadges({});
   document.getElementById('f_qvideo').value='';
   document.getElementById('f_qaudio').value='';
+  document.getElementById('f_votoVideo').value=''; document.getElementById('f_votoAudio').value=''; document.getElementById('f_riferimento').checked = false;
+  setTimeout(renderTechPreview, 0);
   document.getElementById('f_cast').value='';
   document.getElementById('f_trama').value='';
   document.getElementById('f_premi').value='';
@@ -4402,6 +4615,7 @@ document.getElementById('search').addEventListener('input', debouncedRender);
   document.getElementById('filterRegista').addEventListener(evt, renderGrid);
   document.getElementById('filterCofanetto').addEventListener(evt, renderGrid);
   document.getElementById('filterDecennio').addEventListener(evt, renderGrid);
+  document.getElementById('filterTech').addEventListener(evt, renderGrid);
   document.getElementById('filterStato').addEventListener(evt, ()=>{
     document.getElementById('watchlistBtn').classList.toggle('toggle-on', document.getElementById('filterStato').value==='da_vedere');
     renderGrid();
@@ -4409,7 +4623,7 @@ document.getElementById('search').addEventListener('input', debouncedRender);
   document.getElementById('sortBy').addEventListener(evt, renderGrid);
 });
 document.getElementById('clearFiltersBtn').addEventListener('click', ()=>{
-  ['search','filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato'].forEach(id=>{
+  ['search','filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato','filterTech'].forEach(id=>{
     const el = document.getElementById(id); if(el) el.value = '';
   });
   document.getElementById('watchlistBtn').classList.remove('toggle-on');
@@ -4493,6 +4707,9 @@ function rowToImportedFields(obj){
     curiosita: S('curiosita') || S('curiosità'),
     poster: S('locandina') || S('poster'),
     qvideo: S('qualita video') || S('qualità video'),
+    votoVideo: Math.min(5, parseInt(S('voto video'), 10) || 0),
+    votoAudio: Math.min(5, parseInt(S('voto audio'), 10) || 0),
+    riferimento: /^(s[iì]|yes|x|1|true)$/i.test(S('disco di riferimento')) ? true : '',
     qaudio: S('qualita audio') || S('qualità audio'),
     votoPersonale: parseInt(S('voto personale')) || 0,
     votoImdb: S('voto imdb'), imdbVotes: S('voti imdb'),
@@ -4516,7 +4733,7 @@ function mergeImportedInto(m, f){
   // Solo i valori NON vuoti del file sovrascrivono; i vuoti non toccano nulla
   ['formato','custodia','anno','durata','regista','genere','cast','trama','premi','curiosita',
    'poster','qvideo','qaudio','votoImdb','imdbVotes','votoRT','votoRTPubblico','votoMeta','tags','imdbId','rtUrl','blurayUrl','stato',
-   'lista','barcode','prezzo','prestatoA','prestatoIl','cofanetto']
+   'lista','barcode','prezzo','prestatoA','prestatoIl','cofanetto','votoVideo','votoAudio','riferimento']
     .forEach(k=>{ if(f[k]) m[k] = f[k]; });
   if(f.numero_film) m.numero_film = f.numero_film;
   if(f.votoPersonale) m.votoPersonale = f.votoPersonale;
@@ -4598,7 +4815,7 @@ function buildExportRows(){
     anno:m.anno, durata:m.durata, regista:m.regista, genere:m.genere, cast:m.cast,
     'voto personale':m.votoPersonale, 'voto imdb':m.votoImdb, 'voti imdb':m.imdbVotes,
     'voto rotten tomatoes critica':m.votoRT, 'voto rotten tomatoes pubblico':m.votoRTPubblico, 'voto metacritic':m.votoMeta,
-    'qualita video':m.qvideo, 'qualita audio':m.qaudio, trama:m.trama, riconoscimenti:m.premi, curiosita:m.curiosita, locandina:m.poster,
+    'qualita video':m.qvideo, 'qualita audio':m.qaudio, 'voto video':m.votoVideo||'', 'voto audio':m.votoAudio||'', 'disco di riferimento':m.riferimento?'si':'', trama:m.trama, riconoscimenti:m.premi, curiosita:m.curiosita, locandina:m.poster,
     'link imdb': m.imdbId ? `https://www.imdb.com/title/${m.imdbId}/` : '',
     'link rotten tomatoes': m.rtUrl || '',
     'link blu-ray.com': m.blurayUrl || '',
