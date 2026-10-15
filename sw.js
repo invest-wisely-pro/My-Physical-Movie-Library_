@@ -4,7 +4,7 @@
    - Librerie (cdnjs), font e icone: prima la copia salvata, poi la rete.
    - Locandine: copia salvata (massimo 400, le più vecchie si eliminano).
    - Wikidata / Wikipedia / proxy: sempre rete (i dati li gestisce l'app). */
-const VERSION = 'mpml-2026-10-5';
+const VERSION = 'mpml-2026-10-6';
 const SHELL = VERSION + '-shell', IMG = 'mpml-locandine';
 const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 const IMG_MAX = 400;

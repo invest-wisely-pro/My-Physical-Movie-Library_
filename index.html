@@ -2,6 +2,41 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
+<script>
+/* Diagnostica: registra sul dispositivo gli errori tecnici (gli ultimi 30).
+   Non viene inviato nulla: si vedono in ⚙️ Strumenti → 🩺 Diagnostica e si
+   possono copiare per farli vedere a chi ti aiuta. Parte prima di tutto il
+   resto, così cattura anche gli errori del caricamento. */
+(function(){
+  var KEY = 'mpml_diag_v1', MAX = 30;
+  function load(){ try{ return JSON.parse(localStorage.getItem(KEY) || '[]') || []; }catch(e){ return []; } }
+  function push(kind, msg, where){
+    try{
+      var list = load(), m = String(msg == null ? '' : msg).slice(0, 300), last = list[list.length - 1];
+      if(!m) return;
+      // Alcuni browser ripetono gli errori non gestiti anche nella console: niente doppioni
+      if(kind === 'segnalato' && list.some(function(x){ return x.k !== 'segnalato' && (Date.now() - Date.parse(x.t)) < 2000 && (m.indexOf(x.m) >= 0 || x.m.indexOf(m) >= 0); })) return;
+      if(last && last.m === m && last.k === kind){ last.n = (last.n || 1) + 1; last.t = new Date().toISOString(); }
+      else list.push({ t: new Date().toISOString(), k: kind, m: m, w: String(where || '').slice(0, 160) });
+      while(list.length > MAX) list.shift();
+      localStorage.setItem(KEY, JSON.stringify(list));
+    }catch(e){}
+  }
+  window.__diagPush = push; window.__diagLoad = load;
+  window.addEventListener('error', function(e){
+    if(e && e.message) push('errore', e.message, (e.filename ? String(e.filename).split('/').pop().slice(0, 60) : '') + ':' + (e.lineno || '') + ':' + (e.colno || ''));
+  });
+  window.addEventListener('unhandledrejection', function(e){
+    var r = e && e.reason;
+    push('operazione fallita', r && (r.message || r), r && r.stack ? String(r.stack).split('\n')[1] : '');
+  });
+  var ce = console.error;
+  console.error = function(){
+    try{ push('segnalato', Array.prototype.map.call(arguments, function(a){ return a && a.message ? a.message : (a && typeof a === 'object' ? (function(){ try{ return JSON.stringify(a).slice(0, 150); }catch(_){ return '[oggetto]'; } })() : String(a)); }).join(' ')); }catch(e){}
+    return ce.apply(console, arguments);
+  };
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#07080d">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -994,6 +1029,16 @@ body:not(.tab-bacheca) .bacheca-only{display:none !important;}
 
 .rec-text{white-space:pre-line; font-size:14px; line-height:1.75; color:#d9d2ea; margin:0; padding:12px 14px 4px;}
 
+/* ---------- Diagnostica ---------- */
+.diag-bar{height:8px; border-radius:6px; background:rgba(255,255,255,.08); overflow:hidden;}
+.diag-bar > div{height:100%; border-radius:6px;}
+.diag-errors{max-height:260px; overflow-y:auto; border:1px solid var(--line); border-radius:12px;}
+.diag-err{display:flex; flex-direction:column; gap:2px; padding:9px 12px; border-bottom:1px solid rgba(255,255,255,.05);}
+.diag-err:last-child{border-bottom:none;}
+.de-t{font-size:11px; color:var(--dim2); font-family:var(--font-mono, monospace);}
+.de-m{font-size:12.5px; color:var(--cream); overflow-wrap:anywhere;}
+.de-w{font-size:11px; color:var(--dim2); overflow-wrap:anywhere;}
+
 /* ---------- Animazione "inserimento videocassetta" al click sulla card ---------- */
 .card.inserting{
   animation:vhsInsert .55s cubic-bezier(.5,0,.85,1) forwards;
@@ -1183,6 +1228,7 @@ body:not(.tab-bacheca) .bacheca-only{display:none !important;}
         <button class="btn ghost" id="bsPrefetchBtn" title="Scarica una volta sola Dietro le quinte, correlati e schede di registi e attori ricorrenti: poi si aprono all'istante, anche offline">⚡ Precarica tutto (uso offline)</button>
         <button class="btn ghost" id="directorsOverlayBtn" title="Registi di cui possiedi già film: cosa ti manca della loro filmografia?">🎬 Registi da completare</button>
         <button class="btn ghost" id="fixCastBtn" title="Mette i protagonisti in cima al Cast principale dei film già salvati (i cast scritti a mano non vengono toccati)">🎭 Sistema il cast principale</button>
+        <button class="btn ghost" id="diagBtn" title="Stato dell'app, memoria ed errori recenti, con un rapporto da copiare">🩺 Diagnostica</button>
         <button class="btn ghost danger-btn" id="resetLibBtn" title="Cancella tutti i film e riparti da zero (prima scarica un backup di sicurezza)">🗑️ Azzera la libreria</button>
         <button class="btn ghost" id="installAppBtn" title="Aggiungi l'app alla schermata Home del telefono">📲 Installa sul telefono</button>
       </div>
@@ -1544,6 +1590,15 @@ body:not(.tab-bacheca) .bacheca-only{display:none !important;}
   <div class="modal settings-modal" style="max-width:780px;">
     <button class="modal-close" id="moodClose" aria-label="Chiudi">&times;</button>
     <div id="moodBody"></div>
+  </div>
+</div>
+
+<!-- Diagnostica -->
+<div class="overlay" id="diagOverlay">
+  <div class="modal settings-modal" style="max-width:680px;">
+    <button class="modal-close" id="diagClose" aria-label="Chiudi">&times;</button>
+    <h2 style="margin-top:0; font-family:'Sora',sans-serif; font-size:20px;">🩺 Diagnostica</h2>
+    <div id="diagBody"></div>
   </div>
 </div>
 
@@ -3968,6 +4023,107 @@ document.getElementById('viewScopri').addEventListener('click', e=>{
 });
 // Avvio sulla scheda indicata nell'indirizzo (dopo che tutto è definito)
 { const t0 = (location.hash || '').slice(1); switchTab(TABS.includes(t0) ? t0 : 'bacheca', { keepScroll: true }); }
+
+/* =====================================================================
+   🩺 DIAGNOSTICA — stato dell'app, memoria, errori recenti, rapporto da copiare.
+   Solo dati già presenti sul dispositivo: nessuna richiesta di rete.
+   ===================================================================== */
+const APP_VERSION = '2026.10.6';
+function lsBytes(key){ try{ const v = localStorage.getItem(key); return v ? (key.length + v.length) * 2 : 0; }catch(e){ return 0; } }
+function fmtBytes(b){ return b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(0, Math.round(b / 1024)) + ' KB'; }
+async function archCount(){
+  const db = await idbOpen();
+  if(!db) return Object.keys(lsFilmoMap()).length;
+  return new Promise(res=>{ try{ const q = db.transaction('kv', 'readonly').objectStore('kv').count(); q.onsuccess = () => res(q.result); q.onerror = () => res(null); }catch(e){ res(null); } });
+}
+async function diagInfo(){
+  let lsTotal = 0;
+  try{ for(let i = 0; i < localStorage.length; i++) lsTotal += lsBytes(localStorage.key(i)); }catch(e){}
+  let est = null, persisted = null;
+  try{ if(navigator.storage && navigator.storage.estimate) est = await navigator.storage.estimate(); }catch(e){}
+  try{ if(navigator.storage && navigator.storage.persisted) persisted = await navigator.storage.persisted(); }catch(e){}
+  const db = await idbOpen();
+  return {
+    version: APP_VERSION, when: new Date().toISOString(), ua: navigator.userAgent,
+    platform: typeof detectPlatform === 'function' ? detectPlatform() : '', installed: isInstalledApp(),
+    protocol: location.protocol, online: navigator.onLine !== false, screen: `${screen.width}×${screen.height}`, lang: navigator.language || '',
+    sw: !!(navigator.serviceWorker && navigator.serviceWorker.controller), idb: !!db, index: IMDB_INDEX ? IMDB_INDEX.length : 0,
+    films: state.movies.length, linked: state.movies.filter(m=>isTt(m.imdbId)).length,
+    withEx: state.movies.filter(m=>m.extra && m.extra.at && !m.extra.partial).length,
+    persons: Object.keys(personCache()).filter(k=>k.startsWith('q:')).length, filmo: await archCount(),
+    lsTotal, lsLimit: 5 * 1048576, coll: lsBytes('mpml_' + STORAGE_KEY), personsBytes: lsBytes(PERSON_CACHE_KEY),
+    est, persisted, queue: { running: WDQ.running, queued: WDQ.queue.length },
+    errors: window.__diagLoad ? window.__diagLoad() : []
+  };
+}
+function diagReport(i){
+  const L = [];
+  L.push(`My Physical Movie Library — rapporto diagnostico`);
+  L.push(`Versione ${i.version} · ${i.when}`);
+  L.push(`Dispositivo: ${i.platform} · ${i.ua}`);
+  L.push(`Schermo ${i.screen} · lingua ${i.lang} · ${i.installed ? 'app installata' : 'nel browser'} · ${i.protocol} · ${i.online ? 'online' : 'offline'}`);
+  L.push(`Service worker: ${i.sw ? 'attivo' : 'no'} · Archivio IndexedDB: ${i.idb ? 'sì' : 'no (ripiego localStorage)'} · Memoria persistente: ${i.persisted === null ? 'n/d' : i.persisted ? 'sì' : 'no'}`);
+  L.push(`Collezione: ${i.films} film · ${i.linked} collegati a IMDb · ${i.withEx} con Dietro le quinte · indice offline ${i.index} titoli`);
+  L.push(`Schede persona salvate: ${i.persons} · filmografie in archivio: ${i.filmo === null ? 'n/d' : i.filmo}`);
+  L.push(`Memoria locale: ${fmtBytes(i.lsTotal)} di ~${fmtBytes(i.lsLimit)} (collezione ${fmtBytes(i.coll)}, schede persona ${fmtBytes(i.personsBytes)})${i.est && i.est.quota ? ` · spazio del sito ${fmtBytes(i.est.usage || 0)} di ${fmtBytes(i.est.quota)}` : ''}`);
+  L.push(`Coda Wikidata: ${i.queue.running} in corso, ${i.queue.queued} in attesa`);
+  L.push(`Errori recenti (${i.errors.length}):`);
+  if(!i.errors.length) L.push('  nessuno');
+  i.errors.slice().reverse().forEach(x=>L.push(`  [${x.t}] ${x.k}${x.n > 1 ? ` ×${x.n}` : ''}: ${x.m}${x.w ? ` (${x.w})` : ''}`));
+  return L.join('\n');
+}
+async function openDiagnostics(){
+  const ov = document.getElementById('diagOverlay'), body = document.getElementById('diagBody');
+  ov.classList.add('open');
+  body.innerHTML = '<p class="link-intro">Raccolgo le informazioni…</p>';
+  const i = await diagInfo();
+  const pct = Math.min(100, Math.round(i.lsTotal / i.lsLimit * 100));
+  const warn = pct >= 70;
+  const t = (b, sm) => `<div class="pstat"><b>${escapeHtml(String(b))}</b><small>${escapeHtml(sm)}</small></div>`;
+  const when = iso => { try{ const dt = new Date(iso); return dt.toLocaleString('it-IT', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }); }catch(e){ return iso; } };
+  body.innerHTML = `
+    <div class="pstat-grid" style="margin-bottom:14px">
+      ${t(i.version, 'versione dell\'app')}${t(i.films, `film · ${i.linked} collegati`)}${t(i.withEx, 'con Dietro le quinte')}${t(i.filmo === null ? '—' : i.filmo, 'filmografie in archivio')}
+    </div>
+    <div class="bs-box">
+      <div class="bs-row"><div class="bs-k">Dispositivo</div><div class="bs-v"><span class="plain">${escapeHtml(i.platform || '—')} · ${i.installed ? '📱 app installata' : '🌐 nel browser'} · ${i.online ? 'online' : '📴 offline'}</span></div></div>
+      <div class="bs-row"><div class="bs-k">Funzionamento</div><div class="bs-v"><span class="plain">Offline: ${i.sw ? '✓ attivo' : '— (serve la versione su GitHub)'} · Archivio: ${i.idb ? '✓ IndexedDB' : 'ripiego localStorage'} · Memoria protetta: ${i.persisted === null ? 'n/d' : i.persisted ? '✓ sì' : 'no'}</span></div></div>
+      <div class="bs-row"><div class="bs-k">Dati</div><div class="bs-v"><span class="plain">Indice offline ${i.index ? i.index.toLocaleString('it-IT') + ' titoli' : 'non caricato'} · ${i.persons} schede persona salvate</span></div></div>
+      <div class="bs-row"><div class="bs-k">Memoria locale</div><div class="bs-v" style="flex-direction:column; align-items:stretch; gap:6px">
+        <div class="diag-bar"><div style="width:${pct}%; background:${warn ? 'linear-gradient(90deg,#ffb020,#ff4b4b)' : 'var(--grad)'}"></div></div>
+        <span class="plain">${fmtBytes(i.lsTotal)} di circa ${fmtBytes(i.lsLimit)} (${pct}%) · collezione ${fmtBytes(i.coll)} · schede persona ${fmtBytes(i.personsBytes)}${i.est && i.est.quota ? ` · spazio totale del sito ${fmtBytes(i.est.usage || 0)} di ${fmtBytes(i.est.quota)}` : ''}</span>
+        ${warn ? '<span class="plain" style="color:#ffb020">⚠️ Lo spazio locale si sta riempiendo: fai un 💾 Backup e scrivimi, conviene spostare la collezione nell\'archivio più capiente.</span>' : ''}
+      </div></div>
+    </div>
+    <div class="rel-head" style="margin:18px 0 8px"><span>🧾 Errori recenti</span><small>${i.errors.length ? `${i.errors.length} registrati sul dispositivo` : 'nessuno'}</small></div>
+    ${i.errors.length ? `<div class="diag-errors">${i.errors.slice().reverse().map(x=>`<div class="diag-err"><span class="de-t">${escapeHtml(when(x.t))} · ${escapeHtml(x.k)}${x.n > 1 ? ` ×${x.n}` : ''}</span><span class="de-m">${escapeHtml(x.m)}</span>${x.w ? `<span class="de-w">${escapeHtml(x.w)}</span>` : ''}</div>`).join('')}</div>`
+                    : '<div class="bs-note" style="padding:4px 2px 10px">✓ Nessun errore registrato.</div>'}
+    <div class="link-actions">
+      <button type="button" class="btn ghost" data-diag-clear ${i.errors.length ? '' : 'disabled'}>🧹 Cancella errori</button>
+      <button type="button" class="btn solid" data-diag-copy>📋 Copia rapporto</button>
+    </div>
+    <textarea id="diagReportText" readonly style="display:none; width:100%; min-height:160px; margin-top:12px; font-family:var(--font-mono, monospace); font-size:11px;"></textarea>
+    <div class="bs-note" style="padding:10px 2px 0">Il rapporto non contiene i tuoi film né dati personali: solo versione, dispositivo, numeri e messaggi d'errore. Non viene inviato da nessuna parte: lo incolli tu dove serve.</div>`;
+  body.dataset.report = diagReport(i);
+}
+document.getElementById('diagBtn').addEventListener('click', ()=>{
+  const dd = document.getElementById('toolsDropdown'); if(dd) dd.classList.remove('open');
+  const bd = document.getElementById('toolsBackdrop'); if(bd) bd.classList.remove('open');
+  openDiagnostics();
+});
+document.getElementById('diagClose').addEventListener('click', ()=>document.getElementById('diagOverlay').classList.remove('open'));
+document.getElementById('diagOverlay').addEventListener('click', async e=>{
+  if(e.target.id === 'diagOverlay'){ e.target.classList.remove('open'); return; }
+  if(e.target.closest('[data-diag-clear]')){ try{ localStorage.removeItem('mpml_diag_v1'); }catch(_){} toast('Errori cancellati'); openDiagnostics(); return; }
+  if(e.target.closest('[data-diag-copy]')){
+    const text = document.getElementById('diagBody').dataset.report || '';
+    try{ await navigator.clipboard.writeText(text); toast('📋 Rapporto copiato: incollalo nella chat'); }
+    catch(err){
+      const ta = document.getElementById('diagReportText'); ta.style.display = 'block'; ta.value = text; ta.focus(); ta.select();
+      toast('Seleziona e copia il testo qui sotto');
+    }
+  }
+});
 
 /* ---------- Foglio "Filtri e ordinamento" (mobile) ----------
    Sono gli STESSI menu della barra desktop (stessi id, stessa logica di
