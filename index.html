@@ -1886,7 +1886,7 @@ async function resetLibrary(){
   if(!ok2){ toast('Nessuna modifica: la libreria è intatta'); return; }
   state.movies = [];
   try{ localStorage.removeItem(PERSON_CACHE_KEY); }catch(e){}
-  _personCache = null; _filmsMem.clear();
+  _personCache = null; _filmsMem.clear(); archClear();
   ['search','filterFormato','filterCustodia','filterTag','filterRegista','filterCofanetto','filterDecennio','filterStato','filterTech']
     .forEach(id=>{ const el = document.getElementById(id); if(el) el.value = ''; });
   document.querySelectorAll('.overlay.open').forEach(o=>o.classList.remove('open'));
@@ -2317,17 +2317,83 @@ async function wdSparql(query, ms, prio){
    filmografia si sta già precaricando, chi la chiede si aggancia alla stessa
    richiesta (e, se serve, la porta in testa alla coda) invece di rifarla. */
 const _filmsMem = new Map(), _filmsInflight = new Map();
-function fetchPersonFilms(qid, prio){
-  if(_filmsMem.has(qid)) return Promise.resolve(_filmsMem.get(qid));
+/* ---------- Archivio permanente sul dispositivo (IndexedDB) ----------
+   Le filmografie scaricate una volta restano per sempre (non scadono, non
+   vengono "spinte fuori" da altre schede): si riscaricano solo con ↻.
+   IndexedDB ha centinaia di MB; se non c'è, ripiego su localStorage. */
+const _idb = { p: null };
+function idbOpen(){
+  if(_idb.p) return _idb.p;
+  _idb.p = new Promise(res=>{
+    try{
+      if(!window.indexedDB) return res(null);
+      const r = window.indexedDB.open('mpml-archivio', 1);
+      r.onupgradeneeded = () => { try{ r.result.createObjectStore('kv'); }catch(e){} };
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => res(null);
+      r.onblocked = () => res(null);
+    }catch(e){ res(null); }
+  });
+  return _idb.p;
+}
+const LS_FILMO = 'mpml_filmo_v1';
+function lsFilmoMap(){ try{ return JSON.parse(localStorage.getItem(LS_FILMO) || '{}') || {}; }catch(e){ return {}; } }
+async function archGet(k){
+  const db = await idbOpen();
+  if(!db) return lsFilmoMap()[k] || null;
+  return new Promise(res=>{
+    try{ const q = db.transaction('kv', 'readonly').objectStore('kv').get(k); q.onsuccess = () => res(q.result === undefined ? null : q.result); q.onerror = () => res(null); }
+    catch(e){ res(null); }
+  });
+}
+async function archSet(k, v){
+  const db = await idbOpen();
+  if(!db){
+    const m = lsFilmoMap(); m[k] = v;
+    const keys = Object.keys(m);
+    if(keys.length > 250) keys.sort((a,b)=>(m[a].at||0) - (m[b].at||0)).slice(0, keys.length - 250).forEach(x=>delete m[x]);
+    try{ localStorage.setItem(LS_FILMO, JSON.stringify(m)); }catch(e){}
+    return true;
+  }
+  return new Promise(res=>{
+    try{ const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').put(v, k); tx.oncomplete = () => res(true); tx.onerror = () => res(false); }
+    catch(e){ res(false); }
+  });
+}
+async function archClear(){
+  try{ localStorage.removeItem(LS_FILMO); }catch(e){}
+  const db = await idbOpen(); if(!db) return;
+  return new Promise(res=>{
+    try{ const tx = db.transaction('kv', 'readwrite'); tx.objectStore('kv').clear(); tx.oncomplete = () => res(true); tx.onerror = () => res(false); }
+    catch(e){ res(false); }
+  });
+}
+/* Chiede al browser di non cancellare l'archivio quando lo spazio scarseggia */
+try{ if(navigator.storage && navigator.storage.persisted) navigator.storage.persisted().then(p=>{ if(!p && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }).catch(()=>{}); }catch(e){}
+const decodeFilms = a => (a && Array.isArray(a.f)) ? a.f.map(([t, r])=>({ t, r: String(r || '').split(',').filter(Boolean) })).filter(x=>isTt(x.t) && (!IMDB_INDEX || imdbEntry(x.t))) : null;
+async function cachedFilms(qid){
+  if(_filmsMem.has(qid)) return _filmsMem.get(qid);
+  const films = decodeFilms(await archGet('films:' + qid));
+  if(films) _filmsMem.set(qid, films);
+  return films;
+}
+
+function fetchPersonFilms(qid, prio, opts){
+  const force = !!(opts && opts.force);
+  if(!force && _filmsMem.has(qid)) return Promise.resolve(_filmsMem.get(qid));
   const inf = _filmsInflight.get(qid);
-  if(inf){ if(prio !== 'low') wdBump(inf.job); return inf.promise; }
-  const req = wdSparql(`SELECT DISTINCT ?imdb ?role WHERE {
+  if(inf && !force){ if(prio !== 'low'){ inf.prio = 'high'; if(inf.job) wdBump(inf.job); } return inf.promise; }
+  const ent = { promise: null, job: null, prio: prio || 'high' };
+  ent.promise = (async ()=>{
+    if(!force){ const saved = await cachedFilms(qid); if(saved) return saved; }   // già nell'archivio: nessuna richiesta
+    const req = wdSparql(`SELECT DISTINCT ?imdb ?role WHERE {
     { ?film wdt:P161 wd:${qid}. BIND("cast" AS ?role) } UNION { ?film wdt:P57 wd:${qid}. BIND("regia" AS ?role) }
     UNION { ?film wdt:P58 wd:${qid}. BIND("sceneggiatura" AS ?role) } UNION { ?film wdt:P86 wd:${qid}. BIND("musiche" AS ?role) }
     UNION { ?film wdt:P344 wd:${qid}. BIND("fotografia" AS ?role) } UNION { ?film wdt:P162 wd:${qid}. BIND("produzione" AS ?role) }
     ?film wdt:P345 ?imdb.
-  } LIMIT 2500`, 20000, prio || 'high');
-  const promise = req.then(rows=>{
+  } LIMIT 2500`, 20000, ent.prio);
+    ent.job = req.job;
+    const rows = await req;
     const map = new Map();
     rows.forEach(r=>{
       const t = r.imdb && r.imdb.value, role = r.role && r.role.value;
@@ -2337,10 +2403,13 @@ function fetchPersonFilms(qid, prio){
     });
     const films = [...map.entries()].slice(0, 300).map(([t, r])=>({ t, r }));
     _filmsMem.set(qid, films);
+    archSet('films:' + qid, { at: Date.now(), f: films.map(x=>[x.t, x.r.join(',')]) });   // per sempre
+    // Chiunque l'abbia chiesta: la scheda di questa persona non la deve più considerare mancante
+    try{ const en = personCache()['q:' + qid]; if(en && (en.missing || []).includes('filmografia')){ en.missing = en.missing.filter(x=>x !== 'filmografia'); savePersonCache(); } }catch(e){}
     return films;
-  }).finally(()=>_filmsInflight.delete(qid));
-  _filmsInflight.set(qid, { promise, job: req.job });
-  return promise;
+  })().finally(()=>{ if(_filmsInflight.get(qid) === ent) _filmsInflight.delete(qid); });
+  _filmsInflight.set(qid, ent);
+  return ent.promise;
 }
 /* Mentre leggi la scheda di un film, in sottofondo si preparano le filmografie
    dei primi 4 attori del cast: toccandone uno, la filmografia è (quasi) pronta. */
@@ -2349,9 +2418,7 @@ function prefetchCastFilms(m){
   const c = personCache();
   splitNames(m.cast).slice(0, 4).forEach(n=>{
     const q = m.pq.map[normKey(n)]; if(!isQid(q)) return;
-    const cached = c['q:' + q];
-    if(cached && (Date.now() - (cached.at || 0)) < 30*864e5) return;   // scheda già salvata: niente da fare
-    fetchPersonFilms(q, 'low').catch(()=>{});
+    fetchPersonFilms(q, 'low').catch(()=>{});   // se è già nell'archivio non parte nessuna richiesta
   });
 }
 function awardRank(l){
@@ -2730,7 +2797,7 @@ async function pfPeople(report){
       if(!qid) qid = await resolvePersonQid(o.name, o.films[0] && o.films[0].imdbId);
       if(!qid){ ko++; continue; }
       const c = personCache(), cached = c['q:' + qid];
-      if(cached && (Date.now() - (cached.at||0)) < 30*864e5){ ok++; continue; }   // già fresca: niente richieste
+      if(cached && (Date.now() - (cached.at||0)) < 180*864e5 && !(cached.missing || []).length && await cachedFilms(qid)){ ok++; continue; }   // già completa: niente richieste
       const data = await fetchPersonData(qid, null, 'low');
       if(data && !(data.failed && data.failed.length)) ok++; else ko++;
     }catch(e){ ko++; }
@@ -2810,6 +2877,11 @@ function savePersonCache(){
   try{ localStorage.setItem(PERSON_CACHE_KEY, json); }
   catch(e){ try{ localStorage.removeItem(PERSON_CACHE_KEY); }catch(_){} _personCache = {}; } // spazio pieno: rinuncia alla cache
 }
+function savePersonEntry(qid, data){
+  if(!data || !(data.name || data.films || (data.awards || []).length)) return;
+  const toSave = Object.assign({}, data); delete toSave.films; delete toSave.pending; delete toSave.failed;
+  personCache()['q:' + qid] = toSave; savePersonCache();
+}
 async function resolvePersonQid(name, filmImdb){
   const c = personCache(); const nk = 'n:' + normKey(name);
   if(c[nk] && isQid(c[nk].q)) return c[nk].q;
@@ -2830,18 +2902,30 @@ async function resolvePersonQid(name, filmImdb){
 async function fetchPersonData(qid, onUpdate, prio){
   if(!isQid(qid)) return null;
   const c = personCache(); const key = 'q:' + qid;
-  if(c[key] && (Date.now() - (c[key].at||0)) < 30*864e5) return c[key];
+  const cached = c[key] || null;
+  // Filmografia dall'archivio permanente; le schede della versione precedente la portano con sé: si trasferisce lì
+  let films = await cachedFilms(qid);
+  if(!films && cached && Array.isArray(cached.films) && cached.films.length){
+    films = cached.films; _filmsMem.set(qid, films);
+    archSet('films:' + qid, { at: cached.at || Date.now(), f: films.map(x=>[x.t, (x.r || []).join(',')]) });
+  }
+  // Biografia, premi, collaboratori: validi 6 mesi. Si scarica SOLO ciò che manca.
+  const fresh = !!cached && (Date.now() - (cached.at || 0)) < 180*864e5;
+  const need = new Set(fresh ? (cached.missing || []) : ['anagrafica','premi','collaboratori']);
+  if(films) need.delete('filmografia'); else need.add('filmografia');
+  if(fresh && !need.size) return Object.assign({}, cached, { films });
   /* Caricamento PROGRESSIVO: ogni parte aggiorna la scheda appena arriva.
      Prima la scheda aspettava la richiesta più lenta (i collaboratori) prima
      di mostrare qualsiasi cosa, anche l'anagrafica già pronta. */
-  const data = { at: Date.now(), qid, name:'', films: null, collab: { cast: [], regia: [] }, awards: [], nominations: 0,
-                 countries: [], spouses: [], jobs: [], failed: [], pending: new Set(['anagrafica','premi','filmografia','collaboratori']) };
+  const base = { at: Date.now(), qid, name:'', collab: { cast: [], regia: [] }, awards: [], nominations: 0, countries: [], spouses: [], jobs: [] };
+  const data = Object.assign(base, cached || {}, { qid, films, failed: [], pending: new Set(need) });
   const emit = () => { if(onUpdate) onUpdate(data); };
+  if(cached) emit();   // subito quello che è già salvato, poi si completano le parti mancanti
   const done = (part, ok) => { data.pending.delete(part); if(!ok) data.failed.push(part); emit(); };
   const year = x => { const m = String(x||'').match(/^(\d{4})/); return m ? m[1] : ''; };
 
   // 1) Anagrafica → subito dopo, in parallelo al resto, la biografia da Wikipedia
-  const pDet = wdSparql(`SELECT ?pLabel ?img ?birth ?death ?bpLabel ?dpLabel ?imdb ?aIt ?aEn ?desc ?height ?birthName ?ws ?we WHERE {
+  const pDet = !need.has('anagrafica') ? null : wdSparql(`SELECT ?pLabel ?img ?birth ?death ?bpLabel ?dpLabel ?imdb ?aIt ?aEn ?desc ?height ?birthName ?ws ?we WHERE {
       BIND(wd:${qid} AS ?p)
       OPTIONAL{?p wdt:P18 ?img} OPTIONAL{?p wdt:P569 ?birth} OPTIONAL{?p wdt:P570 ?death}
       OPTIONAL{?p wdt:P19 ?bp} OPTIONAL{?p wdt:P20 ?dp} OPTIONAL{?p wdt:P345 ?imdb}
@@ -2881,7 +2965,7 @@ async function fetchPersonData(qid, onUpdate, prio){
   }, ()=>done('anagrafica', false));
 
   // 2) Premi, candidature, nazionalità, coniugi, mestieri
-  const pMulti = wdSparql(`SELECT ?k ?vLabel WHERE { BIND(wd:${qid} AS ?p)
+  const pMulti = !need.has('premi') ? null : wdSparql(`SELECT ?k ?vLabel WHERE { BIND(wd:${qid} AS ?p)
       { ?p wdt:P166 ?v. BIND("premio" AS ?k) } UNION { ?p wdt:P1411 ?v. BIND("candidatura" AS ?k) }
       UNION { ?p wdt:P27 ?v. BIND("paese" AS ?k) } UNION { ?p wdt:P26 ?v. BIND("coniuge" AS ?k) }
       UNION { ?p wdt:P106 ?v. BIND("mestiere" AS ?k) }
@@ -2896,12 +2980,13 @@ async function fetchPersonData(qid, onUpdate, prio){
       countries: bag.paese.slice(0, 3), spouses: bag.coniuge.slice(0, 4), jobs: bag.mestiere.slice(0, 6) });
     done('premi', true);
   }, ()=>done('premi', false));
+  if(need.has('collaboratori')) data.collab = { cast: [], regia: [] };
 
   // 3) Filmografia (la parte più importante: priorità alta)
-  const pFil = fetchPersonFilms(qid, prio).then(films=>{ data.films = films; done('filmografia', true); }, ()=>done('filmografia', false));
+  const pFil = !need.has('filmografia') ? null : fetchPersonFilms(qid, prio).then(films=>{ data.films = films; done('filmografia', true); }, ()=>done('filmografia', false));
 
   // 4) Collaboratori di carriera (sfondo: arrivano per ultimi senza bloccare nulla)
-  const pCol = wdSparql(`SELECT ?k ?co (SAMPLE(?lab) AS ?name) (COUNT(DISTINCT ?film) AS ?n) WHERE {
+  const pCol = !need.has('collaboratori') ? null : wdSparql(`SELECT ?k ?co (SAMPLE(?lab) AS ?name) (COUNT(DISTINCT ?film) AS ?n) WHERE {
       { ?film wdt:P161 wd:${qid}. ?film wdt:P161 ?co. BIND("cast" AS ?k) }
       UNION { ?film wdt:P57 wd:${qid}. ?film wdt:P161 ?co. BIND("regia" AS ?k) }
       FILTER(?co != wd:${qid})
@@ -2915,11 +3000,18 @@ async function fetchPersonData(qid, onUpdate, prio){
     done('collaboratori', true);
   }, ()=>done('collaboratori', false));
 
-  await Promise.allSettled([pDet, pMulti, pFil, pCol]);
+  await Promise.allSettled([pDet, pMulti, pFil, pCol].filter(Boolean));
+  // La filmografia può essere fallita qui ma arrivata da un'altra richiesta in parallelo
+  // (es. un tentativo in sottofondo): prima di segnarla come mancante si ricontrolla l'archivio.
+  if(data.failed.includes('filmografia')){
+    const f2 = await cachedFilms(qid);
+    if(f2){ data.films = f2; data.failed = data.failed.filter(x=>x !== 'filmografia'); }
+  }
   delete data.pending;
-  if(data.failed.includes('anagrafica') && data.failed.includes('filmografia')) throw new Error('Wikidata non raggiungibile');
-  // In cache solo le schede complete: una scheda parziale si mostra, ma alla prossima apertura si riprova
-  if(!data.failed.length){ c[key] = data; savePersonCache(); }
+  if(!cached && data.failed.includes('anagrafica') && data.failed.includes('filmografia')) throw new Error('Wikidata non raggiungibile');
+  if(need.has('anagrafica') && !data.failed.includes('anagrafica')) data.at = Date.now();
+  data.missing = data.failed.slice();   // parti da completare alla prossima apertura (solo quelle)
+  savePersonEntry(qid, data);
   return data;
 }
 function fmtWdDate(v){
@@ -2965,7 +3057,7 @@ async function openPerson(name, opts){
         if(token !== _personToken) return;
         data.films = films;
         data.failed = data.failed.filter(x=>x !== 'filmografia');
-        if(!data.failed.length){ const c = personCache(); c['q:' + qid] = data; savePersonCache(); }
+        data.missing = data.failed.slice(); savePersonEntry(qid, data);
       }catch(e){ /* resta l'avviso: riaprire più tardi */ }
       if(token !== _personToken) return;
       _personState.retrying = false; renderPerson();
@@ -3097,7 +3189,7 @@ function renderPerson(){
     const shown = st.showAll ? films : films.slice(0, 15);
     const ROLE_IT = {cast:'attore', regia:'regia', sceneggiatura:'sceneggiatura', musiche:'musiche', fotografia:'fotografia', produzione:'produzione'};
     html += `<div class="person-sec"><h3>🎞️ Filmografia <small>ne possiedi ${nOwned} di ${films.length}</small></h3>
-      <div class="filmo-tools" style="margin:-4px 0 8px"><button type="button" data-filmo-sort="pop" class="${st.sort === 'pop' ? 'on' : ''}">Più famosi</button><button type="button" data-filmo-sort="year" class="${st.sort === 'year' ? 'on' : ''}">Più recenti</button></div>
+      <div class="filmo-tools" style="margin:-4px 0 8px"><button type="button" data-filmo-sort="pop" class="${st.sort === 'pop' ? 'on' : ''}">Più famosi</button><button type="button" data-filmo-sort="year" class="${st.sort === 'year' ? 'on' : ''}">Più recenti</button>${d.qid ? '<button type="button" data-filmo-refresh title="Salvata sul dispositivo: si riscarica solo se lo chiedi (es. per film nuovi)">↻ Aggiorna</button>' : ''}</div>
       ${shown.map(f=>{
         const e = f.e;
         const rl = (f.roles||[]).map(r=>ROLE_IT[r] || r).join(', ');
@@ -3119,6 +3211,17 @@ document.getElementById('personBody').addEventListener('click', async e=>{
   }
   const sort = e.target.closest('[data-filmo-sort]');
   if(sort){ _personState.sort = sort.dataset.filmoSort; renderPerson(); return; }
+  if(e.target.closest('[data-filmo-refresh]')){
+    const st = _personState, qid = st && st.data && st.data.qid; if(!isQid(qid)) return;
+    if(navigator.onLine === false){ toast('📴 Serve la connessione per aggiornare'); return; }
+    const btn = e.target.closest('[data-filmo-refresh]'); btn.disabled = true; btn.textContent = '↻ Aggiorno…';
+    try{
+      const films = await fetchPersonFilms(qid, 'high', { force: true });
+      if(_personState === st){ st.data.films = films; savePersonEntry(qid, st.data); renderPerson(); }
+      toast(`Filmografia aggiornata ✓ (${films.length} film)`);
+    }catch(err){ btn.disabled = false; btn.textContent = '↻ Aggiorna'; toast('Wikidata non ha risposto: riprova tra poco'); }
+    return;
+  }
   if(e.target.closest('[data-filmo-all]')){ _personState.showAll = true; renderPerson(); return; }
   if(e.target.closest('#bioMore')){
     const b = document.getElementById('personBio');
