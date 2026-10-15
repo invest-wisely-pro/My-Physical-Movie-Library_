@@ -1,41 +1,46 @@
-MY PHYSICAL MOVIE LIBRARY — VERSIONE WEB
-=========================================
+MY PHYSICAL MOVIE LIBRARY — VERSIONE WEB SU GITHUB PAGES
+=========================================================
 
 Perché la versione web
-  - Gli aggiornamenti non fanno più perdere i dati: l'indirizzo resta sempre lo stesso.
-  - La fotocamera dal vivo per i codici a barre funziona (i siti https sono "sicuri").
-  - Si installa davvero sul telefono, come un'app, e funziona anche offline.
-  - La tua collezione resta nel TUO telefono: il sito contiene solo l'app, vuota.
+  - Si INSTALLA davvero come app su Android e iPhone (non solo un collegamento).
+  - Funziona offline e la fotocamera dal vivo per i codici a barre funziona.
+  - Gli aggiornamenti non fanno perdere i dati: l'indirizzo resta sempre lo stesso.
+  - La tua collezione resta nel TUO telefono: su GitHub c'è solo l'app, vuota.
 
-PUBBLICARLA (una volta sola, dal PC, circa 5 minuti)
-  1. Apri https://app.netlify.com/drop
-  2. Trascina nella pagina il file ZIP (videoteca-web.zip) così com'è.
-  3. Entro 1 ORA crea un account gratuito e "rivendica" il sito (Claim):
-     altrimenti Netlify lo cancella.
-  4. Ottieni un indirizzo tipo https://nome-casuale.netlify.app
-     Facoltativo: in "Site configuration" → "Change site name" puoi chiamarlo
-     per esempio videoteca-mario.netlify.app
+1) PUBBLICARLA (una volta sola, dal PC, circa 5 minuti)
+  a. Estrai questo ZIP in una cartella sul PC.
+  b. Su github.com: pulsante "+" in alto → "New repository".
+     Nome: videoteca · Visibilità: Public (GitHub Pages gratis richiede Public) → "Create repository".
+  c. Nella pagina del repository: link "uploading an existing file"
+     (oppure "Add file" → "Upload files").
+     Trascina TUTTO il contenuto della cartella estratta: index.html, sw.js,
+     manifest.webmanifest, LEGGIMI.txt e la cartella icons. → "Commit changes".
+  d. "Settings" → "Pages" (menu a sinistra) → "Build and deployment":
+     Source = "Deploy from a branch", Branch = "main" e cartella "/ (root)" → "Save".
+  e. Dopo 1-2 minuti, in alto nella stessa pagina compare l'indirizzo:
+     https://TUONOME.github.io/videoteca/
 
-PORTARCI LA TUA COLLEZIONE
-  5. Nell'app che usi oggi: ⚙️ Strumenti → 💾 Backup (scarica il file .json).
-  6. Apri il nuovo indirizzo: la libreria è vuota → tocca "📤 Ripristina un backup"
-     e scegli il file appena scaricato. Fatto.
-  7. Consigliato: ⚙️ Strumenti → ⚡ Precarica tutto (con il Wi-Fi).
+2) INSTALLARLA
+  ANDROID (Chrome): apri l'indirizzo → compare "Installa app" (o menu ⋮ → "Installa app").
+     Diventa un'app vera: la trovi anche nell'elenco delle app, si apre a schermo intero.
+  iPHONE / iPAD (Safari): apri l'indirizzo → Condividi ⬆️ → "Aggiungi alla schermata Home"
+     → lascia attivo "Apri come app web" → "Aggiungi".
 
-INSTALLARLA SUL TELEFONO
-  8. Apri il nuovo indirizzo in Chrome → menu ⋮ → "Installa app"
-     (o "Aggiungi a schermata Home"). Da lì si apre come un'app vera.
-     Ogni dispositivo ha i suoi dati: per spostarli usa Backup / Ripristina.
+3) PORTARCI LA TUA COLLEZIONE
+  a. Nell'app che usi oggi: ⚙️ Strumenti → 💾 Backup (scarica il file .json).
+  b. APRI L'APP INSTALLATA (dall'icona sulla Home, non dal browser): la libreria è vuota
+     → "📤 Ripristina un backup" → scegli il file. Fatto.
+     Su iPhone è indispensabile farlo dentro l'app installata: ha una memoria separata da Safari.
+  c. Consigliato: ⚙️ Strumenti → ⚡ Precarica tutto (con il Wi-Fi).
 
 AGGIORNARLA IN FUTURO
-  Quando avrai una nuova versione: Netlify → il tuo sito → "Deploys" →
-  trascina il nuovo ZIP nel riquadro in fondo. I tuoi dati restano dove sono.
+  Repository → "Add file" → "Upload files" → trascina i file nuovi (sostituiscono i vecchi)
+  → "Commit changes". Alla prossima apertura con internet l'app si aggiorna da sola.
+  I tuoi dati restano dove sono.
 
 BUONO A SAPERSI
-  - L'indirizzo è pubblico ma non elencato: chi lo conosce vede solo l'app vuota,
-    non i tuoi film. Contiene però l'indice offline dei film (dati IMDb ad uso
-    personale): tieni l'indirizzo per te.
-  - Continua a fare un 💾 Backup ogni tanto (te lo ricorda l'app): è la tua copia
-    di sicurezza se cambi telefono o cancelli i dati del browser.
-  - Contenuto del pacchetto: index.html (l'app), sw.js (funzionamento offline),
-    manifest.webmanifest e icons/ (installazione), _headers (aggiornamenti immediati).
+  - Il repository è pubblico: chiunque può vedere il codice dell'app e l'indice offline dei
+    film (dati IMDb ad uso personale). La tua collezione invece NON è lì: resta sul telefono.
+  - NON caricare mai su GitHub il tuo file di backup .json: lì dentro c'è la tua collezione.
+  - Continua a fare un 💾 Backup ogni tanto (te lo ricorda l'app): serve se cambi telefono
+    o cancelli i dati del browser.

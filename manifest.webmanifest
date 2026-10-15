@@ -1,14 +1,21 @@
 {
+  "id": "./",
   "name": "My Physical Movie Library",
-  "short_name": "Movie Library",
+  "short_name": "Videoteca",
   "description": "La tua videoteca fisica: catalogo, schede, curiosità. I dati restano sul tuo dispositivo.",
   "lang": "it",
+  "dir": "ltr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#07080d",
   "theme_color": "#07080d",
+  "categories": [
+    "entertainment",
+    "lifestyle"
+  ],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icons/icon-192.png",
