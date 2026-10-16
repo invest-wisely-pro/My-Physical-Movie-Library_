@@ -1931,6 +1931,11 @@ Object.assign(I18N_DICT, {
 'Nota su Blu-ray.com: quel sito blocca esplicitamente l\'accesso automatico nel suo robots.txt, quindi l\'app non ci prova nemmeno — sarebbe una violazione delle loro regole. Il pulsante apre una ricerca per titolo: trova tu la pagina della TUA edizione esatta (steelbook, 4K, ecc.) e incollane il link nel campo qui sopra, così resta salvato e un tap la riapre sempre':
  'Note on Blu-ray.com: that site explicitly blocks automated access in its robots.txt, so the app doesn\'t even try — it would break their rules. The button opens a title search: find the page for YOUR exact edition (steelbook, 4K, etc.) and paste its link in the field above, so it stays saved and one tap always reopens it',
 });
+Object.assign(I18N_DICT, { 'Completo i dati':'Completing details', 'Recupero in corso':'Retrieving',
+  'Altri dati arrivati ✓ (ne mancano ancora alcuni)':'More details arrived ✓ (a few are still missing)', 'Dati completi ✓ ricordati di salvare':'Details complete ✓ remember to save',
+  'Dati completati da Wikidata/Wikipedia ✓ ricordati di salvare':'Details completed from Wikidata/Wikipedia ✓ remember to save',
+  'Dati non trovati per questo film su Wikidata, riprova o inseriscili a mano':'No details found for this film on Wikidata, retry or enter them by hand',
+  'Dati IMDb importati — recupero locandina, trama e voti':'IMDb data imported — retrieving poster, plot and ratings', 'Riprova dati completi':'Retry full details' });
 const _trCache = new Map();
 // voci che finiscono con "?" "!" "." valgono anche senza (la punteggiatura viene rimessa dopo)
 for(const k of Object.keys(I18N_DICT)){ const b = k.replace(/[?!.…]+$/, ''); if(b !== k && !Object.prototype.hasOwnProperty.call(I18N_DICT, b)) I18N_DICT[b] = I18N_DICT[k].replace(/[?!.…]+$/, ''); }
@@ -6760,19 +6765,20 @@ async function refreshRtScores(m, session){
   }catch(e){ return false; }
 }
 
-document.getElementById('retryFullDetailsBtn').addEventListener('click', async ()=>{
-  let m = state.movies.find(x=>x.id===currentId) || window._draftMovie;   // funziona anche prima di salvare
-  if(!m || !m.imdbId){ toast('Nessun film IMDb collegato: usa prima 🔎 Cerca film'); return; }
+/* Recupero dei dati completi (pulsante "Riprova" e completamento automatico) */
+async function completeFullDetails(m, opts){
+  const auto = !!(opts && opts.auto);
   const session = _modalSession;
   const stillOpen = () => _modalSession === session;
   const btn = document.getElementById('retryFullDetailsBtn');
-  btn.disabled = true; btn.textContent = 'Recupero in corso…';
+  btn.disabled = true; btn.textContent = auto ? 'Completo i dati…' : 'Recupero in corso…';
   let ok = false;
   try{ ok = await applyFullDetails(m, m.imdbId); }catch(e){ console.error(e); }
   if(!m.poster && m.imdbId){ try{ const p = await fetchPosterByImdb(m.imdbId); if(p) m.poster = p; }catch(e){} }
   const rtOk = await refreshRtScores(m, session);
   if(rtOk) ok = true;
-  if(!stillOpen()){ return; }   // scheda cambiata: dati salvati sull'oggetto giusto, campi non toccati
+  btn.disabled = false; btn.textContent = '🔄 Riprova dati completi';
+  if(!stillOpen()) return ok;   // scheda cambiata: dati salvati sull'oggetto giusto, campi non toccati
   if(m.poster){ document.getElementById('f_poster').value = m.poster; renderPosterView(m); }
   if(m.votoRT) document.getElementById('f_votoRT').value = String(parseInt(m.votoRT));
   if(m.votoRTPubblico) document.getElementById('f_votoRTPubblico').value = String(parseInt(m.votoRTPubblico));
@@ -6786,9 +6792,32 @@ document.getElementById('retryFullDetailsBtn').addEventListener('click', async (
   document.getElementById('f_curiosita').value = m.curiosita||'';
   renderRatingBadges(m);
   renderImdbLink(m);
-  btn.disabled = false; btn.textContent = '🔄 Riprova dati completi';
-  toast(ok ? 'Dati completati da Wikidata/Wikipedia ✓ ricordati di salvare' : 'Dati non trovati per questo film su Wikidata, riprova o inseriscili a mano');
+  if(!auto) toast(ok ? 'Dati completati da Wikidata/Wikipedia ✓ ricordati di salvare' : 'Dati non trovati per questo film su Wikidata, riprova o inseriscili a mano');
+  return ok;
+}
+document.getElementById('retryFullDetailsBtn').addEventListener('click', ()=>{
+  const m = state.movies.find(x=>x.id===currentId) || window._draftMovie;   // funziona anche prima di salvare
+  if(!m || !m.imdbId){ toast('Nessun film IMDb collegato: usa prima 🔎 Cerca film'); return; }
+  completeFullDetails(m);
 });
+/* Completamento automatico: la prima volta Wikidata e Wikipedia sono "a freddo" e il
+   recupero riesce spesso a metà (genere e cast sì, trama no). Si guarda COSA MANCA, non
+   se la richiesta è riuscita: nuovo tentativo dopo 3 s e, se serve, dopo altri 12 s. */
+const AUTO_COMPLETE_DELAYS = [3000, 12000];
+function detailsMissing(m){ return ['trama', 'cast', 'genere', 'regista'].filter(k=>!String(m[k] || '').trim()).concat(m.poster ? [] : ['locandina']); }
+function autoCompleteDetails(m, session, attempt){
+  attempt = attempt || 0;
+  if(!m || !isTt(m.imdbId) || !detailsMissing(m).length || attempt >= AUTO_COMPLETE_DELAYS.length) return;
+  setTimeout(async ()=>{
+    if(_modalSession !== session || !detailsMissing(m).length) return;
+    const before = detailsMissing(m).length;
+    await completeFullDetails(m, { auto: true });
+    if(_modalSession !== session) return;
+    const after = detailsMissing(m).length;
+    if(after < before) toast(after ? 'Altri dati arrivati ✓ (ne mancano ancora alcuni)' : 'Dati completi ✓ ricordati di salvare');
+    if(after) autoCompleteDetails(m, session, attempt + 1);
+  }, AUTO_COMPLETE_DELAYS[attempt]);
+}
 
 document.getElementById('tmdbSearchBtn').addEventListener('click', async ()=>{
   const title = document.getElementById('f_titolo').value.trim();
@@ -6902,9 +6931,7 @@ document.getElementById('tmdbSearchBtn').addEventListener('click', async ()=>{
       renderPosterView(m);
       renderImdbLink(m);
       renderRtLink(m);
-      if(!ok && m.imdbId){   // Wikidata lento: un nuovo tentativo automatico, senza dover salvare e rientrare
-        setTimeout(()=>{ if(stillOpen() && !m.trama){ const b = document.getElementById('retryFullDetailsBtn'); if(b && !b.disabled) b.click(); } }, 5000);
-      }
+      autoCompleteDetails(m, session);   // se manca qualcosa (trama, cast, locandina…) riprova da solo
       toast(rtOk
         ? 'Voti Rotten Tomatoes aggiornati ✓ ricordati di salvare'
         : (ok ? 'Scheda completata da IMDb + Wikidata ✓ ricordati di salvare' : 'Dati IMDb salvati (anno, genere, durata, ID) ✓ locandina/trama non disponibili ora — ricordati di salvare'));
