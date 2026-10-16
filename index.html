@@ -2202,6 +2202,11 @@ function canonicalCustodia(c){
   return (c||'').trim();
 }
 function cleanupMovies(){
+  // Voti critica RT salvati per errore dal voto medio ("8%" da "7,6/10", o "x/10"): da ricontrollare una volta
+  state.movies.forEach(m=>{
+    const v = String(m.votoRT || '').trim();
+    if(v && !m.rtChecked && (/\//.test(v) || parseFloat(v) <= 10)){ m.votoRT = ''; if(isTt(m.imdbId)) m.rtCheck = true; else m.rtChecked = true; }
+  });
   state.movies.forEach(m=>{
     if(m.titolo) m.titolo = m.titolo.replace(/\s+/g,' ').trim();
     if(m.formato) m.formato = m.formato.trim();
@@ -2310,6 +2315,24 @@ document.getElementById('fixCastBtn').addEventListener('click', ()=>{
   const bd = document.getElementById('toolsBackdrop'); if(bd) bd.classList.remove('open');
   fixAllCast();
 });
+
+/* Ricontrollo in sottofondo dei voti RT svuotati perché sbagliati (una volta per film) */
+async function rtRepairPass(){
+  const todo = state.movies.filter(m=>m.rtCheck && isTt(m.imdbId));
+  if(!todo.length || navigator.onLine === false) return;
+  let fixed = 0;
+  for(const m of todo){
+    try{
+      const d = await fetchWikidataDetails(m.imdbId, 'low');
+      if(d && d.votoRT){ m.votoRT = d.votoRT; fixed++; }
+      delete m.rtCheck; m.rtChecked = true; saveState();
+      if(currentId === m.id){ const f = document.getElementById('f_votoRT'); if(f) f.value = String(parseInt(m.votoRT) || ''); }
+    }catch(e){ /* si riprova al prossimo avvio */ }
+    await sleep(400);
+  }
+  if(fixed){ renderAll(); toast(`🍅 Voto critica Rotten Tomatoes corretto in ${fixed} film`); }
+}
+setTimeout(rtRepairPass, 6000);
 
 /* ---------- Azzera la libreria ----------
    Doppia conferma e backup di sicurezza automatico PRIMA di cancellare:
@@ -6391,13 +6414,13 @@ async function wikidataSearch(title){
    priorità e nuovi tentativi automatici. Le righe vengono tradotte nel formato
    che parseWikidataRows conosce già. */
 function wdDetailsQuery(anchor){
-  return `SELECT ?k ?vLabel ?sl ?articleIt ?articleEn ?score ?scoreBy ?rtId WHERE {
+  return `SELECT ?k ?vLabel ?sl ?articleIt ?articleEn ?score ?scoreBy ?method ?when ?rtId WHERE {
     ${anchor}
     { ?film wdt:P136 ?v. BIND("genre" AS ?k) } UNION { ?film wdt:P57 ?v. BIND("director" AS ?k) }
     UNION { ?film wdt:P161 ?v. OPTIONAL { ?v wikibase:sitelinks ?sl } BIND("cast" AS ?k) } UNION { ?film wdt:P179 ?v. BIND("series" AS ?k) }
     UNION { ?articleIt schema:about ?film ; schema:isPartOf <https://it.wikipedia.org/> . BIND("ait" AS ?k) }
     UNION { ?articleEn schema:about ?film ; schema:isPartOf <https://en.wikipedia.org/> . BIND("aen" AS ?k) }
-    UNION { ?film p:P444 ?st . ?st ps:P444 ?score . ?st pq:P447 ?scoreByItem . BIND(STRAFTER(STR(?scoreByItem), "entity/") AS ?scoreBy) BIND("score" AS ?k) }
+    UNION { ?film p:P444 ?st . ?st ps:P444 ?score . ?st pq:P447 ?scoreByItem . OPTIONAL { ?st pq:P459 ?method } OPTIONAL { ?st pq:P585 ?when } BIND(STRAFTER(STR(?scoreByItem), "entity/") AS ?scoreBy) BIND("score" AS ?k) }
     UNION { ?film wdt:P1258 ?rtId. BIND("rt" AS ?k) }
     SERVICE wikibase:label { bd:serviceParam wikibase:language "${WD_LANGS}". }
   } LIMIT 1500`;
@@ -6414,7 +6437,7 @@ function wdDetailsRows(rows){
     if(field[k] && r.vLabel) o[field[k]] = r.vLabel;
     if(k === 'ait' && r.articleIt) o.articleIt = r.articleIt;
     if(k === 'aen' && r.articleEn) o.articleEn = r.articleEn;
-    if(k === 'score' && r.score && r.scoreBy){ o.score = r.score; o.scoreBy = r.scoreBy; }
+    if(k === 'score' && r.score && r.scoreBy){ o.score = r.score; o.scoreBy = r.scoreBy; if(r.method) o.method = r.method; if(r.when) o.when = r.when; }
     if(k === 'rt' && r.rtId) o.rtId = r.rtId;
     return o;
   });
@@ -6424,9 +6447,9 @@ async function fetchWikidataDetailsByQid(qid){
   const rows = await wdSparql(wdDetailsQuery(`BIND(wd:${qid} AS ?film)`), 15000);
   return parseWikidataRows(wdDetailsRows(rows));
 }
-async function fetchWikidataDetails(imdbId){
+async function fetchWikidataDetails(imdbId, prio){
   if(!isTt(imdbId)) return {};
-  const rows = await wdSparql(wdDetailsQuery(`?film wdt:P345 "${imdbId}" .`), 15000);
+  const rows = await wdSparql(wdDetailsQuery(`?film wdt:P345 "${imdbId}" .`), 15000, prio);
   return parseWikidataRows(wdDetailsRows(rows));
 }
 
@@ -6464,7 +6487,18 @@ const SEZIONI_CURIOSITA_EN = ['Production','Development','Trivia','Background'];
 /* QID Wikidata dei siti di recensioni, usati come qualificatore "review score by" (P447) */
 const QID_ROTTEN_TOMATOES = ['Q105584','Q108403393','Q108403540']; // Rotten Tomatoes / Tomatometer score / RT average
 const QID_METACRITIC = ['Q106515043']; // Metascore
+const QID_RT_AVERAGE = 'Q108403540';   // voto MEDIO dei critici (es. 7,6/10): NON è il Tomatometer
+/* Wikidata ha più voti Rotten Tomatoes per film: percentuale (Tomatometer), voto medio
+   "x/10" e percentuali di date diverse. Si prende solo la percentuale, la più recente.
+   (Prima si prendeva il primo arrivato: "7,6/10" diventava "7%".) */
+function pickRtScore(cands){
+  const ok = cands.filter(c=>c.m !== QID_RT_AVERAGE && c.by !== QID_RT_AVERAGE && !/\//.test(c.v) && /^\d{1,3}(\.\d+)?\s*%?$/.test(c.v) && parseFloat(c.v) <= 100);
+  ok.sort((a, b)=>(b.w || '').localeCompare(a.w || '') || (/%/.test(b.v) ? 1 : 0) - (/%/.test(a.v) ? 1 : 0));
+  return ok.length ? ok[0].v : '';
+}
+function pickLatestScore(cands){ const c = cands.slice().sort((a, b)=>(b.w || '').localeCompare(a.w || '')); return c.length ? c[0].v : ''; }
 async function parseWikidataRows(rows){
+  const rtCands = [], metaCands = [];
   const genres = new Set(), directors = new Set(), cast = new Set(), series = new Set();
   let articleTitleIt = null, articleTitleEn = null, rt = null, meta = null, rtId = null;
   rows.forEach(r=>{
@@ -6476,10 +6510,12 @@ async function parseWikidataRows(rows){
     if(!articleTitleEn && r.articleEn) articleTitleEn = decodeURIComponent(r.articleEn.value.split('/wiki/')[1]);
     if(!rtId && r.rtId && r.rtId.value) rtId = r.rtId.value.trim();
     if(r.score && r.scoreBy){
-      if(!rt && QID_ROTTEN_TOMATOES.includes(r.scoreBy.value)) rt = r.score.value;
-      if(!meta && QID_METACRITIC.includes(r.scoreBy.value)) meta = r.score.value;
+      const c = { v: String(r.score.value).trim(), m: r.method ? qidOf(r.method.value) : '', w: r.when ? String(r.when.value) : '', by: r.scoreBy.value };
+      if(QID_ROTTEN_TOMATOES.includes(c.by)) rtCands.push(c);
+      if(QID_METACRITIC.includes(c.by)) metaCands.push(c);
     }
   });
+  rt = pickRtScore(rtCands); meta = pickLatestScore(metaCands);
   const articleTitle = LANG === 'en' ? (articleTitleEn || articleTitleIt) : (articleTitleIt || articleTitleEn);
   const lang = (articleTitleEn && articleTitle === articleTitleEn) ? 'en' : 'it';
   const out = {};
@@ -6487,7 +6523,7 @@ async function parseWikidataRows(rows){
   if(directors.size) out.regista = [...directors].join(', ');
   if(cast.size) out.castCompleto = [...cast].slice(0,10).join(', ');
   if(series.size) out.tagSuggeriti = [...series].join(', ');
-  if(rt) out.votoRT = /%/.test(rt) ? rt : (rt + (Number(rt)<=10 ? '/10' : '%'));
+  if(rt) out.votoRT = /%/.test(rt) ? rt.replace(/\s+/g, '') : (Math.round(parseFloat(rt)) + '%');   // solo percentuali (pickRtScore scarta gli "x/10")
   if(meta) out.votoMeta = meta;
   if(rtId) out.rtUrl = 'https://www.rottentomatoes.com/' + rtId.replace(/^\/+/, '');
   if(articleTitle){
