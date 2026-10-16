@@ -1222,7 +1222,7 @@ body:not(.tab-bacheca) .bacheca-only{display:none !important;}
         <button class="btn ghost" onclick="document.getElementById('restoreInput').click()" title="Ripristina da un file di backup .json">📤 Ripristina backup</button>
         <input type="file" id="restoreInput" accept=".json" style="display:none;">
         <button class="btn ghost" id="integrityBtn" title="Controlla film senza poster, genere o anno, e titoli duplicati">🔍 Controlla libreria</button>
-        <button class="btn ghost" id="bulkEnrichBtn">🍅 Arricchisci con Rotten Tomatoes</button>
+        <button class="btn ghost" id="bulkEnrichBtn" title="Riempie solo i campi vuoti dei film già collegati a IMDb (trama, genere, regia, cast, voti) e cerca il voto del pubblico di Rotten Tomatoes. Non tocca mai ciò che hai scritto; esclude i cofanetti">🍅 Completa trame e voti mancanti</button>
         <button class="btn ghost" id="exportNfoBtn" title="Genera un file .nfo per film, leggibile da Plex/Jellyfin/Kodi — utile se possiedi anche copie digitali dei tuoi dischi">📀 Esporta NFO per Plex/Jellyfin</button>
         <button class="btn ghost" id="demoBtn" title="I dischi della tua collezione migliori per far vedere l'impianto">🎬 Serata demo</button>
         <button class="btn ghost" id="bsPrefetchBtn" title="Scarica una volta sola Dietro le quinte, correlati e schede di registi e attori ricorrenti: poi si aprono all'istante, anche offline">⚡ Precarica tutto (uso offline)</button>
@@ -1936,6 +1936,16 @@ Object.assign(I18N_DICT, { 'Completo i dati':'Completing details', 'Recupero in 
   'Dati completati da Wikidata/Wikipedia ✓ ricordati di salvare':'Details completed from Wikidata/Wikipedia ✓ remember to save',
   'Dati non trovati per questo film su Wikidata, riprova o inseriscili a mano':'No details found for this film on Wikidata, retry or enter them by hand',
   'Dati IMDb importati — recupero locandina, trama e voti':'IMDb data imported — retrieving poster, plot and ratings', 'Riprova dati completi':'Retry full details' });
+Object.assign(I18N_DICT, {
+  'Completa trame e voti mancanti':'Fill in missing plots and ratings',
+  'Riempie solo i campi vuoti dei film già collegati a IMDb (trama, genere, regia, cast, voti) e cerca il voto del pubblico di Rotten Tomatoes. Non tocca mai ciò che hai scritto; esclude i cofanetti':'Fills only the empty fields of films already linked to IMDb (plot, genre, director, cast, ratings) and looks for the Rotten Tomatoes audience score. Never touches what you wrote; box sets excluded',
+  'Tutti i film sono già completi':'All films are already complete' });
+I18N_PATTERNS.push(
+  [/^I film collegati sono già completi · (\d+) non collegati: usa 🔗 Collega i film mancanti$/, (m, n)=>`Linked films are already complete · ${n} not linked: use 🔗 Link missing films`],
+  [/^Completo trame e voti… (\d+)\/(\d+): (.+)$/, (m, a, b, t)=>`Filling in plots and ratings… ${a}/${b}: ${t}`],
+  [/^Interrotto: (\d+) film controllati, (\d+) completati e salvati(.*)$/, (m, a, b, r)=>`Stopped: ${a} films checked, ${b} completed and saved${r.replace(/ · (\d+) non collegati: usa 🔗 Collega i film mancanti/, ' · $1 not linked: use 🔗 Link missing films')}`],
+  [/^✓ (\d+) film completati \((\d+) campi vuoti riempiti(?:, (\d+) voti del pubblico RT)?\) · niente di ciò che avevi scritto è stato toccato(.*)$/, (m, f, c, a, r)=>`✓ ${f} films completed (${c} empty fields filled${a ? `, ${a} RT audience scores` : ''}) · nothing you wrote was touched${r.replace(/ · (\d+) non collegati: usa 🔗 Collega i film mancanti/, ' · $1 not linked: use 🔗 Link missing films')}`]
+);
 const _trCache = new Map();
 // voci che finiscono con "?" "!" "." valgono anche senza (la punteggiatura viene rimessa dopo)
 for(const k of Object.keys(I18N_DICT)){ const b = k.replace(/[?!.…]+$/, ''); if(b !== k && !Object.prototype.hasOwnProperty.call(I18N_DICT, b)) I18N_DICT[b] = I18N_DICT[k].replace(/[?!.…]+$/, ''); }
@@ -6944,56 +6954,72 @@ document.getElementById('bulkCancelBtn').addEventListener('click', ()=>{
   _bulkCancelled = true;
   document.getElementById('progressText').textContent = 'Interruzione in corso… (i film già arricchiti restano salvati)';
 });
+/* ---------- 🍅 Completa trame e voti mancanti ----------
+   Versione sicura del vecchio "Arricchisci con Rotten Tomatoes":
+   - solo film GIÀ collegati a IMDb (niente collegamenti alla cieca: per gli altri
+     c'è "🔗 Collega i film mancanti", che chiede conferma ed esclude i cofanetti);
+   - riempie SOLO i campi vuoti: non tocca mai ciò che hai scritto o corretto;
+   - esclude i cofanetti;
+   - cerca anche il voto del pubblico di Rotten Tomatoes (tentativo: il sito a
+     volte blocca), al massimo una volta ogni 14 giorni per film. */
+const BULK_FIELDS = ['trama', 'genere', 'regista', 'cast'];
+function bulkIsBoxSet(m){ return (parseInt(m.numero_film, 10) || 1) > 1 || isCollectionTitle(m.titolo || ''); }
+function bulkNeeds(m){
+  const missing = BULK_FIELDS.filter(k=>!String(m[k] || '').trim());
+  if(!m.votoRT && !m.votoMeta) missing.push('voti');
+  const audDue = !m.votoRTPubblico && (Date.now() - (m.rtAudAt || 0)) > 14 * 864e5;
+  return { missing, audDue, any: missing.length > 0 || audDue };
+}
 document.getElementById('bulkEnrichBtn').addEventListener('click', async ()=>{
   if(_bulkRunning){ toast('Arricchimento già in corso'); return; }
-  const todo = state.movies.filter(m=>!m.imdbId || !m.trama || (!m.votoRT && !m.votoMeta));
-  if(!todo.length){ toast('Tutti i film sono già arricchiti'); return; }
+  if(navigator.onLine === false){ toast('📴 Serve la connessione'); return; }
+  const linked = state.movies.filter(m=>isTt(m.imdbId) && !bulkIsBoxSet(m));
+  const unlinked = state.movies.filter(m=>!isTt(m.imdbId) && !bulkIsBoxSet(m)).length;
+  const todo = linked.filter(m=>bulkNeeds(m).any);
+  if(!todo.length){ toast(unlinked ? `I film collegati sono già completi · ${unlinked} non collegati: usa 🔗 Collega i film mancanti` : 'Tutti i film sono già completi'); return; }
   _bulkRunning = true; _bulkCancelled = false;
-  const btn = document.getElementById('bulkEnrichBtn');
-  btn.disabled = true;
-  const pw = document.getElementById('progressWrap');
-  pw.classList.add('show');
-  let done = 0, full = 0;
+  const btn = document.getElementById('bulkEnrichBtn'); btn.disabled = true;
+  const pw = document.getElementById('progressWrap'); pw.classList.add('show');
+  let done = 0, fields = 0, films = 0, aud = 0;
   for(const m of todo){
     if(_bulkCancelled) break;
-    document.getElementById('progressText').textContent = `Arricchimento in corso… ${done+1}/${todo.length}: ${displayTitle(m.titolo)}`;
+    document.getElementById('progressText').textContent = `Completo trame e voti… ${done + 1}/${todo.length}: ${displayTitle(m.titolo)}`;
+    const need = bulkNeeds(m); let filled = 0;
     try{
-      if(!m.imdbId){
-        const results = await imdbSearch(m.titolo);
-        if(results.length) applyImdbBasic(m, results[0]);
+      if(need.missing.length){
+        const d = await fetchWikidataDetails(m.imdbId, 'low');
+        const put = (k, v) => { if(v && !String(m[k] || '').trim()){ m[k] = cleanText(v); filled++; } };
+        put('trama', d.trama); put('genere', d.genere); put('regista', d.regista); put('cast', d.castCompleto); put('curiosita', d.curiosita);
+        if(!m.poster && d.poster){ m.poster = d.poster; filled++; }
+        if(!m.votoRT && d.votoRT){ m.votoRT = d.votoRT; filled++; }
+        if(!m.votoMeta && d.votoMeta){ m.votoMeta = d.votoMeta; filled++; }
+        if(!m.rtUrl && d.rtUrl) m.rtUrl = d.rtUrl;
       }
-      if(m.imdbId){
-        const ok = await applyFullDetails(m, m.imdbId);
-        if(ok) full++;
+      if(need.audDue){
+        try{
+          const rt = await getRtScores(m, m.titolo, m.anno);
+          if(rt){
+            if(rt.votoRTPubblico && !m.votoRTPubblico){ m.votoRTPubblico = rt.votoRTPubblico; filled++; aud++; }
+            if(rt.votoRT && !m.votoRT){ m.votoRT = rt.votoRT; filled++; }
+            if(rt.url && !m.rtUrl) m.rtUrl = rt.url;
+          }
+        }catch(e){ /* il sito ha bloccato: non è un errore dell'app */ }
+        m.rtAudAt = Date.now();
       }
-      // Voti in diretta da Rotten Tomatoes (best effort): sovrascrivono
-      // quelli più vecchi di Wikidata quando disponibili
-      try{
-        const rt = await getRtScores(m, m.titolo, m.anno);
-        if(rt){
-          if(rt.votoRT) m.votoRT = rt.votoRT;
-          if(rt.votoRTPubblico) m.votoRTPubblico = rt.votoRTPubblico;
-          if(rt.url) m.rtUrl = rt.url;
-          if(rt.votoRT || rt.votoRTPubblico) full++;
-        }
-      }catch(e){ /* non bloccante */ }
     }catch(e){ console.error(e); }
+    if(filled){ fields += filled; films++; }
     done++;
-    document.getElementById('progressFill').style.width = (done/todo.length*100)+'%';
-    // Salva e ridisegna ogni 5 film (non a ogni film): interfaccia fluida
-    // e molte meno scritture, senza rischiare più di 5 film di lavoro
+    document.getElementById('progressFill').style.width = (done / todo.length * 100) + '%';
     if(done % 5 === 0){ await saveState(); renderGrid(); }
-    await new Promise(r=>setTimeout(r, 400));
+    await sleep(400);
   }
-  await saveState(); // salvataggio finale sempre, anche dopo interruzione
-  renderGrid();
-  pw.classList.remove('show');
-  document.getElementById('progressFill').style.width = '0%';
-  btn.disabled = false;
-  _bulkRunning = false;
+  await saveState(); renderGrid();
+  pw.classList.remove('show'); document.getElementById('progressFill').style.width = '0%';
+  btn.disabled = false; _bulkRunning = false;
+  const tail = unlinked ? ` · ${unlinked} non collegati: usa 🔗 Collega i film mancanti` : '';
   toast(_bulkCancelled
-    ? `Interrotto: ${done} film elaborati e salvati (${full} con dati completi)`
-    : `Arricchimento completato: ${done} film aggiornati, ${full} con dati Wikidata/Wikipedia trovati`);
+    ? `Interrotto: ${done} film controllati, ${films} completati e salvati${tail}`
+    : `✓ ${films} film completati (${fields} campi vuoti riempiti${aud ? `, ${aud} voti del pubblico RT` : ''}) · niente di ciò che avevi scritto è stato toccato${tail}`);
   _bulkCancelled = false;
 });
 
