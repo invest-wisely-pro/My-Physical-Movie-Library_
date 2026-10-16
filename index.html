@@ -1228,6 +1228,7 @@ body:not(.tab-bacheca) .bacheca-only{display:none !important;}
         <button class="btn ghost" id="bsPrefetchBtn" title="Scarica una volta sola Dietro le quinte, correlati e schede di registi e attori ricorrenti: poi si aprono all'istante, anche offline">⚡ Precarica tutto (uso offline)</button>
         <button class="btn ghost" id="directorsOverlayBtn" title="Registi di cui possiedi già film: cosa ti manca della loro filmografia?">🎬 Registi da completare</button>
         <button class="btn ghost" id="fixCastBtn" title="Mette i protagonisti in cima al Cast principale dei film già salvati (i cast scritti a mano non vengono toccati)">🎭 Sistema il cast principale</button>
+        <button class="btn ghost" id="langBtn" data-no-tr></button>
         <button class="btn ghost" id="diagBtn" title="Stato dell'app, memoria ed errori recenti, con un rapporto da copiare">🩺 Diagnostica</button>
         <button class="btn ghost danger-btn" id="resetLibBtn" title="Cancella tutti i film e riparti da zero (prima scarica un backup di sicurezza)">🗑️ Azzera la libreria</button>
         <button class="btn ghost" id="installAppBtn" title="Aggiungi l'app alla schermata Home del telefono">📲 Installa sul telefono</button>
@@ -1647,6 +1648,390 @@ body:not(.tab-bacheca) .bacheca-only{display:none !important;}
 <div id="toast"></div>
 
 <script>
+/* =====================================================================
+   LINGUA — Italiano / English
+   Una sola app: la lingua si sceglie dal telefono (o in ⚙️ Strumenti) e si
+   ricorda. In inglese uno strato di traduzione traduce tutto ciò che l'app
+   mostra (anche ciò che compare dopo), senza toccare la logica; i DATI
+   (Wikidata, Wikipedia, titoli, date) vengono chiesti in inglese.
+   ===================================================================== */
+const LANG = (()=>{ try{ const s = localStorage.getItem('mpml_lang'); if(s === 'it' || s === 'en') return s; }catch(e){} return /^it\b/i.test(navigator.language || '') ? 'it' : 'en'; })();
+const LOCALE = LANG === 'en' ? 'en-GB' : 'it-IT';
+const WD_LANGS = LANG === 'en' ? 'en,it' : 'it,en';
+document.documentElement.lang = LANG;
+function setLang(l){ try{ localStorage.setItem('mpml_lang', l); }catch(e){} location.reload(); }
+const idxT = o => o ? (LANG === 'en' ? (o.en || o.it) : (o.it || o.en)) : o;
+const I18N_DICT = {
+// --- Navigazione, barra, schede ---
+'Bacheca':'Shelf','Persone':'People','Scopri':'Discover','Statistiche':'Statistics','Sezioni':'Sections',
+'Aggiungi film':'Add film','Aggiungi':'Add','Wishlist':'Wishlist','Scansiona':'Scan','Strumenti':'Tools','Filtri':'Filters',
+'Filtri e ordinamento':'Filters and sorting','Filtra':'Filter','Cerca':'Search','Chiudi':'Close','Annulla':'Cancel','Conferma':'Confirm',
+'Azzera':'Reset','Mostra':'Show','Salva scheda':'Save','Salvato':'Saved','Elimina film':'Delete film','Sì, elimina':'Yes, delete',
+'Eliminare definitivamente questo film?':'Permanently delete this film?','Nuovo Film':'New film','Vista lista':'List view','Lista':'List',
+'Watchlist stasera':'Tonight\'s watchlist','Cosa guardo?':'What should I watch?','Cosa guardo stasera?':'What should I watch tonight?','Rigira':'Spin again',
+'Pulisci filtri':'Clear filters','Chiudi filtri':'Close filters','Cerca titolo, regista, attore, tag':'Search title, director, actor, tag',
+'Titoli':'Titles','Titolo':'Title','TITOLO':'TITLE','Titolo A–Z':'Title A–Z','Titolo Z–A':'Title Z–A','Aggiunti di recente':'Recently added',
+'Voto IMDb':'IMDb rating','Voto personale':'Personal rating','Anno':'Year','Con locandina':'With poster',
+'Tutti i formati':'All formats','Tutte le custodie':'All cases','Tutti i tag':'All tags','Tutti i registi':'All directors','Tutti i cofanetti':'All box sets',
+'Tutti i decenni':'All decades','Visti e da vedere':'Watched and to watch','Tutti i formati A/V':'All A/V formats','Tutti':'All',
+'Da vedere':'To watch','Già visti':'Watched','Già visto':'Watched','Prestati':'Lent out','In collezione':'In collection','Wishlist (da comprare)':'Wishlist (to buy)',
+'Dolby Vision + Atmos':'Dolby Vision + Atmos','HDR (qualsiasi)':'HDR (any)','Audio immersivo':'Immersive audio','Dischi di riferimento':'Reference discs',
+'Digitale':'Digital','Digitale (Apple TV)':'Digital (Apple TV)','Digitale (altro)':'Digital (other)','Cofanetto':'Box set','Amaray':'Amaray','Slipcover':'Slipcover','Steelbook':'Steelbook',
+'Custodia':'Case','Formato':'Format','Stato':'Status','Genere':'Genre','Durata':'Runtime','Regista':'Director','Registi':'Directors','Trama':'Plot',
+'Cast principale':'Main cast','Codice a barre (EAN)':'Barcode (EAN)','Prezzo pagato (€)':'Price paid (€)','Prestato a':'Lent to','Data prestito':'Lent on',
+'N° film nel cofanetto':'No. of films in box set','Fa parte del cofanetto':'Part of box set','Tag / collezioni personalizzate':'Tags / custom collections',
+'Separati da virgola':'Comma-separated','Qualità Video':'Video quality','Qualità Audio':'Audio quality','Il tuo voto video':'Your video rating','Il tuo voto audio':'Your audio rating',
+'Disco di riferimento':'Reference disc','Sì, è un disco da demo':'Yes, it\'s a demo disc','URL Locandina':'Poster URL','URL Blu-ray.com (la tua edizione esatta)':'Blu-ray.com URL (your exact edition)',
+'Incolla qui il link della tua edizione':'Paste the link to your edition here','Titolo del film':'Film title','Il tuo disco':'Your disc','La tua copia':'Your copy','Il film':'The film',
+'Voti':'Ratings','Curiosità':'Trivia','Aneddoti, dietro le quinte':'Anecdotes, behind the scenes','Riconoscimenti':'Awards','Premi':'Awards',
+'Voto IMDb (0,00–10,00) — automatico dall\'indice offline, o dal link a sinistra':'IMDb rating (0.00–10.00) — automatic from the offline index, or from the link on the left',
+'Voto personale (1–10)':'Personal rating (1–10)','Voto personale da 1 a 10':'Personal rating from 1 to 10','Voto Metacritic':'Metacritic score',
+'Voto Rotten Tomatoes (critica)':'Rotten Tomatoes score (critics)','Voto Rotten Tomatoes (pubblico)':'Rotten Tomatoes score (audience)',
+'Voto critica RT (0–100%) — automatico':'RT critics score (0–100%) — automatic','Voto pubblico RT (0–100%) — automatico se trovato, altrimenti dal link qui a sinistra':'RT audience score (0–100%) — automatic if found, otherwise from the link on the left',
+'RT critica':'RT critics','RT pubblico':'RT audience','Meta':'Meta','Apri scheda su Rotten Tomatoes':'Open Rotten Tomatoes page','Arricchisci con Rotten Tomatoes':'Enrich with Rotten Tomatoes',
+'Cerca su Blu-ray.com':'Search on Blu-ray.com','Esporta .nfo (Plex/Jellyfin)':'Export .nfo (Plex/Jellyfin)','Esporta NFO per Plex/Jellyfin':'Export NFO for Plex/Jellyfin',
+'Cerca film':'Find film','Riprova dati completi':'Retry full details','Aggiorna da Wikidata':'Update from Wikidata','Aggiorna dietro le quinte':'Update behind the scenes',
+'Cerca il trailer su YouTube':'Search for the trailer on YouTube','Regia e cast: tocca un nome per la scheda completa':'Director and cast: tap a name for the full profile',
+'Tocca un nome per la scheda completa':'Tap a name for the full profile','Non c\'è? Cerca con un altro titolo':'Not here? Search with another title',
+'Quale di questi è il tuo?':'Which one is yours?','Scegli':'Choose','Aggiungi alla wishlist':'Add to wishlist','Ce l\'hai':'You own it','In wishlist':'In wishlist',
+'Mostra tutti i film di questo cofanetto':'Show all films in this box set','Mostra tutti i film di questo regista':'Show all films by this director',
+'es. 148 min':'e.g. 148 min','es. Animali Fantastici Trilogia (vuoto = film singolo)':'e.g. Fantastic Beasts Trilogy (empty = single film)','es. Dolby Atmos, DTS-HD':'e.g. Dolby Atmos, DTS-HD',
+'es. HDR10, Dolby Vision':'e.g. HDR10, Dolby Vision','es. Marco (vuoto = non prestato)':'e.g. Mark (empty = not lent)','es. Natale, Saga Marvel, Serata horror (separati da virgola)':'e.g. Christmas, Marvel saga, Horror night (comma-separated)',
+'es. Vincitore di 4 premi Oscar':'e.g. Winner of 4 Academy Awards','Il codice non ha una cifra di controllo valida (forse un errore di battitura)':'The code doesn\'t have a valid check digit (maybe a typo)',
+// --- Intestazione ---
+'TESSERA SOCIO · VIDEOCLUB APERTO H24':'MEMBERSHIP CARD · VIDEO STORE OPEN 24/7','Salta in sella e passa a noleggiare — dati automatici, zero abbonamenti':'Hop on and start renting — automatic data, zero subscriptions',
+'CARICAMENTO':'LOADING','titoli':'titles','Valore collezione':'Collection value','Film totali':'Total films','Voto medio':'Average rating',
+// --- Strumenti ---
+'Collega i film mancanti':'Link missing films','Importa CSV / Excel':'Import CSV / Excel','Esporta Excel':'Export Excel','Esporta CSV':'Export CSV','Backup':'Backup',
+'Ripristina backup':'Restore backup','Controlla libreria':'Check library','Serata demo':'Demo night','Precarica tutto (uso offline)':'Preload everything (offline use)',
+'Registi da completare':'Directors to complete','Sistema il cast principale':'Fix the main cast','Diagnostica':'Diagnostics','Azzera la libreria':'Reset library',
+'Installa sul telefono':'Install on phone','Installa l\'app':'Install the app','Interrompi il precaricamento':'Stop preloading','Interrompi':'Stop',
+'Importa da CSV o Excel (.xlsx/.xls). Trascinare il file sulla pagina funziona lo stesso':'Import from CSV or Excel (.xlsx/.xls). Dragging the file onto the page works too',
+'Scarica subito un file di sicurezza con tutta la libreria':'Download a safety file with the whole library now','Ripristina da un file di backup .json':'Restore from a .json backup file',
+'Controlla film senza poster, genere o anno, e titoli duplicati':'Check films without poster, genre or year, and duplicate titles',
+'Genera un file .nfo per film, leggibile da Plex/Jellyfin/Kodi — utile se possiedi anche copie digitali dei tuoi dischi':'Generate a .nfo file per film, readable by Plex/Jellyfin/Kodi — useful if you also own digital copies of your discs',
+'Genera un file .nfo con i metadati di questo film, leggibile da Plex/Jellyfin/Kodi':'Generate a .nfo file with this film\'s metadata, readable by Plex/Jellyfin/Kodi',
+'I dischi della tua collezione migliori per far vedere l\'impianto':'The best discs in your collection to show off your system',
+'Scarica una volta sola Dietro le quinte, correlati e schede di registi e attori ricorrenti: poi si aprono all\'istante, anche offline':'Download Behind the scenes, related films and recurring directors and actors once: then they open instantly, even offline',
+'Mette i protagonisti in cima al Cast principale dei film già salvati (i cast scritti a mano non vengono toccati)':'Puts the leads at the top of the Main cast of saved films (hand-written casts are not touched)',
+'Stato dell\'app, memoria ed errori recenti, con un rapporto da copiare':'App status, storage and recent errors, with a report to copy',
+'Cancella tutti i film e riparti da zero (prima scarica un backup di sicurezza)':'Delete all films and start from scratch (downloads a safety backup first)',
+'Collega a IMDb i film che non lo sono ancora: si sbloccano Dietro le quinte, schede persona e statistiche':'Link to IMDb the films that aren\'t yet: unlocks Behind the scenes, people profiles and statistics',
+'Registi di cui possiedi già film: cosa ti manca della loro filmografia?':'Directors you already own films by: what are you missing from their filmography?',
+'Arricchisci con Rotten Tomatoes':'Enrich with Rotten Tomatoes','Sceglie a caso tra i film attualmente visibili con i filtri impostati nella toolbar':'Picks at random among the films currently visible with the toolbar filters',
+'Salvataggio automatico attivo su questo browser (localStorage). Per spostare la libreria su un altro dispositivo: "Esporta CSV" o "💾 Backup" qui, poi "Importa" o "Ripristina backup" là':'Automatic saving active in this browser (localStorage). To move the library to another device: "Export CSV" or "💾 Backup" here, then "Import" or "Restore backup" there',
+'Come funziona il recupero dati (nessuna chiave richiesta)':'How data retrieval works (no key required)',
+'Ce l\'ho già? Scansiona il codice a barre':'Do I already own it? Scan the barcode','Scansiona codice a barre':'Scan barcode','Scansiona con la fotocamera':'Scan with the camera',
+// --- Scanner ---
+'Da foto':'From photo','Luce':'Light','oppure digitalo qui':'or type it here','Inquadra il codice sul retro della custodia':'Point at the code on the back of the case',
+'Il codice del film è l\'EAN stampato sulla custodia (quello sull\'etichetta del pacco Amazon è un codice interno del corriere). Riempi il riquadro con il codice, a 10–15 cm; da uno schermo alza la luminosità':'The film\'s code is the EAN printed on the case (the one on the Amazon parcel label is an internal courier code). Fill the frame with the code, 10–15 cm away; from a screen, turn up the brightness',
+'Fotocamera non disponibile su questo dispositivo. Tocca "🖼️ Da foto" o digita il codice qui sotto':'Camera not available on this device. Tap "🖼️ From photo" or type the code below',
+};
+
+Object.assign(I18N_DICT, {
+// --- Scheda film: dietro le quinte, correlati, accoglienza ---
+'Dietro le quinte':'Behind the scenes','Sceneggiatura':'Screenplay','Musiche':'Music','Fotografia':'Cinematography','Montaggio':'Editing','Costumi':'Costume design',
+'Scenografia':'Production design','Produzione':'Production','Paese':'Country','Lingua originale':'Original language','Tratto da':'Based on','Personaggi':'Characters',
+'Ambientato a':'Set in','Girato a':'Filmed in','Uscita':'Release','Età consigliata':'Age rating','Per tutti':'All ages','Capitolo prima':'Previous chapter','Capitolo dopo':'Next chapter',
+'Budget':'Budget','Box office':'Box office','Correlati':'Related','Consigliati':'Recommended','stessa saga, regista o opera d\'origine':'same saga, director or source work',
+'in base a questo film — che non hai ancora':'based on this film — that you don\'t own yet','Stessa saga':'Same saga','Stesso regista':'Same director','Stessa opera d\'origine':'Same source work',
+'Stesso sceneggiatore':'Same screenwriter','Stesso compositore':'Same composer','Generi simili':'Similar genres','1 attore in comune':'1 actor in common',
+'Accoglienza della critica':'Critical reception','Leggi l\'accoglienza':'Read the reception','Com\'è stato accolto il film dalla critica, dalla voce Wikipedia':'How critics received the film, from the Wikipedia article',
+'Leggi tutto su Wikipedia':'Read more on Wikipedia','Wikipedia non ha una sezione sull\'accoglienza della critica per questo film':'Wikipedia has no critical reception section for this film',
+'Abbinamento in base a genere, durata, anno e voti: può capitare un film un po\' fuori tono':'Matched by genre, runtime, year and ratings: a film may occasionally feel a bit off',
+'Riprova ora':'Retry now','Riprova':'Retry','Sei offline: i dettagli compariranno quando torni online':'You\'re offline: details will appear when you\'re back online',
+'Wikidata è occupato in questo momento':'Wikidata is busy right now','Wikidata non ha risposto nemmeno riprovando: è un rallentamento del loro servizio, non della tua connessione':'Wikidata didn\'t respond even after retrying: it\'s a slowdown on their side, not your connection',
+'Wikidata non ha ancora dettagli extra per questo film':'Wikidata has no extra details for this film yet',
+// --- Scheda persona ---
+'Chiudi scheda persona':'Close profile','Nome di nascita':'Birth name','Nazionalità':'Nationality','Altezza':'Height','Attività':'Active','Mestieri':'Occupations',
+'Coniuge':'Spouse','Coniugi':'Spouses','Leggi tutto':'Read more','Riduci':'Show less','Carriera in numeri':'Career in numbers','film in carriera':'films in career',
+'anni di film':'years of films','voto medio IMDb':'average IMDb rating','decennio più prolifico':'most prolific decade','I suoi film più amati':'Their most loved films',
+'voto IMDb, film con molti voti':'IMDb rating, films with many votes','Registi con cui ha lavorato di più':'Directors they worked with most',
+'Attori con cui ha recitato più spesso':'Actors they appeared with most','in tutta la carriera':'across their career','I suoi attori preferiti':'Their favourite actors',
+'nei film che ha diretto':'in the films they directed','Nella tua collezione':'In your collection','Spesso insieme a':'Often together with','nei tuoi film':'in your films',
+'Filmografia':'Filmography','Più famosi':'Most famous','Più recenti':'Most recent','Aggiorna':'Update','Aggiorno':'Updating',
+'Salvata sul dispositivo: si riscarica solo se lo chiedi (es. per film nuovi)':'Saved on the device: downloaded again only if you ask (e.g. for new films)',
+'Ancora nessun suo film nella tua collezione':'None of their films in your collection yet','Biografia disponibile solo in inglese su Wikipedia':'Biography available only in English on Wikipedia',
+'Nessun film trovato':'No films found',
+// --- Schede Persone / Scopri / Statistiche ---
+'Le persone della tua collezione':'The people in your collection','Cerca un regista o un attore':'Search for a director or an actor','Cerca persona':'Search person','Filtra':'Filter',
+'Le foto compaiono per le persone già aperte o precaricate (⚙️ Strumenti → ⚡ Precarica tutto)':'Photos appear for people already opened or preloaded (⚙️ Tools → ⚡ Preload everything)',
+'Nessuna persona con questo nome nella tua collezione':'No one with this name in your collection',
+'Che umore hai stasera?':'What\'s your mood tonight?','Adrenalina':'Adrenaline','Risate':'Laughs','Voglia di emozionarmi':'In the mood to be moved','Paura':'Fear',
+'Evadere dalla realtà':'Escape from reality','Mistero':'Mystery','Romantico':'Romance','In famiglia':'Family time','Epico':'Epic','Nostalgia anni 80':'80s nostalgia',
+'Serata breve':'Short evening','Solo capolavori':'Masterpieces only','Dalla tua collezione':'From your collection','Da scoprire':'To discover','Altri':'More',
+'film famosi e ben votati che non hai':'famous, well-rated films you don\'t own','Da vedere ':'To watch ','Già visto':'Watched',
+'Un film a caso tra quelli che hai, con un tocco':'A random film from your collection, in one tap','I dischi migliori per far vedere l\'impianto':'The best discs to show off your system',
+'I film che ti mancano dei tuoi registi':'The films you\'re missing from your directors','Collega a IMDb i film che non lo sono ancora':'Link to IMDb the films that aren\'t yet',
+'Anniversari dei tuoi film':'Your films\' anniversaries','Oggi':'Today','Accadde oggi':'On this day','In arrivo':'Coming up',
+'Statistiche della collezione':'Collection statistics','La tua collezione in numeri':'Your collection in numbers','film in collezione':'films in collection',
+'ancora da vedere':'still to watch','Il più premiato':'Most awarded','Il più visto al cinema':'Biggest box office','Il più vecchio e il più recente':'Oldest and newest',
+'I tuoi preferiti':'Your favourites','Da dove arrivano':'Where they come from','Il tuo film del cuore':'Your favourite film','Formati':'Formats','Formati premium':'Premium formats',
+'Per decennio':'By decade','Registi più presenti':'Most frequent directors','Generi più comuni':'Most common genres','Le tue star':'Your stars','Attori più presenti':'Most frequent actors',
+'Coppie d\'oro regista + attore':'Golden pairs director + actor','durata non nota':'unknown runtime',
+// --- Serata demo / registi / assistente ---
+'I dischi della tua collezione che fanno brillare di più l\'impianto: formati HDR e audio immersivo, i tuoi voti e i dischi che hai segnato come riferimento. Esclusi quelli in prestito e i digitali':'The discs in your collection that make your system shine the most: HDR formats and immersive audio, your ratings and the discs you marked as reference. Lent and digital ones excluded',
+'disco di riferimento per te':'reference disc for you','audio Dolby Atmos':'Dolby Atmos audio','audio immersivo':'immersive audio',
+'Registi di cui possiedi almeno 2 film, e il resto della loro filmografia che non hai ancora — calcolato dall\'indice IMDb offline, senza rete':'Directors you own at least 2 films by, and the rest of their filmography you don\'t own yet — computed from the offline IMDb index, no network',
+'Chiudi assistente':'Close assistant','Inizia':'Start','Salta':'Skip','È questo':'This one','Annulla ultimo':'Undo last','Cerca un altro titolo':'Search another title','Molto probabile':'Very likely',
+'Per ciascuno ti propongo il candidato più probabile dall\'indice offline: tu confermi con un tocco, oppure scegli un\'alternativa, cerchi a mano o salti. Puoi annullare l\'ultimo collegamento in qualsiasi momento':'For each one I suggest the most likely match from the offline index: you confirm with one tap, or choose an alternative, search manually or skip. You can undo the last link at any time',
+'Collegandoli si sbloccano':'Linking them unlocks',', schede persona più precise e statistiche complete':', more accurate people profiles and complete statistics',
+'che escludo (un cofanetto contiene più film, non corrisponde a un singolo titolo)':'which I exclude (a box set contains several films, it doesn\'t match a single title)',
+'non ancora collegati a IMDb, più':'not yet linked to IMDb, plus','Hai':'You have','Arricchimento in corso':'Enriching',
+// --- Diagnostica ---
+'versione dell\'app':'app version','con Dietro le quinte':'with Behind the scenes','filmografie in archivio':'archived filmographies','Dispositivo':'Device','Funzionamento':'Operation',
+'Dati':'Data','Memoria locale':'Local storage','Errori recenti':'Recent errors','Nessun errore registrato':'No errors recorded','Cancella errori':'Clear errors','Copia rapporto':'Copy report',
+'Il rapporto non contiene i tuoi film né dati personali: solo versione, dispositivo, numeri e messaggi d\'errore. Non viene inviato da nessuna parte: lo incolli tu dove serve':'The report contains neither your films nor personal data: only version, device, numbers and error messages. It is not sent anywhere: you paste it where needed',
+'Raccolgo le informazioni':'Collecting information','nessuno':'none','app installata':'installed app','nel browser':'in the browser','online':'online','offline':'offline',
+// --- Installazione ---
+'Aggiungi l\'app alla schermata Home':'Add the app to the Home screen','Aggiungi l\'app alla schermata Home del telefono':'Add the app to the phone\'s Home screen',
+'Aggiungi a schermata Home':'Add to Home screen','Installa app':'Install app','Cerca nel menu del browser una voce tipo':'Look in the browser menu for an item like',
+'Il nome cambia da browser a browser, ma il risultato è lo stesso: un\'icona che apre l\'app a schermo intero':'The name varies from browser to browser, but the result is the same: an icon that opens the app full screen',
+'o':'or',
+// --- Backup / libreria vuota ---
+'Scarica backup':'Download backup','Più tardi':'Later','Ripristina un backup':'Restore a backup',
+'La tua libreria è vuota: aggiungi il primo film, scansiona un disco con 📷, oppure riporta qui la tua collezione da un backup':'Your library is empty: add your first film, scan a disc with 📷, or bring your collection back from a backup',
+'Nessun film trovato con questi filtri: prova a modificarli o a pulirli':'No films match these filters: try changing or clearing them',
+});
+
+Object.assign(I18N_DICT, {
+// --- Messaggi ---
+'.nfo scaricato — mettilo nella stessa cartella del file video, con lo stesso nome':'.nfo downloaded — put it in the same folder as the video file, with the same name',
+'Analizzo la foto':'Analysing the photo','App installata ✓ la trovi sulla schermata Home':'App installed ✓ you\'ll find it on the Home screen','Arricchimento già in corso':'Enrichment already running',
+'Carico il motore di scansione':'Loading the scan engine','Codice a barre inserito ✓':'Barcode added ✓','Codice a barre precompilato — usa 🔎 Cerca film per riempire la scheda':'Barcode pre-filled — use 🔎 Find film to fill in the details',
+'Errore nella creazione dello zip, riprova':'Error creating the zip, try again','Errore nella lettura del file':'Error reading the file','File di backup non valido o danneggiato':'Invalid or damaged backup file',
+'Foto difficile: tolgo la grana e riprovo':'Difficult photo: removing grain and retrying','Il file non contiene film validi':'The file contains no valid films',
+'Inquadra il codice sul retro della custodia… (scanner nativo)':'Point at the code on the back of the case… (native scanner)','Inquadra il codice, fermo e ben illuminato… (scanner JS)':'Point at the code, steady and well lit… (JS scanner)',
+'Inserisci prima un titolo':'Enter a title first','Inserisci un codice':'Enter a code','La libreria è già vuota':'The library is already empty',
+'Nessun codice leggibile nella foto: riprova più da vicino, dritto e con più luce — o digita il codice qui sotto':'No readable code in the photo: try closer, straight and with more light — or type the code below',
+'Nessun film IMDb collegato: usa prima 🔎 Cerca film':'No IMDb film linked: use 🔎 Find film first','Nessun film collegato a IMDb':'No films linked to IMDb','Nessun film da esportare':'No films to export',
+'Nessun film in collezione da esportare':'No films in collection to export','Nessun film selezionato':'No film selected','Nessuna modifica: la libreria è intatta':'No changes: the library is intact',
+'Non riesco a leggere la foto, riprova':'I can\'t read the photo, try again','Ok, te lo ricordo tra una settimana':'OK, I\'ll remind you in a week','Per i backup .json usa il pulsante "Ripristina backup"':'For .json backups use the "Restore backup" button',
+'Scansione automatica non disponibile ora (motore non caricabile: controlla la connessione). Digita il codice qui sotto o usa "🖼️ Da foto"':'Automatic scanning not available now (engine couldn\'t load: check your connection). Type the code below or use "🖼️ From photo"',
+'Scheda salvata ✓':'Saved ✓','Seleziona e copia il testo qui sotto':'Select and copy the text below','Sistemazione del cast già in corso':'Cast fix already running','Tutti i film sono già arricchiti':'All films are already enriched',
+'Wikidata non ha risposto: riprova tra poco':'Wikidata didn\'t respond: try again shortly','È già nella tua libreria':'It\'s already in your library','Interrompo il precaricamento':'Stopping preload',
+'Libreria Excel non caricata: verifica la connessione e ricarica la pagina':'Excel library not loaded: check your connection and reload the page','Libreria zip non disponibile ora: verifica la connessione e riprova':'Zip library not available now: check your connection and try again',
+'Salvataggio non riuscito. I dati sono ancora in pagina: scarica SUBITO un backup':'Save failed. The data is still on the page: download a backup NOW',
+'Si è verificato un errore imprevisto. I tuoi dati sono al sicuro: se succede di nuovo, scarica un backup':'An unexpected error occurred. Your data is safe: if it happens again, download a backup',
+'Serve la connessione':'Connection required','Serve la connessione per aggiornare':'Connection required to update','Serve la connessione per precaricare':'Connection required to preload',
+'Libreria azzerata: si riparte da zero. Il backup di sicurezza è nei Download':'Library reset: starting from scratch. The safety backup is in Downloads',
+'Rapporto copiato: incollalo nella chat':'Report copied: paste it in the chat','Errori cancellati':'Errors cleared','Precaricamento già in corso':'Preload already running',
+'Dietro le quinte è già salvato per tutti i film collegati':'Behind the scenes is already saved for all linked films',
+'Precaricamento interrotto: quello già scaricato resta salvato. Rilancialo per riprendere':'Preload stopped: what was already downloaded stays saved. Run it again to resume',
+'Wikidata non ha risposto: riprova tra poco ':'Wikidata didn\'t respond: try again shortly ',
+});
+/* Generi: indice offline + etichette Wikidata più comuni */
+const I18N_GENRES = {
+'Drammatico':'Drama','Dramma':'Drama','Commedia':'Comedy','Romantico':'Romance','Sentimentale':'Romance','Crime':'Crime','Documentario':'Documentary','Azione':'Action','Thriller':'Thriller',
+'Avventura':'Adventure','Horror':'Horror','Giallo':'Mystery','Del mistero':'Mystery','Biografico':'Biography','Famiglia':'Family','Per famiglie':'Family','Per bambini':'Children\'s',
+'Fantasy':'Fantasy','Storico':'History','Fantascienza':'Sci-Fi','Animazione':'Animation','Musica':'Music','Guerra':'War','Cinema di guerra':'War','Western':'Western','Musical':'Musical',
+'Sport':'Sport','Sullo sport':'Sport','Noir':'Noir','Neo-noir':'Neo-noir','News':'News','Reality-TV':'Reality-TV','Talk-Show':'Talk-Show','Game-Show':'Game-Show',
+'Spionaggio':'Spy','Thriller d\'azione':'Action thriller','Docu-drama':'Docudrama','Catastrofico':'Disaster','Sopravvivenza':'Survival','Epico':'Epic','Fantascienza militare':'Military sci-fi',
+'Commedia d\'azione':'Action comedy','Commedia nera':'Black comedy','Satira politica':'Political satire','Supereroi':'Superhero','Distopico':'Dystopian','Ucronia':'Alternate history',
+'Commedia drammatica':'Comedy-drama','In costume':'Period','Western revisionista':'Revisionist western','Fantascienza d\'azione':'Action sci-fi','Thriller poliziesco':'Crime thriller',
+'Thriller psicologico':'Psychological thriller','Post apocalittico':'Post-apocalyptic','Carcerario':'Prison','Fantascienza hard':'Hard sci-fi','Melodramma':'Melodrama','Gangster':'Gangster',
+'Peplum':'Sword-and-sandal'
+};
+/* Ruoli, formati, custodie e parole ricorrenti nelle righe composte */
+const I18N_WORDS = { 'regia':'directing','sceneggiatura':'screenplay','musiche':'music','fotografia':'cinematography','produzione':'production','attore':'actor','attore/attrice':'actor/actress',
+  'Digitale':'Digital','Cofanetto':'Box set','di riferimento':'reference','premi':'awards','candidature':'nominations','vinti':'won' };
+
+/* Regole per le righe con numeri e nomi (la cattura viene ritradotta se serve) */
+const I18N_PATTERNS = [
+  [/^(\d{4}) · (\d+) min · (.+)$/, (m, y, r, g)=>`${y} · ${r} min · ${trGenres(g)}`],
+  [/^(\d{4}) · (\d+) min ·$/, (m, y, r)=>`${y} · ${r} min ·`],
+  [/^(\d{4}) · ([^·]+?) · ([^·]+?) ·?$/, (m, y, a, b)=>`${y} · ${trRoles(a)} · ${trGenres(b)}${m.trim().endsWith('·') ? ' ·' : ''}`],
+  [/^(\d{4}) · ((?:regia|sceneggiatura|musiche|fotografia|produzione|attore)(?:, (?:regia|sceneggiatura|musiche|fotografia|produzione|attore))*) ·?(.*)$/, (m, y, roles, rest)=>`${y} · ${trRoles(roles)} ·${rest}`],
+  [/^(\d{4}) · (.+)$/, (m, y, g)=>`${y} · ${trGenres(g)}`],
+  [/^(.+) su IMDb$/, (m, t)=>`${t} on IMDb`],
+  [/^Apri (.+)$/, (m, t)=>`Open ${t}`],
+  [/^(\d+) stelle su 10$/, (m, n)=>`${n} out of 10 stars`],
+  [/^(\d+) film · attore\/attrice$/, (m, n)=>`${n} film${n === '1' ? '' : 's'} · actor/actress`],
+  [/^(\d+) film · 🎬 regia$/, (m, n)=>`${n} film${n === '1' ? '' : 's'} · 🎬 director`],
+  [/^(\d+) film · 🎬 regia · attore$/, (m, n)=>`${n} film${n === '1' ? '' : 's'} · 🎬 director · actor`],
+  [/^Anni (\d)0' · (\d{4}s) \((\d+)\)$/, (m, d, s, n)=>`${s} (${n})`],
+  [/^Anni (\d\d)$/, (m, d)=>`${d}s`],
+  [/^(.+) — possiedi (\d+) di (\d+), mancano (\d+)$/, (m, p, a, b, c)=>`${p} — you own ${a} of ${b}, ${c} missing`],
+  [/^Di (.+) possiedi (\d+) di (\d+) film — mancano (\d+)$/, (m, p, a, b, c)=>`You own ${a} of ${b} films by ${p} — ${c} missing`],
+  [/^Incassi (.+)$/, (m, v)=>`Box office ${v}`],
+  [/^(\d+) cofanetti$/, (m, n)=>`${n} box sets`],
+  [/^(\d+) titoli$/, (m, n)=>`${n} titles`],
+  [/^(\d+) film$/, (m, n)=>`${n} film${n === '1' ? '' : 's'}`],
+  [/^(\d+) registi · (\d+) attori(.*)$/, (m, a, b, r)=>`${a} directors · ${b} actors${r.replace(/(\d+) trovati/, '$1 found')}`],
+  [/^ne possiedi (\d+) di (\d+)$/, (m, a, b)=>`you own ${a} of ${b}`],
+  [/^Mostra (\d+) film$/, (m, n)=>`Show ${n} films`],
+  [/^Mostra altri \((\d+)\)$/, (m, n)=>`Show more (${n})`],
+  [/^Mostra tutti \((\d+)\)$/, (m, n)=>`Show all (${n})`],
+  [/^(\d+) premi · (\d+) candidature · (\d+) Oscar$/, (m, a, b, c)=>`${a} awards · ${b} nominations · ${c} Oscar${c === '1' ? '' : 's'}`],
+  [/^(\d+) premi(?: · (\d+) candidature)?(?: · (\d+) Oscar)?$/, (m, a, b, c)=>`${a} awards${b ? ` · ${b} nominations` : ''}${c ? ` · ${c} Oscar${c === '1' ? '' : 's'}` : ''}`],
+  [/^· (\d+) premi · (\d+) Oscar$/, (m, a, c)=>`· ${a} awards · ${c} Oscar${c === '1' ? '' : 's'}`],
+  [/^(\d+) vinti ·$/, (m, a)=>`${a} won ·`],
+  [/^(\d+) candidature · 🏆 (\d+) Oscar$/, (m, b, c)=>`${b} nominations · 🏆 ${c} Oscar${c === '1' ? '' : 's'}`],
+  [/^candidature · 🏆 (\d+) Oscar$/, (m, c)=>`nominations · 🏆 ${c} Oscar${c === '1' ? '' : 's'}`],
+  [/^· ([\d.,]+k?) voti$/, (m, n)=>`· ${n} votes`],
+  [/^([\d,]+) giorni di fila$/, (m, n)=>`${n} days straight`],
+  [/^(.+) di circa (.+) \((\d+)%\) · collezione (.+) · schede persona (.+?)( · spazio totale del sito (.+) di (.+))?$/, (m, a, b, p, c, s, x, u, q)=>`${a} of about ${b} (${p}%) · collection ${c} · people profiles ${s}${x ? ` · total site storage ${u} of ${q}` : ''}`],
+  [/^Indice offline ([\d.,]+) titoli · (\d+) schede persona salvate$/, (m, n, p)=>`Offline index ${n} titles · ${p} people profiles saved`],
+  [/^Valutati (\d+) dischi su (\d+): più campi qualità e voti compili, più la scelta è precisa\.?$/, (m, a, b)=>`Rated ${a} discs out of ${b}: the more quality fields and ratings you fill in, the more accurate the choice.`],
+  [/^Premi, incassi e paesi sono calcolati sui film con "Dietro le quinte" salvato: ne mancano (\d+)\. Usa ⚙️ Strumenti → ⚡ Precarica tutto per completarli\.?$/, (m, n)=>`Awards, box office and countries are computed from films with "Behind the scenes" saved: ${n} are missing. Use ⚙️ Tools → ⚡ Preload everything to complete them.`],
+  [/^(\d+) film · prima quelli da vedere · esclusi i prestati$/, (m, n)=>`${n} films · unwatched first · lent ones excluded`],
+  [/^Durata nota per (\d+) titoli su (\d+) \(i cofanetti non hanno una durata unica\)\.?$/, (m, a, b)=>`Runtime known for ${a} of ${b} titles (box sets don't have a single runtime).`],
+  [/^Stai per cancellare TUTTI i tuoi (\d+) film, con voti, prestiti, wishlist e dettagli salvati\. Prima scarico un backup di sicurezza nei Download, così potrai sempre tornare indietro con "📤 Ripristina backup"\. Continuare\?$/, (m, n)=>`You're about to delete ALL your ${n} films, with ratings, loans, wishlist and saved details. First I'll download a safety backup to Downloads, so you can always go back with "📤 Restore backup". Continue?`],
+  [/^Ultima conferma: cancello davvero tutti i (\d+) film e riparto da zero\? Dall'app non si può annullare: solo ripristinando il backup appena scaricato\.$/, (m, n)=>`Final confirmation: really delete all ${n} films and start from scratch? It can't be undone in the app: only by restoring the backup just downloaded.`],
+  [/^Ripristinare (\d+) film da questo backup\? (.*)$/, (m, n)=>`Restore ${n} films from this backup? Films already present will be updated (by title) and missing ones added — no current film will be deleted.`],
+  [/^([★✝]) (.+?)(?:, (.+?))? · (a )?(\d+) anni$/, (m, s, dt, pl, a, n)=>`${s} ${dt}${pl ? ', ' + pl : ''} · ${a ? 'aged ' + n : 'age ' + n}`],
+  [/^([★✝]) (.+?), (.+)$/, (m, s, dt, pl)=>`${s} ${dt}, ${pl}`],
+  [/^è uscito (\d+) anni fa$/, (m, n)=>`came out ${n} years ago`],
+  [/^(.+) è uscito (\d+) anni fa$/, (m, t, n)=>`${t} came out ${n} years ago`],
+  [/^Oggi compie (\d+) anni$/, (m, n)=>`Turns ${n} today`],
+  [/^· tra (\d+) (giorno|giorni) compie (\d+) anni$/, (m, d, g, n)=>`· turns ${n} in ${d} day${d === '1' ? '' : 's'}`],
+  [/^Tra (\d+) (giorno|giorni)$/, (m, d)=>`In ${d} day${d === '1' ? '' : 's'}`],
+  [/^(compie|è uscito) (\d+) anni( fa)?$/, (m, v, n, f)=>f ? `came out ${n} years ago` : `turns ${n}`],
+  [/^tra (\d+) (giorno|giorni)$/, (m, d)=>`in ${d} day${d === '1' ? '' : 's'}`],
+  [/^Film (\d+) di (\d+) · (\d+) collegati(?: · (\d+) saltati)?$/, (m, a, b, c, d)=>`Film ${a} of ${b} · ${c} linked${d ? ` · ${d} skipped` : ''}`],
+  [/^· per te (\d+), per IMDb ([\d,.]+): lo ami più di tutti$/, (m, a, b)=>`· ${a} for you, ${b} on IMDb: you love it most`],
+  [/^×([\d,.]+) il budget$/, (m, n)=>`×${n} the budget`],
+  [/^· (.+) · in tutto la tua collezione ha incassato (.+)$/, (m, a, b)=>`· ${a} · in total your collection grossed ${b}`],
+  [/^gli anni (\d\d) \((\d+) film\)(?: · il genere (.+) \((\d+)\))?$/, (m, d, n, g, k)=>`the ${d}s (${n} films)${g ? ` · ${trGenres(g)} (${k})` : ''}`],
+  [/^Critica (\d+%)$/, (m, p)=>`Critics ${p}`],
+  [/^Età consigliata \((.+)\)$/, (m, s)=>`Age rating (${s})`],
+  [/^(\d+) di (\d+)$/, (m, a, b)=>`${a} of ${b}`],
+  [/^(\d+)\+$/, (m, a)=>`${a}+`],
+  [/^Analizzo la foto… tentativo (\d+) di (\d+)$/, (m, a, b)=>`Analysing the photo… attempt ${a} of ${b}`],
+  [/^Backup scaricato ✓ \((\d+) film\)$/, (m, n)=>`Backup downloaded ✓ (${n} films)`],
+  [/^Filmografia aggiornata ✓ \((\d+) film\)$/, (m, n)=>`Filmography updated ✓ (${n} films)`],
+  [/^Letto (\d+) — confermo con una seconda lettura…$/, (m, c)=>`Read ${c} — confirming with a second read…`],
+  [/^Codice (\d+) non trovato nella libreria: (.*)$/, (m, c)=>`Code ${c} not found in the library: you don't own this title. Add it now? (In the details you can choose "Wishlist" if it's just a purchase reminder)`],
+  [/^⚡ Fase (\d)\/4 · ([^:]+): (\d+) di (\d+)(.*)$/, (m, p, l, a, b, r)=>`⚡ Step ${p}/4 · ${tr(l)}: ${a} of ${b}${r}`],
+  [/^🎞️ Dietro le quinte: (\d+) di (\d+)(.*)$/, (m, a, b, r)=>`🎞️ Behind the scenes: ${a} of ${b}${r}`],
+  [/^🎭 Cast principale: (\d+) di (\d+)(.*)$/, (m, a, b, r)=>`🎭 Main cast: ${a} of ${b}${r}`],
+  [/^✓ Cast sistemato in (\d+) film(.*)$/, (m, n, r)=>`✓ Cast fixed in ${n} films${r.replace(/(\d+) scritti a mano lasciati com'erano/, '$1 hand-written left as they were').replace(/(\d+) non disponibili ora/, '$1 not available now')}`],
+  [/^✓ Precaricamento completato(.*): ora tutto si apre all'istante, anche offline$/, (m, r)=>`✓ Preload complete${r.replace(/(\d+) elementi non disponibili ora \(rilancialo più tardi\)/, '$1 items not available now (run it again later)')}: now everything opens instantly, even offline`],
+  [/^✓ Precaricati (\d+) film(.*)$/, (m, n, r)=>`✓ Preloaded ${n} films${r.replace(/(\d+) non disponibili ora/, '$1 not available now')}`],
+  [/^"(.+)" è già in libreria\. Aggiungerlo comunque come seconda copia\?$/, (m, t)=>`"${t}" is already in the library. Add it anyway as a second copy?`],
+  [/^"(.+)" è già collegato a "(.+)" nella tua libreria\. Collegarlo anche a questo disco\?$/, (m, a, b)=>`"${a}" is already linked to "${b}" in your library. Link it to this disc too?`],
+  [/^⚠️ Attenzione: questo codice è già assegnato a "(.+)"$/, (m, t)=>`⚠️ Warning: this code is already assigned to "${t}"`],
+  [/^Ultimo backup: (\d+) giorni fa$/, (m, n)=>`Last backup: ${n} days ago`],
+  [/^· da allora hai aggiunto (\d+) film\.?(.*)$/, (m, n)=>` · since then you've added ${n} films. If your phone breaks or you clear browser data, you can only recover everything from a copy.`],
+  [/^(\d+) di (\d+) · (.+)$/, (m, a, b, t)=>`${a} of ${b} · ${t}`],
+];
+
+Object.assign(I18N_DICT, {
+'Apri scheda':'Open details','Apri scheda completa su IMDb':'Open full page on IMDb',
+'Offline: — (serve la versione su GitHub)':'Offline: — (needs the GitHub version)','Offline: ✓ attivo':'Offline: ✓ active',
+'Archivio: ripiego localStorage':'Archive: localStorage fallback','Archivio: ✓ IndexedDB':'Archive: ✓ IndexedDB',
+'Memoria protetta: n/d':'Protected storage: n/a','Memoria protetta: ✓ sì':'Protected storage: ✓ yes','Memoria protetta: no':'Protected storage: no',
+'Nessuna chiave o registrazione richiesta, in nessun caso. Locandina, anno, trama, genere, regista, cast e tag arrivano da Wikidata/Wikipedia (infrastruttura ufficiale Wikimedia, stabile e gratuita); quando disponibile, arriva anche il voto della critica di Rotten Tomatoes (Tomatometer) e quello di Metacritic. Il voto del pubblico di Rotten Tomatoes (Popcornmeter) e il voto IMDb restano manuali — non sono ridistribuibili liberamente — ma con il link diretto qui sopra li trovi e li copi in pochi secondi. 🍅 rosso = "Fresh" (60% o più), 🟢 splat verde = "Rotten" (sotto 60%), come sul sito originale. Trama e cast possono arrivare in inglese se la voce italiana non esiste: modificali pure a mano. Curiosità e tag restano un recupero "best effort"':
+ 'No key or registration required, ever. Poster, year, plot, genre, director, cast and tags come from Wikidata/Wikipedia (official Wikimedia infrastructure, stable and free); when available, the Rotten Tomatoes critics score (Tomatometer) and the Metacritic score arrive too. The Rotten Tomatoes audience score (Popcornmeter) and the IMDb rating stay manual — they can\'t be freely redistributed — but with the direct link above you find and copy them in seconds. 🍅 red = "Fresh" (60% or more), 🟢 green splat = "Rotten" (below 60%), as on the original site. Plot and cast may arrive in another language if the English article doesn\'t exist: feel free to edit them. Trivia and tags remain a "best effort" retrieval',
+'Nota: il voto critica (Tomatometer) arriva quasi sempre da Wikidata, in automatico e senza problemi. Il voto pubblico (Popcornmeter) invece è un "tentativo": l\'app prova ad aprire la pagina esatta su Rotten Tomatoes e leggerlo da lì, ma il sito a volte blocca queste richieste automatiche — quindi capita che non arrivi. Se resta vuoto, inseriscilo pure a mano dal link qui a sinistra: non è un errore dell\'app, è un limite del sito d\'origine':
+ 'Note: the critics score (Tomatometer) almost always comes from Wikidata, automatically and without problems. The audience score (Popcornmeter) instead is an "attempt": the app tries to open the exact Rotten Tomatoes page and read it from there, but the site sometimes blocks these automatic requests — so it may not arrive. If it stays empty, enter it by hand from the link on the left: it\'s not an app error, it\'s a limit of the source site',
+});
+I18N_PATTERNS.unshift([/^Da Wikipedia (in italiano|in inglese) · sezione “(.+)” · testo con licenza CC BY-SA ·?$/, (m, l, sec)=>`From ${l === 'in italiano' ? 'Italian' : 'English'} Wikipedia · section “${sec}” · text licensed CC BY-SA ·`]);
+Object.assign(I18N_DICT, {
+'Nota su Blu-ray.com: quel sito blocca esplicitamente l\'accesso automatico nel suo robots.txt, quindi l\'app non ci prova nemmeno — sarebbe una violazione delle loro regole. Il pulsante apre una ricerca per titolo: trova tu la pagina della TUA edizione esatta (steelbook, 4K, ecc.) e incollane il link nel campo qui sopra, così resta salvato e un tap la riapre sempre':
+ 'Note on Blu-ray.com: that site explicitly blocks automated access in its robots.txt, so the app doesn\'t even try — it would break their rules. The button opens a title search: find the page for YOUR exact edition (steelbook, 4K, etc.) and paste its link in the field above, so it stays saved and one tap always reopens it',
+});
+const _trCache = new Map();
+// voci che finiscono con "?" "!" "." valgono anche senza (la punteggiatura viene rimessa dopo)
+for(const k of Object.keys(I18N_DICT)){ const b = k.replace(/[?!.…]+$/, ''); if(b !== k && !Object.prototype.hasOwnProperty.call(I18N_DICT, b)) I18N_DICT[b] = I18N_DICT[k].replace(/[?!.…]+$/, ''); }
+function enNum(s){ return String(s).replace(/(\d),(\d{1,2})(?!\d)/g, '$1\u0001$2').replace(/(\d)\.(\d{3})(?!\d)/g, '$1,$2').replace(/\u0001/g, '.'); }
+function trGenres(g){ return String(g).split(/,\s*/).map(x=>{ const k = x.trim(), K = k.charAt(0).toUpperCase() + k.slice(1); return I18N_GENRES[k] || I18N_GENRES[K] || k; }).join(', '); }
+function trRoles(r){ return String(r).split(/,\s*/).map(x=>I18N_WORDS[x.trim()] || trGenres(x.trim())).join(', '); }
+const TR_SPLIT = /^([\s\p{Extended_Pictographic}\u200d\ufe0f+↩↻⏹✕✓✨⭐★✝ℹ…↗·—–\-"“«(\[]*)([\s\S]*?)([\s…→▾▴↗▶◀:.,;!?—–\-"”»]*)$/u;
+function trDict(t){
+  if(Object.prototype.hasOwnProperty.call(I18N_DICT, t)) return I18N_DICT[t];
+  if(I18N_GENRES[t]) return I18N_GENRES[t];
+  if(Object.prototype.hasOwnProperty.call(I18N_WORDS, t)) return I18N_WORDS[t];
+  return null;
+}
+function trPat(t){ for(const [re, fn] of I18N_PATTERNS){ const m = t.match(re); if(m) return fn(...m); } return null; }
+/* Ordine: dizionario (intero → senza punteggiatura finale → senza prefissi), poi regole */
+function trCore(t){
+  let r = trDict(t); if(r !== null) return r;
+  const p = t.match(/^([\s\S]*?)([.!?…:]+)$/); if(p){ r = trDict(p[1]); if(r !== null) return r + p[2]; }
+  const m = t.match(TR_SPLIT);
+  if(m && m[2] && (m[1] || m[3])){ r = trDict(m[2]); if(r !== null) return m[1] + r + m[3]; }
+  r = trPat(t); if(r !== null) return r;
+  if(m && m[2] && (m[1] || m[3])){ r = trPat(m[2]); if(r !== null) return m[1] + r + m[3]; }
+  return null;
+}
+function tr(s){
+  if(LANG !== 'en' || s == null) return s;
+  const str = String(s), t0 = str.trim();
+  if(!t0 || !/[a-zàèéìòù]/i.test(t0)) return str;
+  const t = t0.replace(/\s+/g, ' ');   // gli a capo del codice HTML non devono impedire la traduzione
+  let out;
+  if(_trCache.has(t)) out = _trCache.get(t);
+  else {
+    out = trCore(t);
+    if(out === null && t.includes(' · ')){ let ch = false; const ps = t.split(' · ').map(p=>{ const r = tr(p); if(r !== p) ch = true; return r; }); if(ch) out = ps.join(' · '); }
+    if(out === null && /^[^,·]+(,\s*[^,·]+)+$/.test(t)){
+      // elenco di generi: solo se almeno una parte È un genere, e con i separatori originali (mai "85,973" → "85, 973")
+      const bits = t.split(/(,\s*)/); let hit = false;
+      const tb = bits.map((b, i)=>{ if(i % 2) return b; const k = b.trim(), K = k.charAt(0).toUpperCase() + k.slice(1), g = I18N_GENRES[k] || I18N_GENRES[K]; if(g){ hit = true; return b.replace(k, g); } return b; });
+      if(hit) out = tb.join('');
+    }
+    if(out !== null) out = enNum(out);
+    _trCache.set(t, out);
+  }
+  return out === null ? str : str.replace(t0, out);
+}
+const TR_ATTRS = ['placeholder', 'title', 'aria-label'];
+function trTextNode(n){ const p = n.parentNode; if(!p || /^(SCRIPT|STYLE|TEXTAREA)$/.test(p.nodeName) || (p.closest && p.closest('[data-no-tr]'))) return; const v = n.nodeValue, r = tr(v); if(r !== v) n.nodeValue = r; }
+function trAttrs(el){ for(const a of TR_ATTRS){ if(el.hasAttribute(a)){ const v = el.getAttribute(a), r = tr(v); if(r !== v) el.setAttribute(a, r); } } }
+function trTree(root){
+  if(root.nodeType === 3){ trTextNode(root); return; }
+  if(root.nodeType !== 1 || /^(SCRIPT|STYLE|TEXTAREA)$/.test(root.nodeName) || (root.closest && root.closest('[data-no-tr]'))) return;
+  trAttrs(root);
+  const tw = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  let c; while((c = tw.nextNode())){ if(c.nodeType === 3) trTextNode(c); else if(!/^(SCRIPT|STYLE)$/.test(c.nodeName)) trAttrs(c); }
+}
+if(LANG === 'en'){
+  trTree(document.body); document.title = tr(document.title);
+  new MutationObserver(muts=>{
+    for(const m of muts){
+      if(m.type === 'childList') m.addedNodes.forEach(trTree);
+      else if(m.type === 'characterData') trTextNode(m.target);
+      else if(m.type === 'attributes' && m.target.nodeType === 1){ const v = m.target.getAttribute(m.attributeName); const r = tr(v); if(r !== v) m.target.setAttribute(m.attributeName, r); }
+    }
+  }).observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: TR_ATTRS });
+}
+/* Generi inglesi (Wikidata in inglese) riconosciuti dagli stati d'animo */
+const GENRE_SYN = [[/action/,'azione'],[/comedy|comic/,'commedia'],[/drama/,'drammatico'],[/romance|romantic/,'romantico'],[/science fiction|sci fi/,'fantascienza'],
+  [/adventure/,'avventura'],[/mystery/,'mistero'],[/crime|heist|gangster/,'crime'],[/famil|children/,'famiglia'],[/animat/,'animazione'],[/\bwar\b/,'guerra'],
+  [/documentar/,'documentario'],[/biograph/,'biografico'],[/histor|period/,'storico'],[/superhero/,'supereroi'],[/dystop/,'distopico'],[/post apocalyptic/,'post apocalittico'],
+  [/epic/,'epico'],[/spy/,'spionaggio'],[/suspense/,'suspense'],[/noir/,'noir']];
+function genreSyn(g){ const extra = GENRE_SYN.filter(([re])=>re.test(g)).map(([, it])=>it); return extra.length ? g + ' ' + extra.join(' ') : g; }
+/* CSV: colonne in inglese quando l'app è in inglese; l'import accetta entrambe */
+const CSV_EN = { 'titolo':'title','formato':'format','custodia':'case','numero film':'films in box set','cofanetto':'box set','anno':'year','durata':'runtime','regista':'director',
+  'genere':'genre','cast':'cast','voto personale':'personal rating','voto imdb':'imdb rating','voti imdb':'imdb votes','voto rotten tomatoes critica':'rotten tomatoes critics',
+  'voto rotten tomatoes pubblico':'rotten tomatoes audience','voto metacritic':'metacritic','qualita video':'video quality','qualita audio':'audio quality','voto video':'video rating',
+  'voto audio':'audio rating','disco di riferimento':'reference disc','trama':'plot','riconoscimenti':'awards','curiosita':'trivia','locandina':'poster','link imdb':'imdb link',
+  'link rotten tomatoes':'rotten tomatoes link','link blu-ray.com':'blu-ray.com link','lista':'list','codice a barre':'barcode','prezzo pagato':'price paid','prestato a':'lent to',
+  'prestato il':'lent on','aggiunto il':'added on','tag':'tags','stato':'status' };
+const CSV_IT = Object.fromEntries(Object.entries(CSV_EN).map(([a, b])=>[b, a]));
+function csvToItalian(obj){ const o = {}; Object.keys(obj || {}).forEach(k=>{ const n = String(k).trim().toLowerCase(); o[CSV_IT[n] || k] = obj[k]; }); return o; }
+
+function installInstructionsHTML_EN(p){
+  const S = 'style="color:var(--cream);"';
+  const steps = {
+    'ios-safari': `<p><strong ${S}>On iPhone/iPad (Safari):</strong></p><ol style="padding-left:20px; margin:8px 0;">
+      <li>Tap the <strong>Share</strong> button ⬆️ at the bottom</li><li>Scroll and choose <strong>"Add to Home Screen"</strong></li>
+      <li>Keep <strong>"Open as Web App"</strong> on and confirm with <strong>"Add"</strong></li></ol>
+      <p style="font-size:13px;">The icon will appear on the Home screen and open the app full screen, like the others.</p>
+      <p style="font-size:13px;"><strong ${S}>Important on iPhone:</strong> the installed app has storage <strong>separate</strong> from Safari. After opening it from the Home screen, use <strong>📤 Restore a backup</strong> inside it to bring your collection.</p>`,
+    'ios-other': `<p><strong ${S}>On iPhone/iPad:</strong> open this page in <strong>Safari</strong> (or Chrome on iOS 16.4+), then Share ⬆️ → <strong>"Add to Home Screen"</strong>.</p>`,
+    'android-chrome': `<p><strong ${S}>On Android (Chrome):</strong></p><ol style="padding-left:20px; margin:8px 0;">
+      <li>Tap the menu <strong>⋮</strong> at the top right</li><li>Choose <strong>"Install app"</strong> (or "Add to Home screen")</li><li>Confirm</li></ol>
+      <p style="font-size:13px;">It becomes a real app: you'll also find it in the app list, and it opens full screen.</p>`,
+    'android-samsung': `<p><strong ${S}>On Samsung Internet:</strong> menu <strong>☰</strong> → <strong>"Add page to"</strong> → <strong>"Home screen"</strong>.</p>`,
+    'desktop-chrome': `<p><strong ${S}>On a computer (Chrome/Edge):</strong> click the install icon in the address bar, or menu ⋮ → <strong>"Install My Physical Movie Library"</strong>.</p>`,
+    'other': `<p>Look in the browser menu for an item like <strong>"Add to Home screen"</strong> or <strong>"Install app"</strong>. The name varies from browser to browser, but the result is the same: an icon that opens the app full screen.</p>`
+  };
+  const note = location.protocol === 'https:' ? '' : `<p style="font-size:12.5px; color:var(--dim2); margin-top:14px; padding-top:12px; border-top:1px solid var(--line);">⚠️ You're opening the app <strong>from a file</strong>: this way the phone can only create a <strong>shortcut</strong> on the Home screen, not an installed app. To really install it (with offline use and live camera) open the <strong>https</strong> address of your page (e.g. GitHub Pages) and repeat from there.</p>`;
+  return (steps[p] || steps.other) + note;
+}
+
 const STORAGE_KEY = 'app-data';
 let state = { movies: [] };
 let currentId = null;
@@ -1890,7 +2275,7 @@ function downloadBackupNow(){
    Wikidata non conosce per quel film) NON viene toccato. */
 async function fetchCastByFame(imdbId){
   if(!isTt(imdbId)) return [];
-  const rows = await wdSparql(`SELECT ?vLabel (MAX(?s) AS ?sl) WHERE { ?film wdt:P345 "${imdbId}"; wdt:P161 ?v. OPTIONAL { ?v wikibase:sitelinks ?s } SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". } } GROUP BY ?vLabel ORDER BY DESC(?sl) LIMIT 200`, 12000, 'low');
+  const rows = await wdSparql(`SELECT ?vLabel (MAX(?s) AS ?sl) WHERE { ?film wdt:P345 "${imdbId}"; wdt:P161 ?v. OPTIONAL { ?v wikibase:sitelinks ?s } SERVICE wikibase:label { bd:serviceParam wikibase:language "${WD_LANGS}". } } GROUP BY ?vLabel ORDER BY DESC(?sl) LIMIT 200`, 12000, 'low');
   return rows.map(r=>r.vLabel && r.vLabel.value).filter(n=>n && !/^Q\d+$/.test(n));
 }
 let _castFixRunning = false;
@@ -2100,6 +2485,7 @@ function detectPlatform(){
 }
 function installInstructionsHTML(){
   const p = detectPlatform();
+  if(LANG === 'en') return installInstructionsHTML_EN(p);
   const steps = {
     'ios-safari': `<p><strong style="color:var(--cream);">Su iPhone/iPad (Safari):</strong></p>
       <ol style="padding-left:20px; margin:8px 0;">
@@ -2193,7 +2579,7 @@ async function openDirectorsOverlay(){
       <div class="director-gaps-list" id="${elencoId}" style="display:none;">
         ${d.mancanti.slice(0,20).map(x=>`
           <div class="director-gaps-item" data-id="${escapeHtml(x.id)}">
-            <span class="dgi-title">${escapeHtml(x.it || x.en)}${x.y?` <span class="dgi-year">(${x.y})</span>`:''}</span>
+            <span class="dgi-title">${escapeHtml(idxT(x))}${x.y?` <span class="dgi-year">(${x.y})</span>`:''}</span>
             <button type="button" class="btn ghost dgi-add" data-id="${escapeHtml(x.id)}">+ Wishlist</button>
           </div>`).join('')}
       </div>
@@ -2538,7 +2924,7 @@ async function ensurePeopleQids(m, prio){
   if(!m || !isTt(m.imdbId) || (m.pq && m.pq.t === m.imdbId)) return;
   const session = _modalSession;
   try{
-    const rows = await wdSparql(`SELECT ?v ?vLabel WHERE { ?film wdt:P345 "${m.imdbId}". { ?film wdt:P57 ?v } UNION { ?film wdt:P161 ?v } SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". } } LIMIT 150`, 9000, prio);
+    const rows = await wdSparql(`SELECT ?v ?vLabel WHERE { ?film wdt:P345 "${m.imdbId}". { ?film wdt:P57 ?v } UNION { ?film wdt:P161 ?v } SERVICE wikibase:label { bd:serviceParam wikibase:language "${WD_LANGS}". } } LIMIT 150`, 9000, prio);
     const map = {};
     rows.forEach(r=>{ const q = qidOf(r.v && r.v.value), l = r.vLabel && r.vLabel.value; if(isQid(q) && l && !/^Q\d+$/.test(l)) map[normKey(l)] = q; });
     const sm = state.movies.find(x=>x.id === m.id);
@@ -2553,8 +2939,8 @@ const UNIT_SYMBOL = {Q4917:'$', Q4916:'€', Q25224:'£', Q8146:'¥', Q41044:'�
 function fmtMoney(amount, unitQ){
   const n = Math.abs(parseFloat(amount)); if(!isFinite(n) || !n) return '';
   let txt;
-  try{ txt = new Intl.NumberFormat('it-IT', {notation:'compact', maximumFractionDigits:1}).format(n); }
-  catch(e){ txt = Math.round(n).toLocaleString('it-IT'); }
+  try{ txt = new Intl.NumberFormat(LOCALE, {notation:'compact', maximumFractionDigits:1}).format(n); }
+  catch(e){ txt = Math.round(n).toLocaleString(LOCALE); }
   const sym = UNIT_SYMBOL[unitQ] || '';
   if(!sym) return txt;
   return sym === '€' ? txt + ' €' : sym + ' ' + txt;
@@ -2568,7 +2954,7 @@ async function fetchBehindScenes(imdbId, prio){
   const q = body => `SELECT ?k ?v ?vLabel ?vImdb ?amount ?unit ?date WHERE {
   ?film wdt:P345 "${imdbId}".
   ${body}
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "${WD_LANGS}". }
 } LIMIT 300`;
   const parts = {
     autori: q(`${rel('P58','sceneggiatura')} UNION ${rel('P86','musiche')} UNION ${rel('P344','fotografia')} UNION ${rel('P1040','montaggio')}
@@ -2625,7 +3011,7 @@ const BS_LABELS = [['sceneggiatura','Sceneggiatura'],['musiche','Musiche'],['fot
 const BS_PERSON_KEYS = new Set(['sceneggiatura','musiche','fotografia','montaggio','costumi','scenografia']);
 function sagaItemHTML(it){
   const entry = it.t ? imdbEntry(it.t) : null;
-  const title = entry ? (entry.it || entry.en) : it.l;
+  const title = entry ? (idxT(entry)) : it.l;
   let status = '';
   if(it.t && ownedImdbIds().has(it.t)) status = '<span class="owned-tag">✓ Ce l\'hai</span>';
   else if(it.t && wishlistImdbIds().has(it.t)) status = '<span class="wish-tag">💭 In wishlist</span>';
@@ -2989,7 +3375,7 @@ async function fetchPersonData(qid, onUpdate, prio){
       OPTIONAL{?aIt schema:about ?p; schema:isPartOf <https://it.wikipedia.org/>}
       OPTIONAL{?aEn schema:about ?p; schema:isPartOf <https://en.wikipedia.org/>}
       OPTIONAL{?p schema:description ?desc FILTER(LANG(?desc)="it")}
-      SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". }
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "${WD_LANGS}". }
     } LIMIT 1`, 9000, prio).then(async det=>{
     const d = det[0] || {};
     const v = k => (d[k] && d[k].value) || '';
@@ -3002,7 +3388,7 @@ async function fetchPersonData(qid, onUpdate, prio){
       birthName: v('birthName'), height: (h > 0.5 && h < 2.6) ? h : 0, activeFrom: year(v('ws')), activeTo: year(v('we'))
     });
     done('anagrafica', true);
-    const art = data.aIt || data.aEn, lang = data.aIt ? 'it' : 'en';
+    const art = LANG === 'en' ? (data.aEn || data.aIt) : (data.aIt || data.aEn), lang = (art && art === data.aEn) ? 'en' : 'it';
     if(art){
       try{
         const title = decodeURIComponent(art.split('/wiki/')[1] || '');
@@ -3024,7 +3410,7 @@ async function fetchPersonData(qid, onUpdate, prio){
       { ?p wdt:P166 ?v. BIND("premio" AS ?k) } UNION { ?p wdt:P1411 ?v. BIND("candidatura" AS ?k) }
       UNION { ?p wdt:P27 ?v. BIND("paese" AS ?k) } UNION { ?p wdt:P26 ?v. BIND("coniuge" AS ?k) }
       UNION { ?p wdt:P106 ?v. BIND("mestiere" AS ?k) }
-      SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". } } LIMIT 300`, 9000, prio).then(multi=>{
+      SERVICE wikibase:label { bd:serviceParam wikibase:language "${WD_LANGS}". } } LIMIT 300`, 9000, prio).then(multi=>{
     const bag = { premio:[], candidatura:[], paese:[], coniuge:[], mestiere:[] };
     multi.forEach(r=>{
       const k = r.k && r.k.value, l = r.vLabel && r.vLabel.value;
@@ -3071,7 +3457,7 @@ async function fetchPersonData(qid, onUpdate, prio){
 }
 function fmtWdDate(v){
   const m = String(v||'').match(/^(-?\d{1,4})-(\d{2})-(\d{2})/); if(!m) return '';
-  try{ return new Date(Date.UTC(+m[1], +m[2]-1, +m[3])).toLocaleDateString('it-IT', {day:'numeric', month:'long', year:'numeric', timeZone:'UTC'}); }
+  try{ return new Date(Date.UTC(+m[1], +m[2]-1, +m[3])).toLocaleDateString(LOCALE, {day:'numeric', month:'long', year:'numeric', timeZone:'UTC'}); }
   catch(e){ return `${m[3]}/${m[2]}/${m[1]}`; }
 }
 function ageBetween(b, d){
@@ -3213,7 +3599,7 @@ function renderPerson(){
     ];
     html += `<div class="person-sec"><h3>📊 Carriera in numeri</h3><div class="pstat-grid">${tiles.map(([b,s])=>`<div class="pstat"><b>${escapeHtml(b)}</b><small>${escapeHtml(s)}</small></div>`).join('')}</div>
       ${k.genres.length ? `<div class="people-chips" style="margin:12px 0 0">${k.genres.map(g=>`<span class="person-chip" style="cursor:default">🎭 ${escapeHtml(g.g)} <b>${g.n}</b></span>`).join('')}</div>` : ''}</div>`;
-    if(k.top.length) html += `<div class="person-sec"><h3>⭐ I suoi film più amati <small>voto IMDb, film con molti voti</small></h3>${k.top.map(f=>`<div class="filmo-row"><div class="filmo-main"><div class="filmo-title">${escapeHtml(f.e.it || f.e.en)}</div><div class="filmo-meta">${escapeHtml(f.e.y || '—')} · <span class="r">★ ${escapeHtml(String(f.e.rt))}</span></div></div>${filmoStatus(f.e)}</div>`).join('')}</div>`;
+    if(k.top.length) html += `<div class="person-sec"><h3>⭐ I suoi film più amati <small>voto IMDb, film con molti voti</small></h3>${k.top.map(f=>`<div class="filmo-row"><div class="filmo-main"><div class="filmo-title">${escapeHtml(idxT(f.e))}</div><div class="filmo-meta">${escapeHtml(f.e.y || '—')} · <span class="r">★ ${escapeHtml(String(f.e.rt))}</span></div></div>${filmoStatus(f.e)}</div>`).join('')}</div>`;
     if(k.directors.length) html += `<div class="person-sec"><h3>🎬 Registi con cui ha lavorato di più</h3><div class="people-chips" style="margin:0">${k.directors.map(x=>`<button type="button" class="person-chip dir" data-person="${escapeHtml(x.name)}">🎬 ${escapeHtml(x.name)} <b>×${x.n}</b></button>`).join('')}</div></div>`;
   }
   // Collaboratori ricorrenti su tutta la carriera (Wikidata): stessa ricchezza per attori e registi
@@ -3248,7 +3634,7 @@ function renderPerson(){
       ${shown.map(f=>{
         const e = f.e;
         const rl = (f.roles||[]).map(r=>ROLE_IT[r] || r).join(', ');
-        return `<div class="filmo-row"><div class="filmo-main"><div class="filmo-title">${escapeHtml(e.it || e.en)}</div><div class="filmo-meta">${escapeHtml(e.y || '—')}${rl ? ' · ' + escapeHtml(rl) : ''}${e.rt ? ` · <span class="r">★ ${escapeHtml(String(e.rt))}</span>` : ''}</div></div>${filmoStatus(e)}</div>`;
+        return `<div class="filmo-row"><div class="filmo-main"><div class="filmo-title">${escapeHtml(idxT(e))}</div><div class="filmo-meta">${escapeHtml(e.y || '—')}${rl ? ' · ' + escapeHtml(rl) : ''}${e.rt ? ` · <span class="r">★ ${escapeHtml(String(e.rt))}</span>` : ''}</div></div>${filmoStatus(e)}</div>`;
       }).join('')}
       ${!st.showAll && films.length > 15 ? `<button type="button" class="btn ghost filmo-more" data-filmo-all>Mostra tutti (${films.length})</button>` : ''}
     </div>`;
@@ -3509,7 +3895,7 @@ function renderLink(){
         const extra = [e.rt ? `<span class="r">★ ${escapeHtml(String(e.rt))}</span>` : '', escapeHtml(fmtVotes(e.v || 0)), c.chapter ? `capitolo ${c.chapter} della saga` : ''].filter(Boolean).join(' · ');
         const sub = (e.en && normKey(e.en) !== normKey(e.it)) ? `<div class="lc-meta">${escapeHtml(e.en)}</div>` : '';
         return `<button type="button" class="link-cand${n === 0 ? ' best' : ''}" data-link="${escapeHtml(e.id)}">
-          <div class="lc-main"><div class="lc-title">${escapeHtml(e.it || e.en)}${n === 0 && c.confident ? '<span class="lc-badge">Molto probabile</span>' : ''}</div>${sub}<div class="lc-meta">${meta2}${extra ? ' · ' + extra : ''}</div></div>
+          <div class="lc-main"><div class="lc-title">${escapeHtml(idxT(e))}${n === 0 && c.confident ? '<span class="lc-badge">Molto probabile</span>' : ''}</div>${sub}<div class="lc-meta">${meta2}${extra ? ' · ' + extra : ''}</div></div>
           <span class="lc-pick">${n === 0 ? '✓ È questo' : 'Scegli'}</span></button>`;
       }).join('');
     } else {
@@ -3555,7 +3941,7 @@ async function linkChoose(id){
   const m = linkCurrent(); const e = imdbEntry(id);
   if(!m || !e) return;
   const altro = state.movies.find(x=>x !== m && x.imdbId === e.id);
-  if(altro && !(await askConfirm(`"${displayTitle(e.it || e.en)}" è già collegato a "${displayTitle(altro.titolo)}" nella tua libreria. Collegarlo anche a questo disco?`))) return;
+  if(altro && !(await askConfirm(`"${displayTitle(idxT(e))}" è già collegato a "${displayTitle(altro.titolo)}" nella tua libreria. Collegarlo anche a questo disco?`))) return;
   const before = { imdbId: m.imdbId || null, anno: m.anno, regista: m.regista, genere: m.genere, durata: m.durata, votoImdb: m.votoImdb, extra: m.extra };
   m.imdbId = e.id;
   if(!m.anno && e.y) m.anno = String(e.y);
@@ -3656,7 +4042,7 @@ document.getElementById('linkBody').addEventListener('keydown', e=>{
    Nessuna richiesta a Wikidata → la scheda carica anche più in fretta. */
 function trailerSearchUrl(titolo, anno){
   const y = /^\d{4}$/.test(String(anno||'').trim()) ? ' ' + String(anno).trim() : '';
-  return 'https://www.youtube.com/results?search_query=' + encodeURIComponent((titolo || '').trim() + y + ' trailer ITA');
+  return 'https://www.youtube.com/results?search_query=' + encodeURIComponent((titolo || '').trim() + y + (LANG === 'en' ? ' trailer' : ' trailer ITA'));
 }
 function trailerHTML(){
   return '<div class="trailer-bar"><button type="button" class="trailer-btn" data-yt-search><span class="yt-ico" aria-hidden="true">▶</span> Cerca il trailer su YouTube</button></div>';
@@ -3700,6 +4086,7 @@ async function fetchReception(imdbId){
   const cands = [];
   if(r.aIt && r.aIt.value) cands.push({ lang:'it', url:r.aIt.value });
   if(r.aEn && r.aEn.value) cands.push({ lang:'en', url:r.aEn.value });
+  if(LANG === 'en') cands.reverse();   // in inglese prima la Wikipedia inglese
   for(const c of cands){
     try{
       const title = decodeURIComponent(c.url.split('/wiki/')[1] || '');
@@ -3817,7 +4204,7 @@ function relCardHTML(r){
   const owned = state.movies.find(m=>m.imdbId === e.id && (m.lista||'collezione') !== 'wishlist');
   const wished = !owned && state.movies.find(m=>m.imdbId === e.id);
   const p = owned ? safeUrl(owned.poster) : '';
-  const title = e.it || e.en;
+  const title = idxT(e);
   const hue = [...title].reduce((a,c)=>a + c.charCodeAt(0), 0) % 360;
   const art = p
     ? `<img src="${escapeHtml(p)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`
@@ -4080,7 +4467,7 @@ async function openDiagnostics(){
   const pct = Math.min(100, Math.round(i.lsTotal / i.lsLimit * 100));
   const warn = pct >= 70;
   const t = (b, sm) => `<div class="pstat"><b>${escapeHtml(String(b))}</b><small>${escapeHtml(sm)}</small></div>`;
-  const when = iso => { try{ const dt = new Date(iso); return dt.toLocaleString('it-IT', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }); }catch(e){ return iso; } };
+  const when = iso => { try{ const dt = new Date(iso); return dt.toLocaleString(LOCALE, { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' }); }catch(e){ return iso; } };
   body.innerHTML = `
     <div class="pstat-grid" style="margin-bottom:14px">
       ${t(i.version, 'versione dell\'app')}${t(i.films, `film · ${i.linked} collegati`)}${t(i.withEx, 'con Dietro le quinte')}${t(i.filmo === null ? '—' : i.filmo, 'filmografie in archivio')}
@@ -4088,7 +4475,7 @@ async function openDiagnostics(){
     <div class="bs-box">
       <div class="bs-row"><div class="bs-k">Dispositivo</div><div class="bs-v"><span class="plain">${escapeHtml(i.platform || '—')} · ${i.installed ? '📱 app installata' : '🌐 nel browser'} · ${i.online ? 'online' : '📴 offline'}</span></div></div>
       <div class="bs-row"><div class="bs-k">Funzionamento</div><div class="bs-v"><span class="plain">Offline: ${i.sw ? '✓ attivo' : '— (serve la versione su GitHub)'} · Archivio: ${i.idb ? '✓ IndexedDB' : 'ripiego localStorage'} · Memoria protetta: ${i.persisted === null ? 'n/d' : i.persisted ? '✓ sì' : 'no'}</span></div></div>
-      <div class="bs-row"><div class="bs-k">Dati</div><div class="bs-v"><span class="plain">Indice offline ${i.index ? i.index.toLocaleString('it-IT') + ' titoli' : 'non caricato'} · ${i.persons} schede persona salvate</span></div></div>
+      <div class="bs-row"><div class="bs-k">Dati</div><div class="bs-v"><span class="plain">Indice offline ${i.index ? i.index.toLocaleString(LOCALE) + ' titoli' : 'non caricato'} · ${i.persons} schede persona salvate</span></div></div>
       <div class="bs-row"><div class="bs-k">Memoria locale</div><div class="bs-v" style="flex-direction:column; align-items:stretch; gap:6px">
         <div class="diag-bar"><div style="width:${pct}%; background:${warn ? 'linear-gradient(90deg,#ffb020,#ff4b4b)' : 'var(--grad)'}"></div></div>
         <span class="plain">${fmtBytes(i.lsTotal)} di circa ${fmtBytes(i.lsLimit)} (${pct}%) · collezione ${fmtBytes(i.coll)} · schede persona ${fmtBytes(i.personsBytes)}${i.est && i.est.quota ? ` · spazio totale del sito ${fmtBytes(i.est.usage || 0)} di ${fmtBytes(i.est.quota)}` : ''}</span>
@@ -4124,6 +4511,11 @@ document.getElementById('diagOverlay').addEventListener('click', async e=>{
     }
   }
 });
+
+{ const lb = document.getElementById('langBtn');
+  lb.textContent = LANG === 'en' ? '🌐 Italiano' : '🌐 English';
+  lb.title = LANG === 'en' ? 'Passa all\'italiano' : 'Switch to English';
+  lb.addEventListener('click', ()=>setLang(LANG === 'en' ? 'it' : 'en')); }
 
 /* ---------- Foglio "Filtri e ordinamento" (mobile) ----------
    Sono gli STESSI menu della barra desktop (stessi id, stessa logica di
@@ -4467,7 +4859,7 @@ async function quickAddToWishlist(entry){
     toast('È già nella tua libreria');
     return;
   }
-  const m = seedToMovie({titolo: entry.it || entry.en});
+  const m = seedToMovie({titolo: idxT(entry)});
   m.imdbId = entry.id;
   m.anno = entry.y || '';
   m.regista = entry.dir || '';
@@ -4511,7 +4903,7 @@ async function renderDirectorGapsPanel(registaField){
       <div class="director-gaps-list" id="${elencoId}" style="display:none;">
         ${mancanti.slice(0,12).map(x=>`
           <div class="director-gaps-item" data-id="${escapeHtml(x.id)}">
-            <span class="dgi-title">${escapeHtml(x.it || x.en)}${x.y?` <span class="dgi-year">(${x.y})</span>`:''}</span>
+            <span class="dgi-title">${escapeHtml(idxT(x))}${x.y?` <span class="dgi-year">(${x.y})</span>`:''}</span>
             <button type="button" class="btn ghost dgi-add" data-id="${escapeHtml(x.id)}" title="Aggiungi alla wishlist">+ Wishlist</button>
           </div>`).join('')}
         ${mancanti.length>12 ? `<div class="dgi-more">…e altri ${mancanti.length-12}</div>` : ''}
@@ -4767,14 +5159,14 @@ function moodFeatOwned(m){
   const e = isTt(m.imdbId) ? imdbEntry(m.imdbId) : null;
   const d = parseInt(String(m.durata || '').replace(/\D/g, ''), 10);
   return {
-    g: normKey(((e && e.g) || '') + ' ' + (m.genere || '')),
+    g: genreSyn(normKey(((e && e.g) || '') + ' ' + (m.genere || ''))),
     r: (d > 20 && d < 600) ? d : (e ? parseInt(e.r, 10) || 0 : 0),
     y: parseInt(m.anno, 10) || (e ? parseInt(e.y, 10) || 0 : 0),
     rt: parseVotoNumber(m.votoImdb) || (e && e.rt ? parseFloat(e.rt) : 0),
     age: m.extra ? ((m.extra.eta || ageFromRatings(m.extra) || {}).age) : undefined
   };
 }
-function moodFeatIdx(e){ return { g: normKey(e.g || ''), r: parseInt(e.r, 10) || 0, y: parseInt(e.y, 10) || 0, rt: e.rt ? parseFloat(e.rt) : 0, v: e.v || 0 }; }
+function moodFeatIdx(e){ return { g: genreSyn(normKey(e.g || '')), r: parseInt(e.r, 10) || 0, y: parseInt(e.y, 10) || 0, rt: e.rt ? parseFloat(e.rt) : 0, v: e.v || 0 }; }
 let _mood = { id:null, showAll:false, discover:[] };
 function moodOwned(mood){
   return state.movies.filter(m=>(m.lista||'collezione') !== 'wishlist' && !(m.prestatoA || '').trim())
@@ -5533,6 +5925,7 @@ function xlsxReady(){
    poi per titolo; i campi vuoti nel file NON sovrascrivono mai i dati
    già presenti in libreria. */
 function rowToImportedFields(obj){
+  obj = csvToItalian(obj);   // accetta le colonne anche in inglese
   const S = k => (obj[k]===undefined || obj[k]===null) ? '' : String(obj[k]).replace(/\s+/g,' ').trim();
   const linkImdb = S('link imdb');
   const idm = linkImdb.match(/tt\d+/) || S('imdb id').match(/tt\d+/) || [];
@@ -5652,6 +6045,10 @@ document.addEventListener('drop', e=>{
 
 /* ---------- Excel export ---------- */
 function buildExportRows(){
+  const rows = buildExportRowsIt();
+  return LANG === 'en' ? rows.map(r=>Object.fromEntries(Object.entries(r).map(([k, v])=>[CSV_EN[k] || k, v]))) : rows;
+}
+function buildExportRowsIt(){
   return state.movies.map(m=>({
     titolo:m.titolo, formato:m.formato, custodia:m.custodia, 'numero film':m.numero_film, cofanetto:m.cofanetto||'',
     anno:m.anno, durata:m.durata, regista:m.regista, genere:m.genere, cast:m.cast,
@@ -5962,8 +6359,8 @@ async function wikidataSearch(title){
     const val = (p) => { try{ return ent.claims[p][0].mainsnak.datavalue.value; }catch(e){ return null; } };
     const p31 = (ent.claims.P31 || []).map(c => { try{ return c.mainsnak.datavalue.value.id; }catch(e){ return null; } }).filter(Boolean);
     if(!p31.some(id => WD_FILM_TYPES.has(id))) continue;
-    const label = (ent.labels && (ent.labels.it || ent.labels.en) || {}).value || qid;
-    const desc = (ent.descriptions && (ent.descriptions.it || ent.descriptions.en) || {}).value || '';
+    const label = (ent.labels && (idxT(ent.labels)) || {}).value || qid;
+    const desc = (ent.descriptions && (idxT(ent.descriptions)) || {}).value || '';
     const imdb = ent.claims.P345 ? val('P345') : '';
     let year = '';
     const t = ent.claims.P577 ? (val('P577') || {}).time : null;
@@ -6002,7 +6399,7 @@ function wdDetailsQuery(anchor){
     UNION { ?articleEn schema:about ?film ; schema:isPartOf <https://en.wikipedia.org/> . BIND("aen" AS ?k) }
     UNION { ?film p:P444 ?st . ?st ps:P444 ?score . ?st pq:P447 ?scoreByItem . BIND(STRAFTER(STR(?scoreByItem), "entity/") AS ?scoreBy) BIND("score" AS ?k) }
     UNION { ?film wdt:P1258 ?rtId. BIND("rt" AS ?k) }
-    SERVICE wikibase:label { bd:serviceParam wikibase:language "it,en". }
+    SERVICE wikibase:label { bd:serviceParam wikibase:language "${WD_LANGS}". }
   } LIMIT 1500`;
 }
 function wdDetailsRows(rows){
@@ -6083,8 +6480,8 @@ async function parseWikidataRows(rows){
       if(!meta && QID_METACRITIC.includes(r.scoreBy.value)) meta = r.score.value;
     }
   });
-  const articleTitle = articleTitleIt || articleTitleEn;
-  const lang = articleTitleIt ? 'it' : 'en';
+  const articleTitle = LANG === 'en' ? (articleTitleEn || articleTitleIt) : (articleTitleIt || articleTitleEn);
+  const lang = (articleTitleEn && articleTitle === articleTitleEn) ? 'en' : 'it';
   const out = {};
   if(genres.size) out.genere = [...genres].slice(0,5).join(', ');
   if(directors.size) out.regista = [...directors].join(', ');
@@ -6369,7 +6766,7 @@ document.getElementById('tmdbSearchBtn').addEventListener('click', async ()=>{
   if(idx){
     results = searchImdbIndex(title, 12).map(x => ({
       id: x.id, qid: '', imdbId: x.id,
-      title: x.it || x.en,
+      title: idxT(x),
       subtitle: (x.en && normKey(x.en) !== normKey(x.it)) ? x.en : '',
       y: x.y, genre: x.g, runtime: x.r,
       votoImdb: x.rt, votes: x.v, regista: x.dir,
