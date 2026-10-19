@@ -1046,6 +1046,12 @@ body:not(.tab-bacheca) .bacheca-only{display:none !important;}
 .idx-steps{margin:0 0 14px; padding-left:20px; line-height:1.7; color:var(--cream); font-size:14px;}
 .idx-steps code{font-family:var(--font-mono, monospace); font-size:12px; background:rgba(255,255,255,.06); padding:2px 6px; border-radius:5px; overflow-wrap:anywhere;}
 
+.idx-setup{margin-top:16px; border:1px solid var(--line); border-radius:12px; padding:10px 14px;}
+.idx-setup summary{cursor:pointer; font-weight:800; color:var(--cream); font-size:14px;}
+.idx-setup .idx-steps{margin-top:12px;}
+.idx-setup .idx-steps li{margin-bottom:14px;}
+.idx-setup .link-actions{margin-top:8px; justify-content:flex-start;}
+
 /* ---------- Animazione "inserimento videocassetta" al click sulla card ---------- */
 .card.inserting{
   animation:vhsInsert .55s cubic-bezier(.5,0,.85,1) forwards;
@@ -1977,13 +1983,24 @@ Object.assign(I18N_DICT, {
 I18N_PATTERNS.push(
   [/^⚠️ L'indice ha (\d+) giorni: conviene aggiornarlo\.?$/, (m, n)=>`⚠️ The index is ${n} days old: it's worth updating.`],
   [/^✓ L'indice è recente \((\d+) giorni\)\.?$/, (m, n)=>`✓ The index is recent (${n} days).`]);
+Object.assign(I18N_DICT, {
+  'Prima volta: attiva l\'aggiornamento automatico (5 minuti, anche dal telefono)':'First time: turn on automatic updates (5 minutes, even from your phone)',
+  'Lo script.':'The script.','Premi "Copia lo script", poi "Crea il file": GitHub si apre con il nome già scritto. Incolla il testo nel riquadro grande e premi':'Press "Copy the script", then "Create the file": GitHub opens with the name already filled in. Paste the text in the big box and press',
+  '(due volte, se lo chiede)':'(twice, if asked)','Copia lo script':'Copy the script','Crea il file':'Create the file',
+  'L\'automazione.':'The automation.','Premi "Crea l\'automazione": GitHub si apre con nome e contenuto già pronti. Premi solo':'Press "Create the automation": GitHub opens with name and content ready. Just press',
+  'Se il riquadro fosse vuoto, usa "Copia l\'automazione" e incolla':'If the box is empty, use "Copy the automation" and paste','Crea l\'automazione':'Create the automation','Copia l\'automazione':'Copy the automation',
+  'I permessi.':'Permissions.','Premi "Permessi", scorri fino a':'Press "Permissions", scroll to',', scegli':', choose','e premi':'and press','Permessi':'Permissions',
+  'Il primo aggiornamento.':'The first update.','Usa "Apri GitHub Actions" qui sopra →':'Use "Open GitHub Actions" above →','→ pulsante verde':'→ green button',
+  'Se un link apre una pagina di errore, il ramo del tuo repository potrebbe chiamarsi "master" invece di "main": crea i file dal repository con "Add file" → "Create new file", usando gli stessi nomi':'If a link opens an error page, your repository branch may be called "master" instead of "main": create the files from the repository with "Add file" → "Create new file", using the same names',
+  'Pubblica prima l\'app su GitHub Pages (vedi LEGGIMI.txt): da lì questa sezione ti guida con i link diretti. Sul PC puoi usare lo script anche da solo:':'First publish the app on GitHub Pages (see LEGGIMI.txt): from there this section guides you with direct links. On a PC you can also use the script on its own:',
+  'Script copiato: ora premi "Crea il file" e incollalo':'Script copied: now press "Create the file" and paste it','Automazione copiata: incollala nel file su GitHub':'Automation copied: paste it into the file on GitHub' });
 const _trCache = new Map();
 // voci che finiscono con "?" "!" "." valgono anche senza (la punteggiatura viene rimessa dopo)
 for(const k of Object.keys(I18N_DICT)){ const b = k.replace(/[?!.…]+$/, ''); if(b !== k && !Object.prototype.hasOwnProperty.call(I18N_DICT, b)) I18N_DICT[b] = I18N_DICT[k].replace(/[?!.…]+$/, ''); }
 function enNum(s){ return String(s).replace(/(\d),(\d{1,2})(?!\d)/g, '$1\u0001$2').replace(/(\d)\.(\d{3})(?!\d)/g, '$1,$2').replace(/\u0001/g, '.'); }
 function trGenres(g){ return String(g).split(/,\s*/).map(x=>{ const k = x.trim(), K = k.charAt(0).toUpperCase() + k.slice(1); return I18N_GENRES[k] || I18N_GENRES[K] || k; }).join(', '); }
 function trRoles(r){ return String(r).split(/,\s*/).map(x=>I18N_WORDS[x.trim()] || trGenres(x.trim())).join(', '); }
-const TR_SPLIT = /^([\s\p{Extended_Pictographic}\u200d\ufe0f+↩↻⏹✕✓✨⭐★✝ℹ…↗·—–\-"“«(\[]*)([\s\S]*?)([\s…→▾▴↗▶◀:.,;!?—–\-"”»]*)$/u;
+const TR_SPLIT = /^([\s\p{Extended_Pictographic}\u200d\ufe0f+↩↻⏹✕✓✨⭐★✝ℹ…↗·—–\-"“«(\[.]*)([\s\S]*?)([\s…→▾▴↗▶◀:.,;!?—–\-"”»]*)$/u;
 function trDict(t){
   if(Object.prototype.hasOwnProperty.call(I18N_DICT, t)) return I18N_DICT[t];
   if(I18N_GENRES[t]) return I18N_GENRES[t];
@@ -4540,6 +4557,22 @@ document.getElementById('viewScopri').addEventListener('click', e=>{
    Il browser non può scaricare i dati IMDb (circa 1 GB, e IMDb non lo consente alle
    pagine web): l'aggiornamento lo fa GitHub ("Actions"). Qui: data dell'indice, link
    diretto alla pagina giusta di GitHub (ricavato dall'indirizzo dell'app), ricarica. */
+/* Testi da copiare su GitHub per attivare l'aggiornamento mensile (identici ai file del pacchetto) */
+const IDX_SCRIPT_TEXT = "#!/usr/bin/env python3\n\"\"\"\nAggiorna l'indice IMDb offline di My Physical Movie Library.\n\nScarica i dati ufficiali di IMDb (https://datasets.imdbws.com, uso personale e\nnon commerciale), ricostruisce l'indice con le stesse regole dell'app e lo\ninserisce nel file HTML indicato (di solito index.html).\n\nRegole: film per il cinema o per la TV (movie, tvMovie), non per adulti, con un\ntitolo italiano registrato su IMDb (i film distribuiti in Italia).\nFormato di ogni riga: id|titolo italiano|titolo originale|anno|durata|generi|voti|voto|alias~alias|regia\n\nUso:\n  python aggiorna_indice.py index.html            # scarica i dati aggiornati\n  python aggiorna_indice.py index.html --local DIR  # usa file .tsv.gz gi\u00e0 scaricati\nSolo libreria standard di Python 3.8+.\n\"\"\"\nimport sys, os, re, gzip, io, base64, datetime, tempfile, urllib.request\n\nBASE = 'https://datasets.imdbws.com/'\nFILES = ['title.basics.tsv.gz', 'title.akas.tsv.gz', 'title.ratings.tsv.gz', 'title.crew.tsv.gz', 'name.basics.tsv.gz']\nGENRES = {'Drama':'Drammatico','Comedy':'Commedia','Romance':'Romantico','Crime':'Crime','Documentary':'Documentario','Action':'Azione',\n  'Thriller':'Thriller','Adventure':'Avventura','Horror':'Horror','Mystery':'Giallo','Biography':'Biografico','Family':'Famiglia','Fantasy':'Fantasy',\n  'History':'Storico','Sci-Fi':'Fantascienza','Animation':'Animazione','Music':'Musica','War':'Guerra','Western':'Western','Musical':'Musical',\n  'Sport':'Sport','Film-Noir':'Noir','News':'News','Reality-TV':'Reality-TV','Talk-Show':'Talk-Show','Game-Show':'Game-Show'}\n\ndef log(*a): print(*a, flush=True)\ndef clean(s): return '' if s in (None, '\\\\N') else s.replace('|', '/').replace('~', '-').replace('\\n', ' ').replace('\\r', ' ').strip()\n\ndef open_tsv(path):\n    f = gzip.open(path, 'rt', encoding='utf-8', newline='')\n    next(f)   # intestazione\n    return f\n\ndef find(local, name):\n    for cand in (name, name.replace('.', '_', 1).replace('.tsv', '_tsv')):\n        p = os.path.join(local, cand)\n        if os.path.exists(p): return p\n    raise FileNotFoundError(name)\n\ndef download(dest):\n    paths = {}\n    for name in FILES:\n        p = os.path.join(dest, name); log('Scarico', name, '\u2026')\n        req = urllib.request.Request(BASE + name, headers={'User-Agent': 'MyPhysicalMovieLibrary-index-updater'})\n        with urllib.request.urlopen(req, timeout=600) as r, open(p, 'wb') as out:\n            while True:\n                b = r.read(1 << 20)\n                if not b: break\n                out.write(b)\n        paths[name] = p\n    return paths\n\ndef build(paths):\n    # 1) candidati: movie / tvMovie, non adulti\n    cand = set()\n    for line in open_tsv(paths['title.basics.tsv.gz']):\n        p = line.rstrip('\\n').split('\\t')\n        if len(p) > 4 and p[1] in ('movie', 'tvMovie') and p[4] == '0': cand.add(int(p[0][2:]))\n    log('Candidati (movie/tvMovie non adulti):', len(cand))\n    # 2) titoli italiani: principale = \"imdbDisplay\" (altrimenti il primo), gli altri come alias\n    it = {}\n    for line in open_tsv(paths['title.akas.tsv.gz']):\n        p = line.rstrip('\\n').split('\\t')\n        if len(p) < 6 or p[3] != 'IT': continue\n        k = int(p[0][2:])\n        if k not in cand: continue\n        t = clean(p[2])\n        if not t: continue\n        rec = it.setdefault(k, [None, []])\n        if 'imdbDisplay' in p[5] and rec[0] is None: rec[0] = t\n        else: rec[1].append(t)\n    log('Con titolo italiano:', len(it))\n    # 3) dati del film\n    rows = {}\n    for line in open_tsv(paths['title.basics.tsv.gz']):\n        p = line.rstrip('\\n').split('\\t')\n        if len(p) < 9: continue\n        k = int(p[0][2:])\n        if k not in it: continue\n        main, alts = it[k]\n        if main is None:\n            if not alts: continue\n            main, alts = alts[0], alts[1:]\n        prim = clean(p[2])\n        en = prim if prim and prim.lower() != main.lower() else ''\n        seen = {main.lower()}; al = []\n        for a in alts:\n            if a.lower() not in seen: seen.add(a.lower()); al.append(a)\n        genres = ', '.join(GENRES[g] for g in clean(p[8]).split(',') if g in GENRES)\n        rows[k] = [p[0][2:], main, en, clean(p[5]), clean(p[7]), genres, '0', '', '~'.join(al[:6]), '']\n    del it, cand\n    # 4) voti\n    for line in open_tsv(paths['title.ratings.tsv.gz']):\n        p = line.rstrip('\\n').split('\\t')\n        k = int(p[0][2:])\n        if k in rows: rows[k][7] = p[1]; rows[k][6] = p[2]\n    # 5) regia\n    need = {}\n    for line in open_tsv(paths['title.crew.tsv.gz']):\n        p = line.rstrip('\\n').split('\\t')\n        k = int(p[0][2:])\n        if k in rows and p[1] != '\\\\N':\n            ids = p[1].split(',')[:2]; need[k] = ids   # al massimo 2 registi, come l'indice originale\n    names = {n for ids in need.values() for n in ids}\n    nm = {}\n    for line in open_tsv(paths['name.basics.tsv.gz']):\n        p = line.split('\\t', 2)\n        if p[0] in names: nm[p[0]] = clean(p[1])\n    for k, ids in need.items(): rows[k][9] = ', '.join(nm[i] for i in ids if nm.get(i))\n    out = '\\n'.join('|'.join(rows[k]) for k in sorted(rows)) + '\\n'\n    log('Film nell\\'indice:', len(rows))\n    return out, len(rows)\n\ndef embed(html_path, text):\n    html = open(html_path, encoding='utf-8').read()\n    buf = io.BytesIO()\n    with gzip.GzipFile(fileobj=buf, mode='wb', compresslevel=9, mtime=0) as g: g.write(text.encode('utf-8'))\n    b64 = base64.b64encode(buf.getvalue()).decode('ascii')\n    today = datetime.date.today().isoformat()\n    new, n = re.subn(r'<script type=\"text/plain\" id=\"imdbIndexData\"[^>]*>[^<]*<\/script>',\n                     lambda m: f'<script type=\"text/plain\" id=\"imdbIndexData\" data-built=\"{today}\">{b64}<\/script>', html, count=1)\n    if n != 1: raise SystemExit('Blocco dell\\'indice non trovato nel file HTML')\n    open(html_path, 'w', encoding='utf-8').write(new)\n    log(f'Indice inserito in {html_path} (aggiornato al {today}, {len(b64) / 1048576:.2f} MB)')\n\ndef main():\n    if len(sys.argv) < 2: raise SystemExit(__doc__)\n    html = sys.argv[1]\n    if '--local' in sys.argv:\n        d = sys.argv[sys.argv.index('--local') + 1]\n        paths = {n: find(d, n) for n in FILES}\n        text, n = build(paths)\n    else:\n        with tempfile.TemporaryDirectory() as d:\n            text, n = build(download(d))\n    if n < 50000: raise SystemExit(f'Indice sospetto ({n} film): non lo inserisco')\n    embed(html, text)\n\nif __name__ == '__main__': main()\n";
+const IDX_WORKFLOW_TEXT = "# Aggiorna ogni mese l'indice IMDb offline dell'app con i dati ufficiali di IMDb.\n# Si pu\u00f2 anche avviare a mano: scheda \"Actions\" \u2192 \"Aggiorna indice IMDb\" \u2192 \"Run workflow\".\nname: Aggiorna indice IMDb\non:\n  schedule:\n    - cron: '0 4 3 * *'     # il 3 di ogni mese alle 4:00 UTC\n  workflow_dispatch:\npermissions:\n  contents: write\njobs:\n  aggiorna:\n    runs-on: ubuntu-latest\n    timeout-minutes: 60\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-python@v5\n        with:\n          python-version: '3.12'\n      - name: Ricostruisci l'indice dai dati IMDb di oggi\n        run: python tools/aggiorna_indice.py index.html\n      - name: Pubblica se \u00e8 cambiato\n        run: |\n          git config user.name \"aggiorna-indice\"\n          git config user.email \"github-actions[bot]@users.noreply.github.com\"\n          if git diff --quiet -- index.html; then echo \"Nessuna novit\u00e0\"; exit 0; fi\n          git add index.html\n          git commit -m \"Indice IMDb aggiornato al $(date +%Y-%m-%d)\"\n          git push\n";
+function githubRepoBase(){
+  const m = location.hostname.match(/^([a-z0-9-]+)\.github\.io$/i);
+  if(!m || location.protocol !== 'https:') return '';
+  const seg = location.pathname.split('/').filter(Boolean)[0];
+  return `https://github.com/${m[1]}/${seg && !/\.html?$/i.test(seg) ? seg : m[1] + '.github.io'}`;
+}
+async function copyText(text, okMsg){
+  try{ await navigator.clipboard.writeText(text); toast(okMsg); return true; }
+  catch(e){
+    const ta = document.getElementById('idxCopyArea'); ta.style.display = 'block'; ta.value = text; ta.focus(); ta.select();
+    toast('Seleziona e copia il testo qui sotto'); return false;
+  }
+}
 function githubActionsUrl(){
   const h = location.hostname, m = h.match(/^([a-z0-9-]+)\.github\.io$/i);
   if(!m || location.protocol !== 'https:') return '';
@@ -4553,7 +4586,7 @@ async function openIndexUpdate(){
   await ensureImdbIndex();
   const built = indexBuilt();
   const days = Math.floor((Date.now() - new Date(built + 'T12:00:00').getTime()) / 864e5);
-  const gh = githubActionsUrl();
+  const gh = githubActionsUrl(), base = githubRepoBase();
   const n = IMDB_INDEX ? IMDB_INDEX.length.toLocaleString(LOCALE) : '—';
   body.innerHTML = `
     <div class="pstat-grid" style="margin-bottom:14px">
@@ -4577,7 +4610,23 @@ async function openIndexUpdate(){
         <li><b>Con il file sul PC:</b> serve Python; nella cartella dei file scrivi<br><code>python tools/aggiorna_indice.py My_Physical_Movie_Library.html</code></li>
       </ol>
       <div class="link-actions"><button type="button" class="btn ghost" data-idx-reload>🔄 Ricarica l'app</button></div>`}
-    <div class="bs-note" style="padding:10px 2px 0">Quando arriva l'indice nuovo, voto e numero di voti IMDb dei tuoi film si aggiornano da soli.</div>`;
+    <div class="bs-note" style="padding:10px 2px 0">Quando arriva l'indice nuovo, voto e numero di voti IMDb dei tuoi film si aggiornano da soli.</div>
+    <details class="idx-setup" ${gh ? '' : 'open'}>
+      <summary>⚙️ Prima volta: attiva l'aggiornamento automatico (5 minuti, anche dal telefono)</summary>
+      ${base ? `<ol class="idx-steps">
+        <li><b>Lo script.</b> Premi "Copia lo script", poi "Crea il file": GitHub si apre con il nome già scritto. Incolla il testo nel riquadro grande e premi <b>"Commit changes"</b> (due volte, se lo chiede).
+          <div class="link-actions"><button type="button" class="btn ghost" data-idx-copy="script">📋 Copia lo script</button><a class="btn ghost" href="${escapeHtml(base + '/new/main?filename=' + encodeURIComponent('tools/aggiorna_indice.py'))}" target="_blank" rel="noopener">Crea il file ↗</a></div></li>
+        <li><b>L'automazione.</b> Premi "Crea l'automazione": GitHub si apre con nome e contenuto già pronti. Premi solo <b>"Commit changes"</b>. Se il riquadro fosse vuoto, usa "Copia l'automazione" e incolla.
+          <div class="link-actions"><a class="btn ghost" href="${escapeHtml(base + '/new/main?filename=' + encodeURIComponent('.github/workflows/aggiorna-indice.yml') + '&value=' + encodeURIComponent(IDX_WORKFLOW_TEXT))}" target="_blank" rel="noopener">Crea l'automazione ↗</a><button type="button" class="btn ghost" data-idx-copy="workflow">📋 Copia l'automazione</button></div></li>
+        <li><b>I permessi.</b> Premi "Permessi", scorri fino a <b>"Workflow permissions"</b>, scegli <b>"Read and write permissions"</b> e premi <b>"Save"</b>.
+          <div class="link-actions"><a class="btn ghost" href="${escapeHtml(base + '/settings/actions')}" target="_blank" rel="noopener">Permessi ↗</a></div></li>
+        <li><b>Il primo aggiornamento.</b> Usa "Apri GitHub Actions" qui sopra → <b>"Run workflow"</b> → pulsante verde <b>"Run workflow"</b>.</li>
+      </ol>
+      <div class="bs-note" style="padding:0 2px">Se un link apre una pagina di errore, il ramo del tuo repository potrebbe chiamarsi "master" invece di "main": crea i file dal repository con "Add file" → "Create new file", usando gli stessi nomi.</div>`
+      : `<p class="link-intro" style="margin:8px 0">Pubblica prima l'app su GitHub Pages (vedi LEGGIMI.txt): da lì questa sezione ti guida con i link diretti. Sul PC puoi usare lo script anche da solo:</p>
+      <div class="link-actions"><button type="button" class="btn ghost" data-idx-copy="script">📋 Copia lo script</button></div>`}
+      <textarea id="idxCopyArea" readonly style="display:none; width:100%; min-height:140px; margin-top:10px; font-family:var(--font-mono, monospace); font-size:11px;"></textarea>
+    </details>`;
 }
 document.getElementById('idxBtn').addEventListener('click', ()=>{
   const dd = document.getElementById('toolsDropdown'); if(dd) dd.classList.remove('open');
@@ -4587,7 +4636,9 @@ document.getElementById('idxBtn').addEventListener('click', ()=>{
 document.getElementById('idxClose').addEventListener('click', ()=>document.getElementById('idxOverlay').classList.remove('open'));
 document.getElementById('idxOverlay').addEventListener('click', e=>{
   if(e.target.id === 'idxOverlay'){ e.target.classList.remove('open'); return; }
-  if(e.target.closest('[data-idx-reload]')){ try{ location.reload(); }catch(err){} }
+  if(e.target.closest('[data-idx-reload]')){ try{ location.reload(); }catch(err){} return; }
+  const c = e.target.closest('[data-idx-copy]');
+  if(c) copyText(c.dataset.idxCopy === 'script' ? IDX_SCRIPT_TEXT : IDX_WORKFLOW_TEXT, c.dataset.idxCopy === 'script' ? '📋 Script copiato: ora premi "Crea il file" e incollalo' : '📋 Automazione copiata: incollala nel file su GitHub');
 });
 
 /* =====================================================================
