@@ -1043,6 +1043,9 @@ body:not(.tab-bacheca) .bacheca-only{display:none !important;}
 .de-m{font-size:12.5px; color:var(--cream); overflow-wrap:anywhere;}
 .de-w{font-size:11px; color:var(--dim2); overflow-wrap:anywhere;}
 
+.idx-steps{margin:0 0 14px; padding-left:20px; line-height:1.7; color:var(--cream); font-size:14px;}
+.idx-steps code{font-family:var(--font-mono, monospace); font-size:12px; background:rgba(255,255,255,.06); padding:2px 6px; border-radius:5px; overflow-wrap:anywhere;}
+
 /* ---------- Animazione "inserimento videocassetta" al click sulla card ---------- */
 .card.inserting{
   animation:vhsInsert .55s cubic-bezier(.5,0,.85,1) forwards;
@@ -1232,6 +1235,7 @@ body:not(.tab-bacheca) .bacheca-only{display:none !important;}
         <button class="btn ghost" id="bsPrefetchBtn" title="Scarica una volta sola Dietro le quinte, correlati e schede di registi e attori ricorrenti: poi si aprono all'istante, anche offline">⚡ Precarica tutto (uso offline)</button>
         <button class="btn ghost" id="directorsOverlayBtn" title="Registi di cui possiedi già film: cosa ti manca della loro filmografia?">🎬 Registi da completare</button>
         <button class="btn ghost" id="fixCastBtn" title="Mette i protagonisti in cima al Cast principale dei film già salvati (i cast scritti a mano non vengono toccati)">🎭 Sistema il cast principale</button>
+        <button class="btn ghost" id="idxBtn" title="Data dell'indice IMDb offline e come aggiornarlo">🔄 Aggiorna indice IMDb</button>
         <button class="btn ghost" id="langBtn" data-no-tr></button>
         <button class="btn ghost" id="diagBtn" title="Stato dell'app, memoria ed errori recenti, con un rapporto da copiare">🩺 Diagnostica</button>
         <button class="btn ghost danger-btn" id="resetLibBtn" title="Cancella tutti i film e riparti da zero (prima scarica un backup di sicurezza)">🗑️ Azzera la libreria</button>
@@ -1598,6 +1602,15 @@ body:not(.tab-bacheca) .bacheca-only{display:none !important;}
   </div>
 </div>
 
+<!-- Aggiorna indice IMDb -->
+<div class="overlay" id="idxOverlay">
+  <div class="modal settings-modal" style="max-width:600px;">
+    <button class="modal-close" id="idxClose" aria-label="Chiudi">&times;</button>
+    <h2 style="margin-top:0; font-family:'Sora',sans-serif; font-size:20px;">🔄 Aggiorna indice IMDb</h2>
+    <div id="idxBody"></div>
+  </div>
+</div>
+
 <!-- Diagnostica -->
 <div class="overlay" id="diagOverlay">
   <div class="modal settings-modal" style="max-width:680px;">
@@ -1951,6 +1964,19 @@ I18N_PATTERNS.push(
   [/^Interrotto: (\d+) film controllati, (\d+) completati e salvati(.*)$/, (m, a, b, r)=>`Stopped: ${a} films checked, ${b} completed and saved${r.replace(/ · (\d+) non collegati: usa 🔗 Collega i film mancanti/, ' · $1 not linked: use 🔗 Link missing films')}`],
   [/^✓ (\d+) film completati \((\d+) campi vuoti riempiti(?:, (\d+) voti del pubblico RT)?\) · niente di ciò che avevi scritto è stato toccato(.*)$/, (m, f, c, a, r)=>`✓ ${f} films completed (${c} empty fields filled${a ? `, ${a} RT audience scores` : ''}) · nothing you wrote was touched${r.replace(/ · (\d+) non collegati: usa 🔗 Collega i film mancanti/, ' · $1 not linked: use 🔗 Link missing films')}`]
 );
+Object.assign(I18N_DICT, {
+  'Aggiorna indice IMDb':'Update IMDb index','Data dell\'indice IMDb offline e come aggiornarlo':'Offline IMDb index date and how to update it',
+  'data dell\'indice':'index date','film nell\'indice':'films in the index','Ricarica l\'app':'Reload the app','Apri GitHub Actions':'Open GitHub Actions',
+  'L\'aggiornamento lo fa':'The update is done by','per conto tuo: il telefono non può scaricare i dati di IMDb (circa 1 GB). Si ripete da solo il 3 di ogni mese; per farlo subito:':'on your behalf: the phone can\'t download IMDb data (about 1 GB). It repeats by itself on the 3rd of every month; to do it now:',
+  'Apri la pagina dell\'aggiornamento su GitHub (pulsante qui sotto)':'Open the update page on GitHub (button below)','Premi':'Press',', poi il pulsante verde':', then the green button',
+  'Aspetta 10-20 minuti la spunta verde ✓, poi torna qui e premi':'Wait 10-20 minutes for the green tick ✓, then come back here and press',
+  'Se GitHub dice che la pagina non esiste, carica nel repository la cartella "tools" e il file ".github/workflows/aggiorna-indice.yml" (vedi LEGGIMI.txt)':'If GitHub says the page doesn\'t exist, upload the "tools" folder and the ".github/workflows/aggiorna-indice.yml" file to the repository (see LEGGIMI.txt)',
+  'Con l\'app su GitHub Pages:':'With the app on GitHub Pages:','apri il repository su github.com → scheda':'open the repository on github.com → tab',
+  'Con il file sul PC:':'With the file on a PC:','serve Python; nella cartella dei file scrivi':'Python is required; in the files folder type',
+  'Quando arriva l\'indice nuovo, voto e numero di voti IMDb dei tuoi film si aggiornano da soli':'When the new index arrives, the IMDb rating and vote count of your films update by themselves' });
+I18N_PATTERNS.push(
+  [/^⚠️ L'indice ha (\d+) giorni: conviene aggiornarlo\.?$/, (m, n)=>`⚠️ The index is ${n} days old: it's worth updating.`],
+  [/^✓ L'indice è recente \((\d+) giorni\)\.?$/, (m, n)=>`✓ The index is recent (${n} days).`]);
 const _trCache = new Map();
 // voci che finiscono con "?" "!" "." valgono anche senza (la punteggiatura viene rimessa dopo)
 for(const k of Object.keys(I18N_DICT)){ const b = k.replace(/[?!.…]+$/, ''); if(b !== k && !Object.prototype.hasOwnProperty.call(I18N_DICT, b)) I18N_DICT[b] = I18N_DICT[k].replace(/[?!.…]+$/, ''); }
@@ -4509,6 +4535,60 @@ document.getElementById('viewScopri').addEventListener('click', e=>{
 });
 // Avvio sulla scheda indicata nell'indirizzo (dopo che tutto è definito)
 { const t0 = (location.hash || '').slice(1); switchTab(TABS.includes(t0) ? t0 : 'bacheca', { keepScroll: true }); }
+
+/* ---------- 🔄 Aggiorna indice IMDb ----------
+   Il browser non può scaricare i dati IMDb (circa 1 GB, e IMDb non lo consente alle
+   pagine web): l'aggiornamento lo fa GitHub ("Actions"). Qui: data dell'indice, link
+   diretto alla pagina giusta di GitHub (ricavato dall'indirizzo dell'app), ricarica. */
+function githubActionsUrl(){
+  const h = location.hostname, m = h.match(/^([a-z0-9-]+)\.github\.io$/i);
+  if(!m || location.protocol !== 'https:') return '';
+  const seg = location.pathname.split('/').filter(Boolean)[0];
+  const repo = seg && !/\.html?$/i.test(seg) ? seg : `${m[1]}.github.io`;
+  return `https://github.com/${m[1]}/${repo}/actions/workflows/aggiorna-indice.yml`;
+}
+async function openIndexUpdate(){
+  const body = document.getElementById('idxBody');
+  document.getElementById('idxOverlay').classList.add('open');
+  await ensureImdbIndex();
+  const built = indexBuilt();
+  const days = Math.floor((Date.now() - new Date(built + 'T12:00:00').getTime()) / 864e5);
+  const gh = githubActionsUrl();
+  const n = IMDB_INDEX ? IMDB_INDEX.length.toLocaleString(LOCALE) : '—';
+  body.innerHTML = `
+    <div class="pstat-grid" style="margin-bottom:14px">
+      <div class="pstat"><b>${escapeHtml(fmtIndexDate(built))}</b><small>data dell'indice</small></div>
+      <div class="pstat"><b>${escapeHtml(n)}</b><small>film nell'indice</small></div>
+    </div>
+    ${days > 45 ? `<div class="bs-note" style="color:#ffb020; padding:0 2px 12px">⚠️ L'indice ha ${days} giorni: conviene aggiornarlo.</div>` : `<div class="bs-note" style="padding:0 2px 12px">✓ L'indice è recente (${days} giorni).</div>`}
+    <p class="link-intro" style="margin-top:0">L'aggiornamento lo fa <b>GitHub</b> per conto tuo: il telefono non può scaricare i dati di IMDb (circa 1 GB). Si ripete da solo il 3 di ogni mese; per farlo subito:</p>
+    ${gh ? `<ol class="idx-steps">
+        <li>Apri la pagina dell'aggiornamento su GitHub (pulsante qui sotto)</li>
+        <li>Premi <b>"Run workflow"</b>, poi il pulsante verde <b>"Run workflow"</b></li>
+        <li>Aspetta 10-20 minuti la spunta verde ✓, poi torna qui e premi <b>"Ricarica l'app"</b></li>
+      </ol>
+      <div class="link-actions">
+        <button type="button" class="btn ghost" data-idx-reload>🔄 Ricarica l'app</button>
+        <a class="btn solid" href="${escapeHtml(gh)}" target="_blank" rel="noopener">Apri GitHub Actions ↗</a>
+      </div>
+      <div class="bs-note" style="padding:10px 2px 0">Se GitHub dice che la pagina non esiste, carica nel repository la cartella "tools" e il file ".github/workflows/aggiorna-indice.yml" (vedi LEGGIMI.txt).</div>`
+    : `<ol class="idx-steps">
+        <li><b>Con l'app su GitHub Pages:</b> apri il repository su github.com → scheda <b>Actions</b> → <b>"Aggiorna indice IMDb"</b> → <b>"Run workflow"</b></li>
+        <li><b>Con il file sul PC:</b> serve Python; nella cartella dei file scrivi<br><code>python tools/aggiorna_indice.py My_Physical_Movie_Library.html</code></li>
+      </ol>
+      <div class="link-actions"><button type="button" class="btn ghost" data-idx-reload>🔄 Ricarica l'app</button></div>`}
+    <div class="bs-note" style="padding:10px 2px 0">Quando arriva l'indice nuovo, voto e numero di voti IMDb dei tuoi film si aggiornano da soli.</div>`;
+}
+document.getElementById('idxBtn').addEventListener('click', ()=>{
+  const dd = document.getElementById('toolsDropdown'); if(dd) dd.classList.remove('open');
+  const bd = document.getElementById('toolsBackdrop'); if(bd) bd.classList.remove('open');
+  openIndexUpdate();
+});
+document.getElementById('idxClose').addEventListener('click', ()=>document.getElementById('idxOverlay').classList.remove('open'));
+document.getElementById('idxOverlay').addEventListener('click', e=>{
+  if(e.target.id === 'idxOverlay'){ e.target.classList.remove('open'); return; }
+  if(e.target.closest('[data-idx-reload]')){ try{ location.reload(); }catch(err){} }
+});
 
 /* =====================================================================
    🩺 DIAGNOSTICA — stato dell'app, memoria, errori recenti, rapporto da copiare.
