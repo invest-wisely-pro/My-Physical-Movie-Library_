@@ -33,10 +33,37 @@ Perché la versione web
      Su iPhone è indispensabile farlo dentro l'app installata: ha una memoria separata da Safari.
   c. Consigliato: ⚙️ Strumenti → ⚡ Precarica tutto (con il Wi-Fi).
 
+AGGIORNAMENTO AUTOMATICO DELL'INDICE IMDb (una volta al mese)
+  L'app contiene un indice offline di circa 86.000 film distribuiti in Italia, con voti e
+  numero di voti IMDb. GitHub può aggiornarlo da solo ogni mese con i dati ufficiali di IMDb.
+  a. Carica nel repository anche la cartella "tools" (con aggiorna_indice.py) e il file
+     ".github/workflows/aggiorna-indice.yml".
+     La cartella .github è "nascosta" su Windows e Mac: se trascinandola non viene caricata,
+     creala dal sito: "Add file" → "Create new file" → come nome scrivi
+     .github/workflows/aggiorna-indice.yml → incolla il contenuto del file → "Commit changes".
+  b. Primo aggiornamento subito: scheda "Actions" (se compare, conferma di voler abilitare i
+     workflow) → "Aggiorna indice IMDb" → "Run workflow". Dura circa 10-20 minuti.
+  c. Fatto: l'app pubblicata contiene l'indice di oggi. Aprendola, i voti IMDb dei tuoi film
+     si aggiornano da soli e in ⚙️ Strumenti → 🩺 Diagnostica vedi la data dell'indice.
+     Da lì in poi si aggiorna da solo il 3 di ogni mese.
+  Se l'aggiornamento non riesce a pubblicare: Settings → Actions → General →
+  "Workflow permissions" → "Read and write permissions" → Save, poi rilancialo.
+  Sul PC, per la versione a file singolo: python tools/aggiorna_indice.py My_Physical_Movie_Library.html
+  (serve Python; scarica circa 1 GB di dati IMDb).
+
 AGGIORNARLA IN FUTURO
   Repository → "Add file" → "Upload files" → trascina i file nuovi (sostituiscono i vecchi)
   → "Commit changes". Alla prossima apertura con internet l'app si aggiorna da sola.
   I tuoi dati restano dove sono.
+
+RISERVATEZZA DEL SITO
+  - Il sito dell'app chiede ai motori di ricerca (Google, Bing…) di NON indicizzarlo, di non
+    mostrarne anteprime né copie salvate: chi non conosce l'indirizzo non lo trova cercando.
+  - La pagina del repository su github.com invece resta pubblica e GitHub la mostra nelle sue
+    ricerche interne. Per renderla poco riconoscibile usa un nome neutro (es. "archivio-personale"
+    invece di "videoteca"): l'indirizzo del sito diventa TUONOME.github.io/archivio-personale/.
+    Puoi anche togliere README.md dal repository: serve solo come presentazione.
+  - Non condividere l'indirizzo pubblicamente (social, forum).
 
 BUONO A SAPERSI
   - Il repository è pubblico: chiunque può vedere il codice dell'app e l'indice offline dei

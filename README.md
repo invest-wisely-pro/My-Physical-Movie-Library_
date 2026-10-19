@@ -12,3 +12,5 @@ A free, private web app to catalogue your **physical film collection** (4K, Blu-
 **Privacy** — your collection stays **on your device**. This site only serves the empty app: nothing you add is uploaded anywhere. Data comes from free, open sources (Wikidata, Wikipedia); no accounts, no API keys, no ads.
 
 **Install** — open the page on your phone: Android (Chrome) → menu ⋮ → *Install app*; iPhone (Safari) → Share → *Add to Home Screen*. Then use *📤 Restore a backup* inside the installed app if you already have one.
+
+**Monthly IMDb index update** — the GitHub Action in `.github/workflows/aggiorna-indice.yml` rebuilds the offline index from the official IMDb datasets (personal, non-commercial use) on the 3rd of every month, or on demand from the *Actions* tab.

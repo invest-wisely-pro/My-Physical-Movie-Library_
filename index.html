@@ -38,6 +38,10 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Uso personale: i motori di ricerca non devono indicizzare l'app né mostrarne anteprime o copie -->
+<meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="googlebot" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+<meta name="bingbot" content="noindex, nofollow, noarchive, nosnippet">
 <meta name="theme-color" content="#07080d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1871,7 +1875,8 @@ const I18N_PATTERNS = [
   [/^· ([\d.,]+k?) voti$/, (m, n)=>`· ${n} votes`],
   [/^([\d,]+) giorni di fila$/, (m, n)=>`${n} days straight`],
   [/^(.+) di circa (.+) \((\d+)%\) · collezione (.+) · schede persona (.+?)( · spazio totale del sito (.+) di (.+))?$/, (m, a, b, p, c, s, x, u, q)=>`${a} of about ${b} (${p}%) · collection ${c} · people profiles ${s}${x ? ` · total site storage ${u} of ${q}` : ''}`],
-  [/^Indice offline ([\d.,]+) titoli · (\d+) schede persona salvate$/, (m, n, p)=>`Offline index ${n} titles · ${p} people profiles saved`],
+  [/^Indice offline ([\d.,]+) titoli(?:, aggiornato al (.+?))? · (\d+) schede persona salvate$/, (m, n, d, p)=>`Offline index ${n} titles${d ? `, updated ${d}` : ''} · ${p} people profiles saved`],
+  [/^⭐ Indice IMDb aggiornato al (.+): voto IMDb aggiornato in (\d+) film$/, (m, d, n)=>`⭐ IMDb index updated to ${d}: IMDb rating updated in ${n} films`],
   [/^Valutati (\d+) dischi su (\d+): più campi qualità e voti compili, più la scelta è precisa\.?$/, (m, a, b)=>`Rated ${a} discs out of ${b}: the more quality fields and ratings you fill in, the more accurate the choice.`],
   [/^Premi, incassi e paesi sono calcolati sui film con "Dietro le quinte" salvato: ne mancano (\d+)\. Usa ⚙️ Strumenti → ⚡ Precarica tutto per completarli\.?$/, (m, n)=>`Awards, box office and countries are computed from films with "Behind the scenes" saved: ${n} are missing. Use ⚙️ Tools → ⚡ Preload everything to complete them.`],
   [/^(\d+) film · prima quelli da vedere · esclusi i prestati$/, (m, n)=>`${n} films · unwatched first · lent ones excluded`],
@@ -2120,6 +2125,29 @@ async function gunzipBase64(b64){
   return new TextDecoder('utf-8').decode(buf);
 }
 let IMDB_INDEX = null, IMDB_INDEX_STATE = 'idle';
+/* Data dell'indice IMDb offline: lo script tools/aggiorna_indice.py la scrive nel file
+   (data-built); l'indice originale dell'app è del 7 luglio 2026. */
+// letta quando serve: il blocco dell'indice sta più in basso nella pagina e all'avvio dello script non esiste ancora
+function indexBuilt(){ const el = document.getElementById('imdbIndexData'); return (el && el.dataset && el.dataset.built) || '2026-07-07'; }
+function fmtIndexDate(d){ try{ return new Date(d + 'T12:00:00').toLocaleDateString(LOCALE, { day: 'numeric', month: 'long', year: 'numeric' }); }catch(e){ return d; } }
+/* Indice più recente → voto e numero di voti IMDb dei film collegati si aggiornano da soli.
+   La prima volta si registra soltanto la data (nessuna modifica). */
+async function refreshImdbRatingsFromIndex(){
+  if(state.imdbIndexBuilt === indexBuilt()) return;
+  if(!state.imdbIndexBuilt){ state.imdbIndexBuilt = indexBuilt(); saveState(); return; }
+  await ensureImdbIndex(); if(!IMDB_INDEX) return;
+  let n = 0;
+  state.movies.forEach(m=>{
+    if(!isTt(m.imdbId)) return;
+    const e = imdbEntry(m.imdbId); if(!e) return;
+    if(e.rt){ const v = String(e.rt).replace('.', ','); if(m.votoImdb !== v){ m.votoImdb = v; n++; } }
+    if(e.v) m.imdbVotes = String(e.v);
+  });
+  state.imdbIndexBuilt = indexBuilt();
+  await saveState();
+  if(n){ renderAll(); toast(`⭐ Indice IMDb aggiornato al ${fmtIndexDate(indexBuilt())}: voto IMDb aggiornato in ${n} film`); }
+}
+setTimeout(refreshImdbRatingsFromIndex, 3000);
 async function ensureImdbIndex(){
   if(IMDB_INDEX) return IMDB_INDEX;
   if(IMDB_INDEX_STATE === 'failed') return null;
@@ -2348,6 +2376,34 @@ async function rtRepairPass(){
   if(fixed){ renderAll(); toast(`🍅 Voto critica Rotten Tomatoes corretto in ${fixed} film`); }
 }
 setTimeout(rtRepairPass, 6000);
+
+/* ---------- Archivio attori, costruito da solo ----------
+   I registi sono nell'indice offline (istantanei); gli attori no. Qui, in sottofondo e
+   una volta sola, si scaricano le filmografie dei primi 4 attori di ogni tuo film: dopo,
+   ogni attore della collezione si apre subito e senza rete, come un regista.
+   Una richiesta alla volta, con pause; si ferma senza rete, aspetta se l'app non è in
+   primo piano o se è in corso "Precarica tutto". Ciò che è già in archivio si salta. */
+const _warm = { running: false, done: 0 };
+async function warmActorArchive(){
+  if(_warm.running) return;
+  _warm.running = true;
+  try{
+    const films = state.movies.filter(m=>isTt(m.imdbId) && (m.lista || 'collezione') !== 'wishlist');
+    for(const m of films){
+      if(navigator.onLine === false) break;
+      while(document.visibilityState === 'hidden' || (typeof _pf !== 'undefined' && _pf.running)) await sleep(5000);
+      if(!(m.pq && m.pq.t === m.imdbId)){ await ensurePeopleQids(m, 'low'); await sleep(800); }
+      const pq = (m.pq && m.pq.map) || {};
+      for(const n of splitNames(m.cast).slice(0, 4)){
+        const q = pq[normKey(n)];
+        if(!isQid(q) || await cachedFilms(q)) continue;
+        try{ await fetchPersonFilms(q, 'low'); _warm.done++; }catch(e){}
+        await sleep(1500);
+      }
+    }
+  }finally{ _warm.running = false; }
+}
+setTimeout(()=>{ if(navigator.onLine !== false) warmActorArchive(); }, 20000);
 
 /* ---------- Azzera la libreria ----------
    Doppia conferma e backup di sicurezza automatico PRIMA di cancellare:
@@ -2830,7 +2886,7 @@ async function archSet(k, v){
   if(!db){
     const m = lsFilmoMap(); m[k] = v;
     const keys = Object.keys(m);
-    if(keys.length > 250) keys.sort((a,b)=>(m[a].at||0) - (m[b].at||0)).slice(0, keys.length - 250).forEach(x=>delete m[x]);
+    if(keys.length > 400) keys.sort((a,b)=>(m[a].at||0) - (m[b].at||0)).slice(0, keys.length - 400).forEach(x=>delete m[x]);
     try{ localStorage.setItem(LS_FILMO, JSON.stringify(m)); }catch(e){}
     return true;
   }
@@ -2968,6 +3024,7 @@ async function ensurePeopleQids(m, prio){
     const sm = state.movies.find(x=>x.id === m.id);
     const target = (sm && sm.imdbId === m.imdbId) ? sm : m;
     target.pq = { t: m.imdbId, map };
+    Object.entries(map).forEach(([nk, q])=>archSet('name:' + nk, { q, at: Date.now() }));   // per sempre, ritrovabili per nome
     if(target === sm) saveState();
     if(_modalSession === session){ renderPeopleChips(); if(prio !== 'low') prefetchCastFilms(target); }
   }catch(e){ /* senza codici si usa la ricerca per nome, come prima */ }
@@ -3364,6 +3421,9 @@ function savePersonEntry(qid, data){
 async function resolvePersonQid(name, filmImdb){
   const c = personCache(); const nk = 'n:' + normKey(name);
   if(c[nk] && isQid(c[nk].q)) return c[nk].q;
+  // Archivio permanente per nome: chi è già stato visto (o precaricato) si trova senza rete
+  const aq = await archGet('name:' + normKey(name));
+  if(aq && isQid(aq.q)){ c[nk] = { q: aq.q, at: Date.now() }; savePersonCache(); return aq.q; }
   let qid = '';
   if(isTt(filmImdb)){
     // Ricerca "ancorata" al film: trova ESATTAMENTE quella persona, non un omonimo
@@ -3376,6 +3436,7 @@ async function resolvePersonQid(name, filmImdb){
     if(rows.length) qid = qidOf(rows[0].p.value);
   }
   if(qid){ c[nk] = {q:qid, at:Date.now()}; savePersonCache(); }
+  if(isQid(qid)) archSet('name:' + normKey(name), { q: qid, at: Date.now() });
   return qid;
 }
 async function fetchPersonData(qid, onUpdate, prio){
@@ -3399,7 +3460,7 @@ async function fetchPersonData(qid, onUpdate, prio){
   const base = { at: Date.now(), qid, name:'', collab: { cast: [], regia: [] }, awards: [], nominations: 0, countries: [], spouses: [], jobs: [] };
   const data = Object.assign(base, cached || {}, { qid, films, failed: [], pending: new Set(need) });
   const emit = () => { if(onUpdate) onUpdate(data); };
-  if(cached) emit();   // subito quello che è già salvato, poi si completano le parti mancanti
+  if(cached || films) emit();   // subito ciò che è già salvato (anche solo la filmografia dall'archivio), poi le parti mancanti
   const done = (part, ok) => { data.pending.delete(part); if(!ok) data.failed.push(part); emit(); };
   const year = x => { const m = String(x||'').match(/^(\d{4})/); return m ? m[1] : ''; };
 
@@ -4488,7 +4549,7 @@ function diagReport(i){
   L.push(`Dispositivo: ${i.platform} · ${i.ua}`);
   L.push(`Schermo ${i.screen} · lingua ${i.lang} · ${i.installed ? 'app installata' : 'nel browser'} · ${i.protocol} · ${i.online ? 'online' : 'offline'}`);
   L.push(`Service worker: ${i.sw ? 'attivo' : 'no'} · Archivio IndexedDB: ${i.idb ? 'sì' : 'no (ripiego localStorage)'} · Memoria persistente: ${i.persisted === null ? 'n/d' : i.persisted ? 'sì' : 'no'}`);
-  L.push(`Collezione: ${i.films} film · ${i.linked} collegati a IMDb · ${i.withEx} con Dietro le quinte · indice offline ${i.index} titoli`);
+  L.push(`Collezione: ${i.films} film · ${i.linked} collegati a IMDb · ${i.withEx} con Dietro le quinte · indice offline ${i.index} titoli (aggiornato al ${indexBuilt()})`);
   L.push(`Schede persona salvate: ${i.persons} · filmografie in archivio: ${i.filmo === null ? 'n/d' : i.filmo}`);
   L.push(`Memoria locale: ${fmtBytes(i.lsTotal)} di ~${fmtBytes(i.lsLimit)} (collezione ${fmtBytes(i.coll)}, schede persona ${fmtBytes(i.personsBytes)})${i.est && i.est.quota ? ` · spazio del sito ${fmtBytes(i.est.usage || 0)} di ${fmtBytes(i.est.quota)}` : ''}`);
   L.push(`Coda Wikidata: ${i.queue.running} in corso, ${i.queue.queued} in attesa`);
@@ -4513,7 +4574,7 @@ async function openDiagnostics(){
     <div class="bs-box">
       <div class="bs-row"><div class="bs-k">Dispositivo</div><div class="bs-v"><span class="plain">${escapeHtml(i.platform || '—')} · ${i.installed ? '📱 app installata' : '🌐 nel browser'} · ${i.online ? 'online' : '📴 offline'}</span></div></div>
       <div class="bs-row"><div class="bs-k">Funzionamento</div><div class="bs-v"><span class="plain">Offline: ${i.sw ? '✓ attivo' : '— (serve la versione su GitHub)'} · Archivio: ${i.idb ? '✓ IndexedDB' : 'ripiego localStorage'} · Memoria protetta: ${i.persisted === null ? 'n/d' : i.persisted ? '✓ sì' : 'no'}</span></div></div>
-      <div class="bs-row"><div class="bs-k">Dati</div><div class="bs-v"><span class="plain">Indice offline ${i.index ? i.index.toLocaleString(LOCALE) + ' titoli' : 'non caricato'} · ${i.persons} schede persona salvate</span></div></div>
+      <div class="bs-row"><div class="bs-k">Dati</div><div class="bs-v"><span class="plain">Indice offline ${i.index ? i.index.toLocaleString(LOCALE) + ' titoli, aggiornato al ' + fmtIndexDate(indexBuilt()) : 'non caricato'} · ${i.persons} schede persona salvate</span></div></div>
       <div class="bs-row"><div class="bs-k">Memoria locale</div><div class="bs-v" style="flex-direction:column; align-items:stretch; gap:6px">
         <div class="diag-bar"><div style="width:${pct}%; background:${warn ? 'linear-gradient(90deg,#ffb020,#ff4b4b)' : 'var(--grad)'}"></div></div>
         <span class="plain">${fmtBytes(i.lsTotal)} di circa ${fmtBytes(i.lsLimit)} (${pct}%) · collezione ${fmtBytes(i.coll)} · schede persona ${fmtBytes(i.personsBytes)}${i.est && i.est.quota ? ` · spazio totale del sito ${fmtBytes(i.est.usage || 0)} di ${fmtBytes(i.est.quota)}` : ''}</span>
