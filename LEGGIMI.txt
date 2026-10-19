@@ -42,8 +42,10 @@ AGGIORNAMENTO AUTOMATICO DELL'INDICE IMDb (una volta al mese)
      creala dal sito: "Add file" → "Create new file" → come nome scrivi
      .github/workflows/aggiorna-indice.yml → incolla il contenuto del file → "Commit changes".
   b. Primo aggiornamento subito: scheda "Actions" (se compare, conferma di voler abilitare i
-     workflow) → "Aggiorna indice IMDb" → "Run workflow". Dura circa 10-20 minuti.
-  c. Fatto: l'app pubblicata contiene l'indice di oggi. Aprendola, i voti IMDb dei tuoi film
+     workflow) → "Aggiorna indice IMDb" → "Run workflow". Dura circa 15-30 minuti.
+  c. Fatto: l'app pubblicata contiene l'indice di oggi, con anche il CAST dei film (i primi 5 attori):
+     le filmografie degli attori (ruoli principali) si aprono subito anche offline, come quelle dei registi.
+     Aprendola, i voti IMDb dei tuoi film
      si aggiornano da soli e in ⚙️ Strumenti → 🩺 Diagnostica vedi la data dell'indice.
      Da lì in poi si aggiorna da solo il 3 di ogni mese.
   Se l'aggiornamento non riesce a pubblicare: Settings → Actions → General →
