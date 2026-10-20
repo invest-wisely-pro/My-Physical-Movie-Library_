@@ -67,6 +67,20 @@ RISERVATEZZA DEL SITO
     Puoi anche togliere README.md dal repository: serve solo come presentazione.
   - Non condividere l'indirizzo pubblicamente (social, forum).
 
+SINCRONIZZAZIONE TRA DISPOSITIVI (facoltativa)
+  Stessa collezione su telefono, tablet e PC, tramite un tuo repository GitHub PRIVATO.
+  Nell'app: ⚙️ Strumenti → 🔄 Sincronizza dispositivi, e segui i 3 passaggi:
+  1. crea un repository PRIVATO per i dati (es. "videoteca-dati"): solo la prima volta;
+  2. crea un token "fine-grained" limitato a quel repository, con Contents: Read and write;
+  3. inserisci utente, repository e token, e premi "Collega e sincronizza".
+  Ripeti i passaggi 2-3 su ogni dispositivo (stesso repository).
+  - Si sincronizza da sola all'apertura e poco dopo ogni modifica, oppure con "Sincronizza ora".
+  - Modifiche diverse sullo stesso film fatte su dispositivi diversi si sommano; solo lo stesso
+    campo cambiato in due modi diversi tra due sincronizzazioni prende l'ultimo valore.
+  - L'app rifiuta i repository pubblici; il token resta sul dispositivo, mai nei backup.
+  - Se una sincronizzazione eliminerebbe più di metà dei film, si ferma e chiede conferma.
+  - "Azzera la libreria" scollega prima il dispositivo: gli altri conservano la collezione.
+
 BUONO A SAPERSI
   - Il repository è pubblico: chiunque può vedere il codice dell'app e l'indice offline dei
     film (dati IMDb ad uso personale). La tua collezione invece NON è lì: resta sul telefono.
