@@ -88,6 +88,17 @@ SERIE TV E CONDIVISIONE DEL BACKUP
   - ⚙️ Strumenti → 📤 Condividi backup: manda il file a un altro dispositivo (Drive, WhatsApp,
     email, Quick Share/AirDrop). Sull'altro dispositivo: 📤 Ripristina un backup.
 
+EPISODI DELLE SERIE
+  - Nella scheda di una serie: "🎞️ Episodi" mostra stagioni ed episodi (da TVmaze, gratuito,
+    titoli in inglese). Tocca un episodio per segnarlo come visto, o "✓ Segna tutta" per la stagione.
+  - Vedi "Visti 23 di 62 · prossimo S3E4", l'etichetta ▶ sulla copertina e le serie in corso nelle Statistiche.
+  - L'elenco si salva sul dispositivo: dopo la prima volta funziona anche offline.
+
+IMPORTANTE QUANDO CARICHI UNA NUOVA VERSIONE DI index.html
+  Il file del pacchetto contiene l'indice IMDb di luglio 2026. Dopo averlo caricato su GitHub,
+  rilancia subito "Aggiorna indice IMDb" (Actions → Run workflow): in 15-30 minuti tornano
+  l'indice di oggi, il cast degli attori e gli episodi per stagione.
+
 BUONO A SAPERSI
   - Il repository è pubblico: chiunque può vedere il codice dell'app e l'indice offline dei
     film (dati IMDb ad uso personale). La tua collezione invece NON è lì: resta sul telefono.
