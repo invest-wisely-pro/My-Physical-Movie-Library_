@@ -12,7 +12,7 @@ Formato di ogni riga: id|titolo italiano|titolo originale|anno|durata|generi|vot
 In un blocco separato: i primi 5 attori di ogni film (tabella dei nomi + riferimenti),
 per avere offline anche le filmografie degli attori (ruoli principali).
 In un altro blocco: le serie TV (tvSeries, tvMiniSeries) con titolo italiano, stagioni ed episodi:
-id|titolo italiano|titolo originale|anno inizio|anno fine|stagioni|episodi|generi|voti|voto|alias
+id|titolo italiano|titolo originale|anno inizio|anno fine|stagioni|episodi|generi|voti|voto|alias|episodi per stagione (es. 7,13,13)
 
 Uso:
   python aggiorna_indice.py index.html            # scarica i dati aggiornati
@@ -98,7 +98,7 @@ def build(paths):
         for a in alts:
             if a.lower() not in seen: seen.add(a.lower()); al.append(a)
         genres = ', '.join(GENRES[g] for g in clean(p[8]).split(',') if g in GENRES)
-        if is_ser: srows[k] = [p[0][2:], main, en, clean(p[5]), clean(p[6]), set(), 0, genres, '0', '', '~'.join(al[:6])]
+        if is_ser: srows[k] = [p[0][2:], main, en, clean(p[5]), clean(p[6]), {}, 0, genres, '0', '', '~'.join(al[:6])]
         else: rows[k] = [p[0][2:], main, en, clean(p[5]), clean(p[7]), genres, '0', '', '~'.join(al[:6]), '']
     del it, its, cand, scand
     # 3b) stagioni ed episodi delle serie
@@ -109,7 +109,7 @@ def build(paths):
             k = int(p[1][2:]) if p[1].startswith('tt') else -1
             if k in srows:
                 srows[k][6] += 1
-                if p[2].isdigit() and 0 < int(p[2]) < 200: srows[k][5].add(int(p[2]))
+                if p[2].isdigit() and 0 < int(p[2]) < 200: srows[k][5][int(p[2])] = srows[k][5].get(int(p[2]), 0) + 1
     # 4) voti
     for line in open_tsv(paths['title.ratings.tsv.gz']):
         p = line.rstrip('\n').split('\t')
@@ -162,7 +162,9 @@ def build(paths):
         log('Attori nel cast offline:', len(order))
     series_text = ''
     if srows:
-        series_text = '\n'.join('|'.join([r[0], r[1], r[2], r[3], r[4], str(len(r[5]) or ''), str(r[6] or ''), r[7], r[8], r[9], r[10]]) for k, r in sorted(srows.items())) + '\n'
+        def per_season(d):   # episodi di ogni stagione, dalla 1 all'ultima (0 se manca)
+            return ','.join(str(d.get(i, 0)) for i in range(1, max(d) + 1)) if d else ''
+        series_text = '\n'.join('|'.join([r[0], r[1], r[2], r[3], r[4], str(len(r[5]) or ''), str(r[6] or ''), r[7], r[8], r[9], r[10], per_season(r[5])]) for k, r in sorted(srows.items())) + '\n'
         log('Serie TV nell\'indice:', len(srows))
     return out, len(rows), cast_text, len(cast), series_text, len(srows)
 
@@ -220,3 +222,4 @@ def main():
     embed(html, text, cast_text, series_text, built)
 
 if __name__ == '__main__': main()
+
