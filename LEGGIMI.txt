@@ -81,6 +81,13 @@ SINCRONIZZAZIONE TRA DISPOSITIVI (facoltativa)
   - Se una sincronizzazione eliminerebbe più di metà dei film, si ferma e chiede conferma.
   - "Azzera la libreria" scollega prima il dispositivo: gli altri conservano la collezione.
 
+SERIE TV E CONDIVISIONE DEL BACKUP
+  - "🔎 Cerca" trova anche le serie TV (circa 25.000 distribuite in Italia, con stagioni ed
+    episodi): scegliendone una, la scheda diventa "📺 Serie TV" e tocchi le stagioni che possiedi.
+    Filtro "Film e serie" nella barra dei filtri. L'indice delle serie si aggiorna ogni mese con l'indice IMDb.
+  - ⚙️ Strumenti → 📤 Condividi backup: manda il file a un altro dispositivo (Drive, WhatsApp,
+    email, Quick Share/AirDrop). Sull'altro dispositivo: 📤 Ripristina un backup.
+
 BUONO A SAPERSI
   - Il repository è pubblico: chiunque può vedere il codice dell'app e l'indice offline dei
     film (dati IMDb ad uso personale). La tua collezione invece NON è lì: resta sul telefono.
