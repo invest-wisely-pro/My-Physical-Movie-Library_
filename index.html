@@ -1295,6 +1295,7 @@ body:not(.tab-bacheca) .bacheca-only{display:none !important;}
         <button class="btn ghost" id="fixCastBtn" title="Mette i protagonisti in cima al Cast principale dei film già salvati (i cast scritti a mano non vengono toccati)">🎭 Sistema il cast principale</button>
         <button class="btn ghost" id="syncBtn" title="Stessa collezione su più dispositivi, tramite un tuo repository GitHub privato">🔄 Sincronizza dispositivi</button>
         <button class="btn ghost" id="idxBtn" title="Data dell'indice IMDb offline e come aggiornarlo">🔄 Aggiorna indice IMDb</button>
+        <button class="btn ghost" id="critIdxBtn" title="Data dell'indice Frusciante e Criticoni e come aggiornarlo">🎙️ Aggiorna Frusciante e Criticoni</button>
         <button class="btn ghost" id="langBtn" data-no-tr></button>
         <button class="btn ghost" id="diagBtn" title="Stato dell'app, memoria ed errori recenti, con un rapporto da copiare">🩺 Diagnostica</button>
         <button class="btn ghost danger-btn" id="resetLibBtn" title="Cancella tutti i film e riparti da zero (prima scarica un backup di sicurezza)">🗑️ Azzera la libreria</button>
@@ -1721,6 +1722,15 @@ body:not(.tab-bacheca) .bacheca-only{display:none !important;}
   </div>
 </div>
 
+<!-- Aggiorna Frusciante e Criticoni -->
+<div class="overlay" id="critIdxOverlay">
+  <div class="modal settings-modal" style="max-width:600px;">
+    <button class="modal-close" id="critIdxClose" aria-label="Chiudi">&times;</button>
+    <h2 style="margin-top:0; font-family:'Sora',sans-serif; font-size:20px;">🎙️ Aggiorna Frusciante e Criticoni</h2>
+    <div id="critIdxBody"></div>
+  </div>
+</div>
+
 <!-- Diagnostica -->
 <div class="overlay" id="diagOverlay">
   <div class="modal settings-modal" style="max-width:680px;">
@@ -2091,6 +2101,16 @@ Object.assign(I18N_DICT, {
   'Con l\'app su GitHub Pages:':'With the app on GitHub Pages:','apri il repository su github.com → scheda':'open the repository on github.com → tab',
   'Con il file sul PC:':'With the file on a PC:','serve Python; nella cartella dei file scrivi':'Python is required; in the files folder type',
   'Quando arriva l\'indice nuovo, voto e numero di voti IMDb dei tuoi film si aggiornano da soli':'When the new index arrives, the IMDb rating and vote count of your films update by themselves' });
+Object.assign(I18N_DICT, {
+  'Aggiorna Frusciante e Criticoni':'Update Frusciante and Criticoni','Data dell\'indice Frusciante e Criticoni e come aggiornarlo':'Frusciante and Criticoni index date and how to update it',
+  'film di Frusciante':'Frusciante films','film dei Criticoni':'Criticoni films','⚠️ L\'indice non è ancora stato creato.':'⚠️ The index hasn\'t been created yet.',
+  'Segui "Prima volta" qui sotto: bastano 5 minuti, anche dal telefono. Poi nella scheda di ogni film compaiono i giudizi di Frusciante e dei Criticoni.':'Follow "First time" below: 5 minutes are enough, even from your phone. Then the verdicts of Frusciante and the Criticoni appear on every film\'s page.',
+  'per conto tuo: legge con calma gli elenchi di filmcriticoni.it, una pagina al secondo. Si ripete da solo il 10 di ogni mese; per farlo subito:':'on your behalf: it calmly reads the filmcriticoni.it lists, one page per second. It repeats by itself on the 10th of every month; to do it now:',
+  'Aspetta circa 5 minuti la spunta verde ✓, poi torna qui e premi':'Wait about 5 minutes for the green tick ✓, then come back here and press',
+  'Se GitHub dice che la pagina non esiste, l\'automazione non è ancora nel repository: la sezione "Prima volta" qui sotto ti guida.':'If GitHub says the page doesn\'t exist, the automation isn\'t in the repository yet: the "First time" section below guides you.',
+  'Se l\'automazione si ferma con "trovati solo N film", il sito potrebbe aver cambiato struttura: l\'app non viene toccata e resta l\'indice precedente.':'If the automation stops with "found only N films", the site may have changed its structure: the app isn\'t touched and the previous index stays.',
+  'Se li hai già dati per l\'indice IMDb, salta questo passaggio. Altrimenti premi "Permessi", scorri fino a':'If you already granted them for the IMDb index, skip this step. Otherwise press "Permissions", scroll down to',
+  'I dati vengono dall\'indice indipendente filmcriticoni.it: giudizio, numero di video e menzioni, link alla pagina del film.':'The data comes from the independent index filmcriticoni.it: verdict, number of videos and mentions, link to the film\'s page.' });
 I18N_PATTERNS.push(
   [/^⚠️ L'indice ha (\d+) giorni: conviene aggiornarlo\.?$/, (m, n)=>`⚠️ The index is ${n} days old: it's worth updating.`],
   [/^✓ L'indice è recente \((\d+) giorni\)\.?$/, (m, n)=>`✓ The index is recent (${n} days).`]);
@@ -4906,10 +4926,10 @@ function githubRepoBase(){
   const seg = location.pathname.split('/').filter(Boolean)[0];
   return `https://github.com/${m[1]}/${seg && !/\.html?$/i.test(seg) ? seg : m[1] + '.github.io'}`;
 }
-async function copyText(text, okMsg){
+async function copyText(text, okMsg, areaId){
   try{ await navigator.clipboard.writeText(text); toast(okMsg); return true; }
   catch(e){
-    const ta = document.getElementById('idxCopyArea'); ta.style.display = 'block'; ta.value = text; ta.focus(); ta.select();
+    const ta = document.getElementById(areaId || 'idxCopyArea'); ta.style.display = 'block'; ta.value = text; ta.focus(); ta.select();
     toast('Seleziona e copia il testo qui sotto'); return false;
   }
 }
@@ -4979,6 +4999,74 @@ document.getElementById('idxOverlay').addEventListener('click', e=>{
   if(e.target.closest('[data-idx-reload]')){ try{ location.reload(); }catch(err){} return; }
   const c = e.target.closest('[data-idx-copy]');
   if(c) copyText(c.dataset.idxCopy === 'script' ? IDX_SCRIPT_TEXT : IDX_WORKFLOW_TEXT, c.dataset.idxCopy === 'script' ? '📋 Script copiato: ora premi "Crea il file" e incollalo' : '📋 Automazione copiata: incollala nel file su GitHub');
+});
+
+/* ---------- 🎙️ Aggiorna Frusciante e Criticoni ----------
+   Gemella della guida dell'indice IMDb: stato dell'indice, link diretto all'automazione
+   su GitHub, e "Prima volta" con i file da creare (testi identici a quelli del pacchetto). */
+const CRIT_SCRIPT_TEXT = "#!/usr/bin/env python3\n\"\"\"\nIndice \"Frusciante e i Criticoni\" per My Physical Movie Library.\n\nLegge, una volta al mese, SOLO gli elenchi dei film di filmcriticoni.it (indice indipendente dei\nfilm discussi nei video di Federico Frusciante e dei Criticoni) e scrive nell'app un indice compatto:\nper ogni film titolo, anno, regista, giudizio complessivo, numero di video e di menzioni, indirizzo\ndella sua pagina. Le frasi trascritte delle menzioni NON vengono copiate: per quelle l'app rimanda\nalla pagina del film sul sito.\n\nUso:\n  python tools/aggiorna_criticoni.py index.html                 # dal sito (una pagina al secondo)\n  python tools/aggiorna_criticoni.py index.html --local CARTELLA # da pagine salvate (c-1.html, f-1.html, \u2026)\n\nSe il sito cambiasse struttura e lo script trovasse troppo pochi film, si ferma con un errore\nSENZA modificare index.html.\n\"\"\"\nimport base64, datetime, gzip, html, json, os, re, sys, time, urllib.request\nfrom html.parser import HTMLParser\n\nBASE = 'https://filmcriticoni.it'\nSOURCES = {'c': '/', 'f': '/frusciante'}           # c = Criticoni, f = Frusciante\nUA = 'MyPhysicalMovieLibrary-index/1.0 (indice personale aggiornato una volta al mese)'\nSENT = {'positivo': 1, 'negativo': -1, 'misto': 0}\nMIN_FILMS = {'c': 300, 'f': 1000}                   # sotto queste soglie qualcosa non va\nHREF_RE = re.compile(r'^(?:https?://(?:www\\.)?filmcriticoni\\.it)?/(frusciante/)?film/([a-z0-9][a-z0-9-]*)/?$')\nPAGE_RE = re.compile(r'[?&]page=(\\d+)')\n\n\nclass ListParser(HTMLParser):\n    \"\"\"Raccoglie, per ogni link a una scheda film, i pezzi di testo che contiene.\"\"\"\n    def __init__(self):\n        super().__init__(convert_charrefs=True)\n        self.cards, self.pages, self._cur, self._depth = [], set(), None, 0\n\n    def handle_starttag(self, tag, attrs):\n        a = dict(attrs)\n        if tag == 'a':\n            href = (a.get('href') or '').strip()\n            m = HREF_RE.match(href)\n            if m and self._cur is None:\n                self._cur = {'fr': bool(m.group(1)), 'slug': m.group(2), 'chunks': [], 'alt': ''}\n                self._depth = 1\n                return\n            pm = PAGE_RE.search(href)\n            if pm: self.pages.add(int(pm.group(1)))\n        if self._cur is not None:\n            if tag == 'a': self._depth += 1\n            if tag == 'img' and a.get('alt') and not self._cur['alt']: self._cur['alt'] = a['alt'].strip()\n\n    def handle_endtag(self, tag):\n        if self._cur is not None and tag == 'a':\n            self._depth -= 1\n            if self._depth <= 0:\n                self.cards.append(self._cur); self._cur = None\n\n    def handle_data(self, data):\n        if self._cur is not None:\n            t = re.sub(r'\\s+', ' ', data).strip()\n            if t: self._cur['chunks'].append(t)\n\n\ndef parse_card(c):\n    ch = [x for x in c['chunks'] if x not in ('\u2192', '\u203a')]\n    joined = ' '.join(ch)\n    m = re.search(r'(\\d+)\\s*video\\s*\u00b7\\s*(\\d+)\\s*menzion', joined)\n    if not m: return None\n    vid, men = int(m.group(1)), int(m.group(2))\n    sent = None\n    for x in ch:\n        if x.lower() in SENT: sent = SENT[x.lower()]; break\n    year = ''\n    for x in ch:\n        ym = re.match(r'^((?:18|19|20)\\d{2})(?!\\d)', x)\n        if ym: year = ym.group(1); break\n    director, title = '', ''\n    ri = next((i for i, x in enumerate(ch) if x.lower().startswith('regia')), -1)\n    if ri >= 0:\n        d = re.sub(r'^regia\\s*:?\\s*', '', ch[ri], flags=re.I).strip()\n        if not d and ri + 1 < len(ch): d = ch[ri + 1]\n        director = d\n        for j in range(ri - 1, -1, -1):              # il titolo \u00e8 il testo subito prima di \"Regia\"\n            x = ch[j]\n            if x.lower() in SENT or re.match(r'^((?:18|19|20)\\d{2})', x) or re.match(r'^uwufufu', x, re.I) or x.startswith('#'): continue\n            title = x; break\n    if not title: title = c['alt']\n    if not title:                                    # ultimo ripiego: il testo prima del giudizio o dell'anno\n        tm = re.match(r'^(.*?)\\s+(?:Positivo|Negativo|Misto|(?:18|19|20)\\d{2})\\b', joined)\n        title = tm.group(1).strip() if tm else ''\n    if not title: return None\n    return [c['slug'], html.unescape(title), year, html.unescape(director), sent, vid, men]\n\n\ndef get(url, tries=4):\n    for k in range(tries):\n        try:\n            req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept': 'text/html'})\n            with urllib.request.urlopen(req, timeout=40) as r:\n                return r.read().decode('utf-8', 'replace')\n        except Exception as e:\n            if k == tries - 1: raise\n            print(f'  nuovo tentativo tra {5 * (k + 1)} s ({e})'); time.sleep(5 * (k + 1))\n\n\ndef crawl(src, local=None, delay=1.0, max_pages=400):\n    films, seen, page, last, empty = [], set(), 1, 1, 0\n    while page <= min(last, max_pages):\n        if local:\n            path = os.path.join(local, f'{src}-{page}.html')\n            if not os.path.exists(path): break\n            text = open(path, encoding='utf-8').read()\n        else:\n            url = BASE + SOURCES[src] + ('' if page == 1 else ('&' if '?' in SOURCES[src] else '?') + f'page={page}')\n            text = get(url)\n            time.sleep(delay)\n        p = ListParser(); p.feed(text)\n        if p.pages: last = max(last, max(p.pages))\n        n = 0\n        for c in p.cards:\n            if (src == 'f') != c['fr']: continue        # solo le schede della sezione giusta\n            row = parse_card(c)\n            if row and row[0] not in seen:\n                seen.add(row[0]); films.append(row); n += 1\n        print(f'  {\"Criticoni\" if src == \"c\" else \"Frusciante\"} pagina {page}/{last}: {n} film')\n        empty = empty + 1 if n == 0 else 0\n        if empty >= 2: break\n        page += 1\n    return films\n\n\ndef embed(html_path, data, built):\n    b64 = base64.b64encode(gzip.compress(json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode('utf-8'), 9)).decode('ascii')\n    tag = f'<script type=\"text/plain\" id=\"criticoniData\" data-built=\"{built}\">{b64}<\/script>'\n    doc = open(html_path, encoding='utf-8').read()\n    new, n = re.subn(r'<script type=\"text/plain\" id=\"criticoniData\"[^>]*>[^<]*<\/script>', lambda _: tag, doc, count=1)\n    if n == 0:\n        new, n = re.subn(r'(<script type=\"text/plain\" id=\"imdbSeriesData\"[^>]*>[^<]*<\/script>)', lambda m: m.group(1) + '\\n' + tag, doc, count=1)\n    if n == 0:\n        new = doc.replace('<\/body>', tag + '\\n<\/body>', 1)\n    open(html_path, 'w', encoding='utf-8').write(new)\n    return len(b64)\n\n\ndef main():\n    args = sys.argv[1:]\n    if not args: print(__doc__); sys.exit(2)\n    html_path = args[0]\n    local = args[args.index('--local') + 1] if '--local' in args else None\n    built = args[args.index('--date') + 1] if '--date' in args else datetime.date.today().isoformat()\n    mins = {'c': 1, 'f': 1} if '--no-min' in args else MIN_FILMS\n    data = {'v': 1, 'built': built, 'site': BASE}\n    for src in ('c', 'f'):\n        print(f'Leggo gli elenchi: {\"Criticoni\" if src == \"c\" else \"Frusciante\"}\u2026')\n        data[src] = crawl(src, local=local, delay=0 if local else 1.0)\n        if len(data[src]) < mins[src]:\n            print(f'ERRORE: trovati solo {len(data[src])} film per {\"i Criticoni\" if src == \"c\" else \"Frusciante\"} '\n                  f'(attesi almeno {mins[src]}). La struttura del sito potrebbe essere cambiata: index.html NON \u00e8 stato modificato.')\n            sys.exit(1)\n    size = embed(html_path, data, built)\n    print(f'Fatto: {len(data[\"c\"])} film dei Criticoni e {len(data[\"f\"])} di Frusciante, indice di {size // 1024} KB, data {built}.')\n\n\nif __name__ == '__main__':\n    main()\n";
+const CRIT_WORKFLOW_TEXT = "# Aggiorna ogni mese l'indice \"Frusciante e i Criticoni\" (giudizi e numero di video da filmcriticoni.it).\n# Si pu\u00f2 anche avviare a mano: scheda \"Actions\" \u2192 \"Aggiorna Frusciante e Criticoni\" \u2192 \"Run workflow\".\nname: Aggiorna Frusciante e Criticoni\non:\n  schedule:\n    - cron: '0 5 10 * *'    # il 10 di ogni mese alle 5:00 UTC\n  workflow_dispatch:\npermissions:\n  contents: write\njobs:\n  aggiorna:\n    runs-on: ubuntu-latest\n    timeout-minutes: 30\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-python@v5\n        with:\n          python-version: '3.12'\n      - name: Ricostruisci l'indice dagli elenchi di filmcriticoni.it\n        run: python tools/aggiorna_criticoni.py index.html\n      - name: Pubblica se \u00e8 cambiato\n        run: |\n          git config user.name \"aggiorna-criticoni\"\n          git config user.email \"github-actions[bot]@users.noreply.github.com\"\n          if git diff --quiet -- index.html; then echo \"Nessuna novit\u00e0\"; exit 0; fi\n          git add index.html\n          git commit -m \"Indice Frusciante e Criticoni aggiornato al $(date +%Y-%m-%d)\"\n          git push\n";
+function githubWorkflowUrl(file){ const b = githubRepoBase(); return b ? `${b}/actions/workflows/${file}` : ''; }
+async function openCritIndexUpdate(){
+  const body = document.getElementById('critIdxBody');
+  document.getElementById('critIdxOverlay').classList.add('open');
+  await ensureCritIndex();
+  const built = critBuilt(), gh = githubWorkflowUrl('aggiorna-criticoni.yml'), base = githubRepoBase();
+  const days = built ? Math.floor((Date.now() - new Date(built + 'T12:00:00').getTime()) / 864e5) : 0;
+  body.innerHTML = `
+    ${built && CRIT ? `<div class="pstat-grid" style="margin-bottom:14px">
+      <div class="pstat"><b>${escapeHtml(fmtIndexDate(built))}</b><small>data dell'indice</small></div>
+      <div class="pstat"><b>${CRIT.n.f.toLocaleString(LOCALE)}</b><small>film di Frusciante</small></div>
+      <div class="pstat"><b>${CRIT.n.c.toLocaleString(LOCALE)}</b><small>film dei Criticoni</small></div>
+    </div>
+    ${days > 45 ? `<div class="bs-note" style="color:#ffb020; padding:0 2px 12px">⚠️ L'indice ha ${days} giorni: conviene aggiornarlo.</div>` : `<div class="bs-note" style="padding:0 2px 12px">✓ L'indice è recente (${days} giorni).</div>`}`
+    : `<div class="bs-note" style="color:#ffb020; padding:0 2px 12px">⚠️ L'indice non è ancora stato creato.</div><p class="link-intro" style="margin-top:0">Segui "Prima volta" qui sotto: bastano 5 minuti, anche dal telefono. Poi nella scheda di ogni film compaiono i giudizi di Frusciante e dei Criticoni.</p>`}
+    <p class="link-intro" style="margin-top:0">L'aggiornamento lo fa <b>GitHub</b> per conto tuo: legge con calma gli elenchi di filmcriticoni.it, una pagina al secondo. Si ripete da solo il 10 di ogni mese; per farlo subito:</p>
+    ${gh ? `<ol class="idx-steps">
+        <li>Apri la pagina dell'aggiornamento su GitHub (pulsante qui sotto)</li>
+        <li>Premi <b>"Run workflow"</b>, poi il pulsante verde <b>"Run workflow"</b></li>
+        <li>Aspetta circa 5 minuti la spunta verde ✓, poi torna qui e premi <b>"Ricarica l'app"</b></li>
+      </ol>
+      <div class="link-actions">
+        <button type="button" class="btn ghost" data-crit-reload>🔄 Ricarica l'app</button>
+        <a class="btn solid" href="${escapeHtml(gh)}" target="_blank" rel="noopener">Apri GitHub Actions ↗</a>
+      </div>
+      <div class="bs-note" style="padding:10px 2px 0">Se GitHub dice che la pagina non esiste, l'automazione non è ancora nel repository: la sezione "Prima volta" qui sotto ti guida.</div>`
+    : `<ol class="idx-steps">
+        <li><b>Con l'app su GitHub Pages:</b> apri il repository su github.com → scheda <b>Actions</b> → <b>"Aggiorna Frusciante e Criticoni"</b> → <b>"Run workflow"</b></li>
+        <li><b>Con il file sul PC:</b> serve Python; nella cartella dei file scrivi<br><code>python tools/aggiorna_criticoni.py My_Physical_Movie_Library.html</code></li>
+      </ol>
+      <div class="link-actions"><button type="button" class="btn ghost" data-crit-reload>🔄 Ricarica l'app</button></div>`}
+    <div class="bs-note" style="padding:10px 2px 0">Se l'automazione si ferma con "trovati solo N film", il sito potrebbe aver cambiato struttura: l'app non viene toccata e resta l'indice precedente.</div>
+    <details class="idx-setup" ${gh && built ? '' : 'open'}>
+      <summary>⚙️ Prima volta: attiva l'aggiornamento automatico (5 minuti, anche dal telefono)</summary>
+      ${base ? `<ol class="idx-steps">
+        <li><b>Lo script.</b> Premi "Copia lo script", poi "Crea il file": GitHub si apre con il nome già scritto. Incolla il testo nel riquadro grande e premi <b>"Commit changes"</b> (due volte, se lo chiede).
+          <div class="link-actions"><button type="button" class="btn ghost" data-crit-copy="script">📋 Copia lo script</button><a class="btn ghost" href="${escapeHtml(base + '/new/main?filename=' + encodeURIComponent('tools/aggiorna_criticoni.py'))}" target="_blank" rel="noopener">Crea il file ↗</a></div></li>
+        <li><b>L'automazione.</b> Premi "Crea l'automazione": GitHub si apre con nome e contenuto già pronti. Premi solo <b>"Commit changes"</b>. Se il riquadro fosse vuoto, usa "Copia l'automazione" e incolla.
+          <div class="link-actions"><a class="btn ghost" href="${escapeHtml(base + '/new/main?filename=' + encodeURIComponent('.github/workflows/aggiorna-criticoni.yml') + '&value=' + encodeURIComponent(CRIT_WORKFLOW_TEXT))}" target="_blank" rel="noopener">Crea l'automazione ↗</a><button type="button" class="btn ghost" data-crit-copy="workflow">📋 Copia l'automazione</button></div></li>
+        <li><b>I permessi.</b> Se li hai già dati per l'indice IMDb, salta questo passaggio. Altrimenti premi "Permessi", scorri fino a <b>"Workflow permissions"</b>, scegli <b>"Read and write permissions"</b> e premi <b>"Save"</b>.
+          <div class="link-actions"><a class="btn ghost" href="${escapeHtml(base + '/settings/actions')}" target="_blank" rel="noopener">Permessi ↗</a></div></li>
+        <li><b>Il primo aggiornamento.</b> Usa "Apri GitHub Actions" qui sopra → <b>"Run workflow"</b> → pulsante verde <b>"Run workflow"</b>.</li>
+      </ol>
+      <div class="bs-note" style="padding:0 2px">Se un link apre una pagina di errore, il ramo del tuo repository potrebbe chiamarsi "master" invece di "main": crea i file dal repository con "Add file" → "Create new file", usando gli stessi nomi.</div>`
+      : `<p class="link-intro" style="margin:8px 0">Pubblica prima l'app su GitHub Pages (vedi LEGGIMI.txt): da lì questa sezione ti guida con i link diretti. Sul PC puoi usare lo script anche da solo:</p>
+      <div class="link-actions"><button type="button" class="btn ghost" data-crit-copy="script">📋 Copia lo script</button></div>`}
+      <textarea id="critCopyArea" readonly style="display:none; width:100%; min-height:140px; margin-top:10px; font-family:var(--font-mono, monospace); font-size:11px;"></textarea>
+    </details>
+    <div class="bs-note" style="padding:12px 2px 0">I dati vengono dall'indice indipendente filmcriticoni.it: giudizio, numero di video e menzioni, link alla pagina del film.</div>`;
+}
+document.getElementById('critIdxBtn').addEventListener('click', ()=>{
+  const dd = document.getElementById('toolsDropdown'); if(dd) dd.classList.remove('open');
+  const bd = document.getElementById('toolsBackdrop'); if(bd) bd.classList.remove('open');
+  openCritIndexUpdate();
+});
+document.getElementById('critIdxClose').addEventListener('click', ()=>document.getElementById('critIdxOverlay').classList.remove('open'));
+document.getElementById('critIdxOverlay').addEventListener('click', e=>{
+  if(e.target.id === 'critIdxOverlay'){ e.target.classList.remove('open'); return; }
+  if(e.target.closest('[data-crit-reload]')){ try{ location.reload(); }catch(err){} return; }
+  const c = e.target.closest('[data-crit-copy]');
+  if(c) copyText(c.dataset.critCopy === 'script' ? CRIT_SCRIPT_TEXT : CRIT_WORKFLOW_TEXT, c.dataset.critCopy === 'script' ? '📋 Script copiato: ora premi "Crea il file" e incollalo' : '📋 Automazione copiata: incollala nel file su GitHub', 'critCopyArea');
 });
 
 /* =====================================================================
@@ -5178,7 +5266,7 @@ document.getElementById('syncOverlay').addEventListener('click', async e=>{
    🩺 DIAGNOSTICA — stato dell'app, memoria, errori recenti, rapporto da copiare.
    Solo dati già presenti sul dispositivo: nessuna richiesta di rete.
    ===================================================================== */
-const APP_VERSION = '2026.10.7';
+const APP_VERSION = '2026.10.8';
 function lsBytes(key){ try{ const v = localStorage.getItem(key); return v ? (key.length + v.length) * 2 : 0; }catch(e){ return 0; } }
 function fmtBytes(b){ return b >= 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(0, Math.round(b / 1024)) + ' KB'; }
 async function archCount(){

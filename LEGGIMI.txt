@@ -114,6 +114,9 @@ la pagina del film su filmcriticoni.it, dove ogni menzione fa partire il video d
 Sullo scaffale c'è anche il filtro "Promossi / Bocciati da Frusciante", "… dai Criticoni", "Discussi da loro".
 
 ATTIVALO (una volta sola)
+  Il modo più semplice: nell'app apri ⚙️ Strumenti → "🎙️ Aggiorna Frusciante e Criticoni" negli Strumenti:
+  la sezione "Prima volta" ti guida passo passo con i link diretti a GitHub e i pulsanti per copiare i file.
+  In alternativa, a mano:
   1. Carica nel repository anche i due file nuovi del pacchetto:
        tools/aggiorna_criticoni.py
        .github/workflows/aggiorna-criticoni.yml
