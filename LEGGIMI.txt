@@ -105,3 +105,30 @@ BUONO A SAPERSI
   - NON caricare mai su GitHub il tuo file di backup .json: lì dentro c'è la tua collezione.
   - Continua a fare un 💾 Backup ogni tanto (te lo ricorda l'app): serve se cambi telefono
     o cancelli i dati del browser.
+
+FRUSCIANTE E I CRITICONI (novità)
+=================================
+Nella scheda di ogni film, sotto l'accoglienza della critica, compare "🎙️ Frusciante e i Criticoni":
+il giudizio (positivo, negativo, misto), quanti video e menzioni ne parlano, e "Guarda i video ↗" che apre
+la pagina del film su filmcriticoni.it, dove ogni menzione fa partire il video dal punto esatto.
+Sullo scaffale c'è anche il filtro "Promossi / Bocciati da Frusciante", "… dai Criticoni", "Discussi da loro".
+
+ATTIVALO (una volta sola)
+  1. Carica nel repository anche i due file nuovi del pacchetto:
+       tools/aggiorna_criticoni.py
+       .github/workflows/aggiorna-criticoni.yml
+     Se trascinando non si carica la cartella .github (succede su alcuni computer): su GitHub
+     "Add file" → "Create new file", scrivi come nome  .github/workflows/aggiorna-criticoni.yml
+     e incolla il contenuto del file.
+  2. Scheda "Actions" → "Aggiorna Frusciante e Criticoni" → "Run workflow". Ci mette circa 5 minuti
+     (legge gli elenchi del sito con calma, una pagina al secondo).
+  3. Quando compare la spunta verde, riapri l'app: il riquadro e il filtro compaiono da soli.
+     Da lì in poi l'indice si aggiorna da solo il 10 di ogni mese.
+
+SE QUALCOSA NON VA
+  - Se l'automazione si ferma con "trovati solo N film", il sito ha cambiato struttura: l'app NON viene
+    toccata. Mandami il messaggio di errore e lo sistemiamo.
+  - Dopo aver caricato un nuovo index.html, rilancia anche questa automazione (oltre a quella dell'indice IMDb).
+
+I dati vengono dall'indice indipendente filmcriticoni.it. L'app ne usa solo il giudizio complessivo, il numero
+di video e menzioni e il link alla pagina: le frasi trascritte restano sul sito.
