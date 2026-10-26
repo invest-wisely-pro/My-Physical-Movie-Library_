@@ -143,3 +143,40 @@ SE QUALCOSA NON VA
 
 I dati vengono dall'indice indipendente filmcriticoni.it. L'app ne usa solo il giudizio complessivo, il numero
 di video e menzioni e il link alla pagina: le frasi trascritte restano sul sito.
+
+ATLANTE DEL CINEMA (nuova app, nella cartella atlante/)
+=====================================================
+Un'enciclopedia personale dei film, senza schede di copie fisiche: capolavori assoluti, i più famosi, i più
+votati, generi, decenni, registi, attori, Frusciante e i Criticoni, e le tue liste (visti, da vedere, preferiti).
+Legge gli indici della Videoteca, quindi si aggiorna da sola insieme a lei.
+
+COME SI ATTIVA
+  1. Carica nel repository anche la cartella "atlante" del pacchetto (con dentro index.html, sw.js,
+     manifest.webmanifest e la cartella icons), più i due file della critica:
+       tools/aggiorna_critica.py
+       .github/workflows/aggiorna-critica.yml
+  2. Apri l'Atlante:  https://TUONOME.github.io/NOME-REPOSITORY/atlante/
+     Sul telefono: "Installa" → avrai una seconda icona, separata dalla Videoteca.
+  3. Per i capolavori con Rotten Tomatoes e Metacritic: Actions → "Aggiorna la critica (Atlante)" →
+     "Run workflow" (10-20 minuti). Poi gira da sola il 15 di ogni mese. La guida è anche nell'Atlante,
+     in Strumenti, con i link diretti e i pulsanti per copiare i file.
+  4. Gli attori compaiono quando c'è l'indice del cast, creato da "Aggiorna indice IMDb" della Videoteca.
+
+BUONO A SAPERSI
+  - L'Atlante vede i film della tua Videoteca ("✓ Nella tua Videoteca") ma non la modifica mai.
+  - Le tue liste restano su quel dispositivo: in Strumenti puoi scaricarne una copia e ripristinarla.
+  - Ricerca, classifiche e liste funzionano offline; trama, curiosità e locandine arrivano con la rete.
+  - Come si calcolano i capolavori: è spiegato nell'Atlante, in Strumenti, e ogni scheda dice il perché.
+
+LOCANDINE DA FILMCRITICONI.IT (Videoteca, Atlante e Officina delle Copertine)
+=============================================================================
+L'automazione mensile "Aggiorna Frusciante e Criticoni" raccoglie, insieme ai giudizi, anche la locandina
+mostrata nella scheda di ogni film del sito (circa 8.000 film). Nessuna chiave e nessuna registrazione.
+  - Videoteca: la usa per i film senza locandina o con quella piccola di Wikipedia; le locandine scelte
+    da te non vengono toccate.
+  - Atlante: locandine nelle schede, negli elenchi e nella pagina di ogni film discusso da Frusciante o
+    dai Criticoni; gli altri film restano con la scheda tipografica.
+  - Officina delle Copertine: importando un film dalla Videoteca prende la versione originale, per la stampa.
+Le immagini sono di TMDB: è il sito filmcriticoni.it a usarle, e le app le mostrano dagli stessi server.
+Dopo aver caricato il nuovo pacchetto, rilancia una volta "Aggiorna Frusciante e Criticoni" (script e
+automazione sono cambiati) e "Aggiorna indice IMDb".

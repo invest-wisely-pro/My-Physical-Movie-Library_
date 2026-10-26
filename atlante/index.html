@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0F1416">
+<title>Atlante del Cinema</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+<style>
+:root{
+  --ink:#0F1416; --s1:#172024; --s2:#1E2A2F; --s3:#26353B; --line:#2C3A40; --paper:#ECE7DC; --paper2:#B5B0A4; --paper3:#857F74;
+  --chart:#8FB8C9; --chart2:#5E8B9E; --amber:#E9A23B; --amber2:#F5C26B; --pos:#6CC48F; --neg:#F07A6E; --mix:#E2C04A;
+  --serif:Georgia, Cambria, 'Times New Roman', serif; --ui:'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+  color-scheme: dark; box-sizing:border-box;
+  padding-top:env(safe-area-inset-top, 0px); padding-bottom:env(safe-area-inset-bottom, 0px);
+}
+*,*::before,*::after{box-sizing:inherit;}
+body{margin:0; background:var(--ink); color:var(--paper); font-family:var(--ui); font-size:15px; line-height:1.5;}
+a{color:inherit; text-decoration:none;}
+button, input, select{font:inherit; color:inherit;}
+:focus-visible{outline:2px solid var(--chart); outline-offset:2px;}
+.hidden{display:none !important;}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
+
+/* ---------- Testata ---------- */
+.top{position:sticky; top:0; z-index:30; background:rgba(15,20,22,.94); backdrop-filter:blur(8px); border-bottom:1px solid var(--line);}
+.top-in{max-width:1180px; margin:0 auto; padding:10px 18px; display:flex; align-items:center; gap:12px 18px; flex-wrap:wrap;}
+.brand{display:flex; align-items:center; gap:10px; white-space:nowrap;}
+.brand .rose{width:28px; height:28px; border:1.5px solid var(--chart); border-radius:50%; position:relative;}
+.brand .rose::before, .brand .rose::after{content:""; position:absolute; left:50%; top:50%; background:var(--amber); transform:translate(-50%,-50%) rotate(45deg);}
+.brand .rose::before{width:3px; height:20px;} .brand .rose::after{width:20px; height:3px;}
+.brand b{font-family:var(--serif); font-size:20px; font-weight:700; letter-spacing:.01em;}
+.search{flex:1 1 280px; position:relative;}
+.search input{width:100%; height:40px; padding:0 14px; border-radius:20px; border:1px solid var(--line); background:var(--s1);}
+.nav{display:flex; gap:4px; flex-wrap:wrap;}
+.nav a{padding:7px 11px; border-radius:16px; color:var(--paper2); font-size:14px; font-weight:600;}
+.nav a[aria-current="page"]{background:var(--s3); color:var(--paper);}
+main{max-width:1180px; margin:0 auto; padding:20px 18px 70px;}
+
+/* ---------- Titoli e sezioni ---------- */
+h1.pg{font-family:var(--serif); font-weight:700; font-size:clamp(26px, 4vw, 38px); line-height:1.15; margin:6px 0 6px;}
+.lead{color:var(--paper2); margin:0 0 18px; max-width:70ch;}
+h2.sec{font-family:var(--serif); font-weight:700; font-size:21px; margin:28px 0 10px; display:flex; align-items:baseline; gap:12px;}
+h2.sec a.more{font-family:var(--ui); font-size:13px; font-weight:600; color:var(--chart); margin-left:auto;}
+.crumbs{font-size:13px; color:var(--paper3); margin-bottom:4px;} .crumbs a{color:var(--chart);}
+.status{padding:60px 20px; text-align:center; color:var(--paper2);} .status h1{font-family:var(--serif);}
+
+/* ---------- Righello dei decenni (il dettaglio memorabile) ---------- */
+.ruler{display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0, 1fr); align-items:end; gap:6px; height:150px; padding:0 2px; border-bottom:1.5px solid var(--chart2); position:relative; margin:4px 0 32px;}
+.ruler a{display:flex; flex-direction:column; justify-content:flex-end; align-items:center; height:100%; position:relative;}
+.ruler .bar{width:100%; background:linear-gradient(180deg, var(--chart), var(--chart2)); border-radius:3px 3px 0 0; min-height:3px; transition:filter .15s;}
+.ruler a:hover .bar, .ruler a:focus-visible .bar{filter:brightness(1.25);}
+.ruler .yr{position:absolute; bottom:-24px; font-size:12px; color:var(--paper2); font-variant-numeric:tabular-nums;}
+.ruler .yr::before{content:""; position:absolute; left:50%; top:-8px; width:1.5px; height:6px; background:var(--chart2);}
+.ruler .ct{font-size:11px; color:var(--paper3); margin-bottom:3px; font-variant-numeric:tabular-nums;}
+@media (max-width:640px){ .ruler{gap:3px; height:120px;} .ruler .yr{font-size:10px;} .ruler .ct{display:none;} }
+
+/* ---------- Schede tipografiche ---------- */
+.strip{display:grid; grid-auto-flow:column; grid-auto-columns:minmax(150px, 170px); gap:12px; overflow-x:auto; padding-bottom:6px; scroll-snap-type:x proximity;}
+.tile{scroll-snap-align:start; display:flex; flex-direction:column; justify-content:space-between; aspect-ratio:2/3; padding:12px; border-radius:6px; background:var(--tilebg, var(--s2)); position:relative; overflow:hidden; border:1px solid rgba(255,255,255,.06);}
+.tile::after{content:""; position:absolute; inset:auto 0 0 0; height:45%; background:linear-gradient(180deg, transparent, rgba(0,0,0,.45)); pointer-events:none;}
+.tile .tt{font-family:var(--serif); font-weight:700; font-size:17px; line-height:1.15; position:relative; z-index:1; overflow:hidden; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical;}
+.tile .ty{font-size:12.5px; color:rgba(236,231,220,.8); margin-top:4px; position:relative; z-index:1;}
+.tile .tb{position:relative; z-index:1; display:flex; justify-content:space-between; align-items:flex-end; font-size:13px; font-weight:700;}
+.tile .mp{color:var(--amber2);}
+.tile:hover{border-color:var(--chart);}
+.tile .tp{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;}
+.tile.has-p > span:first-of-type{visibility:hidden;}   /* la locandina ha già il titolo */
+.tile.has-p::after{height:30%; background:linear-gradient(180deg, transparent, rgba(0,0,0,.75));}
+.tiles{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px;}
+
+/* ---------- Righe di elenco ---------- */
+.rows{display:flex; flex-direction:column; border-top:1px solid var(--line);}
+.fr{display:grid; grid-template-columns:52px 34px minmax(0, 1fr) auto; gap:12px; align-items:center; padding:10px 4px; border-bottom:1px solid var(--line);}
+.fr:hover{background:var(--s1);}
+.fr .th{width:34px; height:51px; object-fit:cover; border-radius:3px; background:var(--s2); display:block;}
+.fr .sc{font-family:var(--serif); font-weight:700; font-size:20px; text-align:center; font-variant-numeric:tabular-nums;}
+.fr .sc small{display:block; font-family:var(--ui); font-size:10.5px; font-weight:600; color:var(--paper3);}
+.fr .sc.mp{color:var(--amber2);}
+.fr b{font-family:var(--serif); font-size:16.5px; font-weight:700;}
+.fr em{font-style:italic; color:var(--paper2); font-size:14px;}
+.fr .sub{display:block; color:var(--paper2); font-size:13px;}
+.badges{display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
+.bd{display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:10px; font-size:11.5px; font-weight:700; background:var(--s3); color:var(--paper2); white-space:nowrap;}
+.bd.mp{background:rgba(233,162,59,.18); color:var(--amber2);} .bd.own{background:rgba(143,184,201,.16); color:var(--chart);}
+.bd.pos{background:rgba(108,196,143,.16); color:var(--pos);} .bd.neg{background:rgba(240,122,110,.16); color:var(--neg);} .bd.mix{background:rgba(226,192,74,.16); color:var(--mix);}
+.ctrl{display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin:6px 0 14px;}
+.ctrl label{display:flex; flex-direction:column; gap:3px; font-size:12px; font-weight:600; color:var(--paper2);}
+.ctrl select{height:36px; padding:0 10px; border-radius:8px; border:1px solid var(--line); background:var(--s1); min-width:150px;}
+.btn{height:38px; padding:0 15px; border-radius:19px; border:1px solid var(--line); background:var(--s2); cursor:pointer; font-weight:600; font-size:14px; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;}
+.btn:hover{border-color:var(--chart);}
+.btn.amber{background:var(--amber); border-color:var(--amber); color:#1d1406;}
+.btn[aria-pressed="true"]{background:var(--chart); border-color:var(--chart); color:#0d1a20;}
+.more-wrap{text-align:center; margin:16px 0;}
+.genres{display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:10px;}
+.genre{padding:14px; border-radius:8px; background:var(--tilebg, var(--s2)); display:flex; justify-content:space-between; align-items:baseline; font-family:var(--serif); font-weight:700; font-size:16px;}
+.genre span{font-family:var(--ui); font-size:12px; color:rgba(236,231,220,.75); font-weight:600;}
+.people{display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:8px;}
+.person{display:flex; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:8px; background:var(--s1); border:1px solid var(--line);}
+.person b{font-family:var(--serif);} .person span{color:var(--paper3); font-size:12.5px; white-space:nowrap;}
+
+/* ---------- Scheda del film ---------- */
+.film-head{display:grid; grid-template-columns:220px minmax(0, 1fr); gap:24px; align-items:start;}
+@media (max-width:700px){ .film-head{grid-template-columns:minmax(0, 1fr);} .poster{max-width:240px;} }
+.poster{aspect-ratio:2/3; border-radius:8px; overflow:hidden; background:var(--tilebg, var(--s2)); position:relative; display:flex; align-items:flex-end; padding:14px;}
+.poster img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+.poster .tt{font-family:var(--serif); font-weight:700; font-size:22px; line-height:1.15; position:relative;}
+.orig{font-family:var(--serif); font-style:italic; color:var(--paper2); font-size:17px; margin:-2px 0 8px;}
+.facts{display:flex; flex-wrap:wrap; gap:6px 14px; color:var(--paper2); font-size:14px; margin-bottom:12px;} .facts a{color:var(--chart);}
+.scores{display:flex; flex-wrap:wrap; gap:10px; margin:12px 0;}
+.score{padding:10px 14px; border-radius:8px; background:var(--s1); border:1px solid var(--line); min-width:96px;}
+.score b{display:block; font-family:var(--serif); font-size:24px; line-height:1.1;} .score span{font-size:12px; color:var(--paper3);}
+.score.mp{border-color:var(--amber); background:rgba(233,162,59,.08);} .score.mp b{color:var(--amber2);}
+.why{font-size:13px; color:var(--paper2); margin:4px 0 0;}
+.marks{display:flex; gap:8px; flex-wrap:wrap; margin:14px 0;}
+.box{border:1px solid var(--line); border-radius:10px; background:var(--s1); margin:18px 0; overflow:hidden;}
+.box h3{margin:0; padding:11px 14px; font-family:var(--serif); font-size:16.5px; border-bottom:1px solid var(--line);}
+.box .in{padding:12px 14px;}
+.kv{display:grid; grid-template-columns:150px minmax(0, 1fr); gap:6px 14px; font-size:14px;} .kv dt{color:var(--paper3);} .kv dd{margin:0;} .kv a{color:var(--chart);}
+@media (max-width:560px){ .kv{grid-template-columns:minmax(0, 1fr); gap:2px;} .kv dd{margin-bottom:6px;} }
+.crit-row{display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; padding:10px 14px; border-top:1px solid var(--line);} .crit-row:first-of-type{border-top:0;}
+.crit-row b{min-width:150px;} .crit-row a{color:var(--chart); font-weight:600; margin-left:auto;}
+.plot{font-family:var(--serif); font-size:16px; line-height:1.65; max-width:72ch;}
+.note{font-size:12.5px; color:var(--paper3);}
+.cast{display:flex; flex-wrap:wrap; gap:6px;} .cast a{padding:4px 10px; border-radius:14px; background:var(--s2); font-size:13.5px;}
+.bars{display:flex; flex-direction:column; gap:6px; max-width:560px;}
+.barrow{display:grid; grid-template-columns:110px minmax(0, 1fr) 40px; gap:10px; align-items:center; font-size:13.5px;}
+.barrow i{display:block; height:10px; border-radius:5px; background:var(--chart);} .barrow .v{text-align:right; color:var(--paper2);}
+.toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom, 0px)); transform:translateX(-50%); z-index:60; background:var(--paper); color:var(--ink); padding:10px 16px; border-radius:20px; font-weight:600; font-size:14px; opacity:0; transition:opacity .2s; pointer-events:none; max-width:92vw;}
+.toast.show{opacity:1;}
+textarea.copy{width:100%; min-height:120px; font-size:11px; background:var(--s1); color:var(--paper); border:1px solid var(--line); border-radius:8px;}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#"><span class="rose" aria-hidden="true"></span><b>Atlante del Cinema</b></a>
+    <form class="search" id="searchForm" role="search"><input id="q" type="search" placeholder="Cerca un film, un regista, un attore…" aria-label="Cerca" autocomplete="off"></form>
+    <nav class="nav" aria-label="Sezioni">
+      <a href="#" data-nav="home">Esplora</a>
+      <a href="#lista/capolavori" data-nav="lista">Capolavori</a>
+      <a href="#registi" data-nav="registi">Registi</a>
+      <a href="#attori" data-nav="attori">Attori</a>
+      <a href="#liste" data-nav="liste">Le mie liste</a>
+      <a href="#strumenti" data-nav="strumenti">Strumenti</a>
+    </nav>
+  </div>
+</header>
+<main id="view" aria-live="polite"><div class="status"><h1>Atlante del Cinema</h1><p>Carico gli indici della Videoteca…</p></div></main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+'use strict';
+/* =====================================================================
+   Atlante del Cinema — enciclopedia personale dei film.
+   Legge gli indici della Videoteca (stesso sito, cartella superiore):
+   IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
+   ===================================================================== */
+const APP_VERSION = '1.0';
+/* Copiate dalla Videoteca da build.py: leggono gli indici esattamente come lei. */
+let IMDB_INDEX = null, IMDB_INDEX_STATE = 'idle', IMDB_BY_ID = null;
+let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
+let CRIT = null, CRIT_STATE = 'idle', _critPromise = null;
+let _critFileBuilt = '', _critFileTried = false;
+function normKey(t){
+  let s = (t||'').toLowerCase();
+  try{ s = s.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }catch(e){}
+  s = s.replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();
+  return s;
+}
+async function gunzipBase64(b64){
+  const bin = Uint8Array.from(atob(b64), c=>c.charCodeAt(0));
+  const ds = new DecompressionStream('gzip');
+  const writer = ds.writable.getWriter();
+  writer.write(bin);
+  writer.close();
+  const buf = await new Response(ds.readable).arrayBuffer();
+  return new TextDecoder('utf-8').decode(buf);
+}
+async function ensureImdbIndex(){
+  if(IMDB_INDEX) return IMDB_INDEX;
+  if(IMDB_INDEX_STATE === 'failed') return null;
+  const el = document.getElementById('imdbIndexData');
+  if(!el || typeof DecompressionStream === 'undefined'){ IMDB_INDEX_STATE = 'failed'; return null; }
+  try{
+    IMDB_INDEX_STATE = 'loading';
+    const txt = await gunzipBase64(el.textContent.trim());
+    const arr = [];
+    for(const line of txt.split('\n')){
+      if(!line) continue;
+      const p = line.split('|');
+      const it = p[1]||'', en = p[2]||'';
+      const aliases = (p[8]||'').split('~').filter(Boolean);
+      const director = p[9]||'';
+      // Alias e regista entrano nella stringa di ricerca (ma non nel titolo
+      // mostrato): così trovi il film con un titolo alternativo, e puoi
+      // cercare offline anche per nome del regista (es. "nolan").
+      const searchStr = normKey(it + ' ' + en + (aliases.length ? ' ' + aliases.join(' ') : '') + (director ? ' ' + director : ''));
+      arr.push({ id:'tt'+p[0], it, en, y:p[3]||'', r:p[4]||'', g:p[5]||'', v:parseInt(p[6])||0, rt:p[7]||'', dir:director, _n: searchStr });
+    }
+    IMDB_INDEX = arr;
+    IMDB_INDEX_STATE = 'ready';
+    console.info('Indice IMDb offline pronto:', arr.length, 'film');
+  }catch(e){ console.error('indice offline non caricato:', e); IMDB_INDEX_STATE = 'failed'; IMDB_INDEX = null; }
+  return IMDB_INDEX;
+}
+function imdbEntry(id){
+  if(!IMDB_INDEX || !id) return null;
+  if(!IMDB_BY_ID){ IMDB_BY_ID = new Map(); IMDB_INDEX.forEach(x=>IMDB_BY_ID.set(x.id, x)); }
+  return IMDB_BY_ID.get(id) || null;
+}
+function ensureCastIndex(){
+  if(CAST_STATE === 'ready' || CAST_STATE === 'none') return Promise.resolve(CAST_INDEX);
+  if(_castPromise) return _castPromise;
+  const el = document.getElementById('imdbCastData');
+  if(!el || !el.textContent.trim()){ CAST_STATE = 'none'; return Promise.resolve(null); }
+  _castPromise = (async ()=>{
+    try{
+      const txt = await gunzipBase64(el.textContent.trim());
+      const sep = txt.indexOf('\n#\n');
+      const names = txt.slice(0, sep).split('\n');
+      const keys = names.map(normKey);   // una normalizzazione per attore, non per ogni comparsa
+      const byFilm = new Map(), byActor = new Map();
+      const lines = txt.slice(sep + 3).split('\n');
+      for(const l of lines){
+        if(!l) continue;
+        const i = l.indexOf('|'), id = 'tt' + l.slice(0, i), parts = l.slice(i + 1).split(','), refs = [];
+        for(const x of parts){
+          const r = parseInt(x, 36); if(!(r >= 0 && r < names.length)) continue;
+          refs.push(r);
+          const k = keys[r]; if(!k) continue;
+          const a = byActor.get(k); if(a) a.push(id); else byActor.set(k, [id]);
+        }
+        byFilm.set(id, refs);
+      }
+      CAST_INDEX = { names, byFilm, byActor }; CAST_STATE = 'ready';
+    }catch(e){ console.error('cast offline non caricato:', e); CAST_INDEX = null; CAST_STATE = 'none'; }
+    return CAST_INDEX;
+  })();
+  return _castPromise;
+}
+function castOfFilm(imdbId){ const r = CAST_INDEX && CAST_INDEX.byFilm.get(imdbId); return r ? r.map(i=>CAST_INDEX.names[i]).filter(Boolean) : []; }
+function actorFilmography(name){
+  if(!CAST_INDEX || !IMDB_INDEX) return [];
+  return (CAST_INDEX.byActor.get(normKey(name)) || []).map(id=>imdbEntry(id)).filter(Boolean);
+}
+function offlineCoStars(name, limit){
+  const me = normKey(name), cnt = new Map(), disp = new Map();
+  (CAST_INDEX && CAST_INDEX.byActor.get(me) || []).forEach(id=>castOfFilm(id).forEach(n=>{ const k = normKey(n); if(!k || k === me) return; cnt.set(k, (cnt.get(k) || 0) + 1); if(!disp.has(k)) disp.set(k, n); }));
+  return [...cnt.entries()].filter(([, n])=>n >= 2).sort((a, b)=>b[1] - a[1]).slice(0, limit || 8).map(([k, n])=>({ name: disp.get(k), n }));
+}
+function castBuilt(){ const el = document.getElementById('imdbCastData'); return el && el.textContent.trim() ? ((el.dataset && el.dataset.built) || '') : ''; }
+async function critFromFile(){   // copia di sicurezza nel repository (data/criticoni.json.gz), se l'indice interno è vuoto
+  if(_critFileTried || !/^https?:$/.test(location.protocol) || typeof DecompressionStream === 'undefined') return null;
+  _critFileTried = true;
+  for(const u of ['../data/criticoni.json.gz?d=' + new Date().toISOString().slice(0, 10), '../data/criticoni.json.gz']){
+    try{ const r = await fetch(u); if(!r || !r.ok) continue;
+      const txt = await new Response(new Response(await r.arrayBuffer()).body.pipeThrough(new DecompressionStream('gzip'))).text();
+      const d = JSON.parse(txt); if(d && (d.c || d.f)){ _critFileBuilt = d.built || ''; return txt; } }catch(e){}
+  }
+  return null;
+}
+function critBuilt(){ const el = document.getElementById('criticoniData'); return el && el.textContent.trim() ? ((el.dataset && el.dataset.built) || '') : _critFileBuilt; }
+function ensureCritIndex(){
+  if(CRIT_STATE === 'ready' || CRIT_STATE === 'none') return Promise.resolve(CRIT);
+  if(_critPromise) return _critPromise;
+  const el = document.getElementById('criticoniData');
+  if(typeof DecompressionStream === 'undefined'){ CRIT_STATE = 'none'; return Promise.resolve(null); }
+  const inner = el && el.textContent.trim();
+  _critPromise = (inner ? gunzipBase64(inner) : critFromFile()).then(txt=>{
+    if(!txt) throw new Error('nessun indice');
+    const d = JSON.parse(txt), idx = { built: d.built || critBuilt(), site: d.site || 'https://filmcriticoni.it', c: new Map(), f: new Map(), n: { c: (d.c || []).length, f: (d.f || []).length } };
+    ['c', 'f'].forEach(src=>(d[src] || []).forEach(r=>{
+      const e = { slug: r[0], t: r[1], y: String(r[2] || ''), dir: r[3] || '', s: r[4], v: r[5] || 0, mn: r[6] || 0, p: r[7] || '' }, k = normKey(e.t);
+      if(!k || !/^[a-z0-9-]+$/.test(e.slug)) return;
+      const arr = idx[src].get(k); if(arr) arr.push(e); else idx[src].set(k, [e]);
+    }));
+    CRIT = idx; CRIT_STATE = 'ready'; return CRIT;
+  }).catch(()=>{ CRIT_STATE = 'none'; return null; });
+  return _critPromise;
+}
+function critMatch(src, m){
+  if(!CRIT || !m || m.tipo === 'serie') return null;
+  const y = parseInt(m.anno, 10), surname = normKey(String(m.regista || '').split(',')[0]).split(' ').pop();
+  for(const ti of [m.titolo, m.titoloOriginale, m.originalTitle].filter(Boolean)){
+    let c = CRIT[src].get(normKey(ti)); if(!c) continue;
+    if(y) c = c.filter(e=>!e.y || Math.abs(parseInt(e.y, 10) - y) <= 1);   // uscita al festival e in sala possono differire di un anno
+    if(!c.length) continue;
+    if(c.length > 1 && surname){ const d = c.filter(e=>normKey(e.dir).split(' ').includes(surname)); if(d.length) c = d; }
+    if(c.length > 1 && y){ const ex = c.filter(e=>parseInt(e.y, 10) === y); if(ex.length) c = ex; }
+    if(c.length > 1 && !y) continue;                                       // senza anno, solo se l'abbinamento è unico
+    return c[0];
+  }
+  return null;
+}
+</script>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]);
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+let _tT; function toast(m){ const el = $('toast'); el.textContent = m; el.classList.add('show'); clearTimeout(_tT); _tT = setTimeout(()=>el.classList.remove('show'), 3200); }
+const fmtR = x => x ? Number(x).toFixed(1).replace('.', ',') : '—';
+const fmtV = v => v >= 1e6 ? (v / 1e6).toFixed(1).replace('.', ',') + ' mln' : v >= 1e3 ? Math.round(v / 1e3) + ' mila' : String(v || 0);
+const GCOL = { 'Drammatico': 215, 'Commedia': 45, 'Romantico': 340, 'Crime': 0, 'Documentario': 160, 'Azione': 18, 'Thriller': 265, 'Avventura': 120, 'Horror': 350, 'Giallo': 52, 'Biografico': 30,
+  'Famiglia': 95, 'Fantasy': 285, 'Storico': 35, 'Fantascienza': 190, 'Animazione': 140, 'Musica': 310, 'Guerra': 75, 'Western': 25, 'Musical': 320, 'Sport': 105, 'Noir': 230 };
+const genres = e => String(e.g || '').split(/\s*,\s*/).filter(Boolean);
+const tileBg = e => { const h = GCOL[genres(e)[0]] != null ? GCOL[genres(e)[0]] : 200; return `hsl(${h} 28% 24%)`; };
+const decade = e => { const y = parseInt(e.y, 10); return y ? Math.floor(y / 10) * 10 : 0; };
+const title = e => e.it || e.en || e.id;
+
+/* ---------- Dati: indici della Videoteca, collezione, critica ---------- */
+let CRITICA = null, OWN = new Set(), BOOT_ERR = '';
+const posterUrl = (e, size) => { enrich(e); const p = (e._f && e._f.p) || (e._c && e._c.p) || ''; return p ? 'https://image.tmdb.org/t/p/' + (size || 'w342') + p : ''; };   // dall'indice di filmcriticoni.it
+async function importVideoteca(){   // la pagina della Videoteca contiene gli indici: si copiano qui, così le sue funzioni li leggono uguali
+  const r = await fetch('../index.html', { cache: 'no-cache' }); if(!r.ok) throw new Error('http' + r.status);
+  const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+  let n = 0;
+  ['imdbIndexData', 'imdbCastData', 'criticoniData'].forEach(id=>{ const el = doc.getElementById(id); if(!el) return; const c = document.createElement('script');
+    c.type = 'text/plain'; c.id = id; c.dataset.built = el.dataset.built || el.getAttribute('data-built') || ''; c.textContent = el.textContent; document.body.appendChild(c); n++; });
+  if(!doc.getElementById('imdbIndexData')) throw new Error('noindex');
+  return n;
+}
+function readOwn(){   // i film della tua Videoteca (stesso sito): solo lettura
+  try{ const j = JSON.parse(localStorage.getItem('app-data') || 'null'); const list = Array.isArray(j) ? j : (j && (j.movies || (j.state && j.state.movies))) || [];
+    list.forEach(m=>{ if(m && m.imdbId && m.lista !== 'wishlist') OWN.add(m.imdbId); }); }catch(e){}
+}
+async function loadCritica(){
+  if(typeof DecompressionStream === 'undefined') return;
+  try{ const r = await fetch('../data/critica.json.gz?d=' + new Date().toISOString().slice(0, 10)); if(!r.ok) return;
+    const txt = await new Response(new Response(await r.arrayBuffer()).body.pipeThrough(new DecompressionStream('gzip'))).text();
+    const d = JSON.parse(txt); if(d && d.rt) CRITICA = d; }catch(e){}
+}
+
+/* ---------- Punteggio e capolavori: pubblico, critica, Frusciante e Criticoni ---------- */
+const M_PRIOR = 25000, C_PRIOR = 6.8;
+function enrich(e){
+  if(e._s !== undefined) return e;
+  const R = parseFloat(e.rt) || 0, v = e.v || 0;
+  e._R = R; e._br = v ? (v / (v + M_PRIOR)) * R + (M_PRIOR / (v + M_PRIOR)) * C_PRIOR : 0;   // voto pesato: con pochi voti conta poco
+  e._rt = CRITICA && CRITICA.rt[e.id] != null ? CRITICA.rt[e.id] : null; e._mc = CRITICA && CRITICA.mc[e.id] != null ? CRITICA.mc[e.id] : null;
+  const q = { titolo: e.it || e.en, titoloOriginale: e.en, anno: e.y, regista: e.dir };
+  e._f = CRIT ? critMatch('f', q) : null; e._c = CRIT ? critMatch('c', q) : null;
+  const imdbN = clamp((e._br - 6.0) / 2.8), cr = [e._rt, e._mc].filter(x=>x != null), critN = cr.length ? cr.reduce((a, b)=>a + b, 0) / cr.length / 100 : null;
+  const fs = e._f && e._f.s != null ? e._f.s : null, cs = e._c && e._c.s != null ? e._c.s : null;
+  const ccN = fs == null && cs == null ? null : clamp(0.5 + (fs || 0) * 0.3 + (cs || 0) * 0.2);
+  let w = 0.5, sum = 0.5 * imdbN; if(critN != null){ sum += 0.35 * critN; w += 0.35; } if(ccN != null){ sum += 0.15 * ccN; w += 0.15; }
+  e._s = Math.round(100 * sum / w);
+  e._mp = v >= 50000 && e._br >= 7.8 && e._s >= 78 && (critN == null || critN >= 0.8);
+  return e;
+}
+function why(e){
+  enrich(e); const p = [`IMDb ${fmtR(e._R)} su ${fmtV(e.v)} voti`];
+  if(e._rt != null) p.push(`Rotten Tomatoes ${e._rt}%`); if(e._mc != null) p.push(`Metacritic ${e._mc}`);
+  const vd = x => x === 1 ? 'positivo' : x === -1 ? 'negativo' : x === 0 ? 'misto' : '';
+  if(e._f && e._f.s != null) p.push('Frusciante: ' + vd(e._f.s)); if(e._c && e._c.s != null) p.push('Criticoni: ' + vd(e._c.s));
+  return p.join(', ');
+}
+let ALL = [], BY_V = [], BY_BR = [], MASTER = [], BY_DIR = new Map(), GENRES = new Map(), DECADES = new Map();
+function computeAll(){
+  ALL = IMDB_INDEX;
+  const known = ALL.filter(e=>e.v >= 500); known.forEach(enrich);
+  BY_V = known.slice().sort((a, b)=>b.v - a.v);
+  BY_BR = known.filter(e=>e.v >= 25000).sort((a, b)=>b._br - a._br);
+  MASTER = known.filter(e=>e._mp).sort((a, b)=>b._s - a._s || b.v - a.v);
+  known.forEach(e=>{ genres(e).forEach(g=>{ (GENRES.get(g) || GENRES.set(g, []).get(g)).push(e); }); const d = decade(e); if(d) (DECADES.get(d) || DECADES.set(d, []).get(d)).push(e);
+    String(e.dir || '').split(/\s*,\s*/).filter(Boolean).forEach(n=>{ (BY_DIR.get(n) || BY_DIR.set(n, []).get(n)).push(e); }); });
+}
+let _actors = null;
+function actorRanking(){
+  if(_actors || !CAST_INDEX) return _actors || [];
+  const disp = new Map(); CAST_INDEX.names.forEach(n=>{ const k = normKey(n); if(k && !disp.has(k)) disp.set(k, n); });
+  _actors = [...CAST_INDEX.byActor.entries()].map(([k, ids])=>{ const fs = ids.map(imdbEntry).filter(x=>x && x.v >= 10000).map(enrich); return { name: disp.get(k) || k, n: fs.length, s: fs.reduce((t, e)=>t + Math.pow(e._s / 100, 2) * Math.log10(e.v), 0) }; })
+    .filter(a=>a.n >= 3).sort((a, b)=>b.s - a.s).slice(0, 600);
+  return _actors;
+}
+const dirRanking = (() => { let c = null; return () => c || (c = [...BY_DIR.entries()].map(([name, fs])=>{ const k = fs.filter(e=>e.v >= 10000); return { name, n: k.length, all: fs.length, s: k.reduce((t, e)=>t + Math.pow(e._s / 100, 2) * Math.log10(e.v), 0) }; })
+  .filter(d=>d.n >= 3).sort((a, b)=>b.s - a.s).slice(0, 600)); })();
+
+/* ---------- Le tue liste ---------- */
+const LKEY = 'atlante-liste';
+let LISTE = (()=>{ try{ return JSON.parse(localStorage.getItem(LKEY) || '{}') || {}; }catch(e){ return {}; } })();
+const has = (id, k) => !!(LISTE[id] && LISTE[id][k]);
+function toggle(id, k){ const r = LISTE[id] || {}; if(r[k]) delete r[k]; else r[k] = Date.now(); if(k === 'v' && r.v && r.d) delete r.d; if(Object.keys(r).length) LISTE[id] = r; else delete LISTE[id];
+  try{ localStorage.setItem(LKEY, JSON.stringify(LISTE)); }catch(e){ toast('Non riesco a salvare le liste in questo browser'); } }
+
+/* ---------- Pezzi di interfaccia ---------- */
+function badges(e){
+  enrich(e); const b = [];
+  if(e._mp) b.push('<span class="bd mp">✦ Capolavoro</span>');
+  if(OWN.has(e.id)) b.push('<span class="bd own">✓ Videoteca</span>');
+  const vd = (x, who) => x && x.s != null ? `<span class="bd ${x.s === 1 ? 'pos' : x.s === -1 ? 'neg' : 'mix'}" title="${who}: ${x.s === 1 ? 'positivo' : x.s === -1 ? 'negativo' : 'misto'}">🎙 ${who === 'Frusciante' ? 'F' : 'C'}</span>` : '';
+  b.push(vd(e._f, 'Frusciante'), vd(e._c, 'Criticoni'));
+  if(has(e.id, 'v')) b.push('<span class="bd">visto</span>'); else if(has(e.id, 'd')) b.push('<span class="bd">da vedere</span>'); if(has(e.id, 'p')) b.push('<span class="bd">♥</span>');
+  return `<span class="badges">${b.join('')}</span>`;
+}
+function row(e){
+  enrich(e); const p = posterUrl(e, 'w92');
+  return `<a class="fr" href="#film/${e.id}"><span class="sc ${e._mp ? 'mp' : ''}">${fmtR(e._R)}<small>${fmtV(e.v)}</small></span>${p ? `<img class="th" src="${esc(p)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<span class="th"></span>'}<span style="min-width:0"><b>${esc(title(e))}</b>${e.en && e.en !== e.it ? ` <em>${esc(e.en)}</em>` : ''}`
+    + `<span class="sub">${esc([e.y, e.dir, genres(e).slice(0, 3).join(', ')].filter(Boolean).join(', '))}</span></span>${badges(e)}</a>`;
+}
+function tile(e){ enrich(e); const p = posterUrl(e, 'w342'); return `<a class="tile${p ? ' has-p' : ''}" href="#film/${e.id}" style="--tilebg:${tileBg(e)}" aria-label="${esc(title(e) + (e.y ? ', ' + e.y : ''))}">${p ? `<img class="tp" src="${esc(p)}" alt="" loading="lazy" onerror="this.parentElement.classList.remove('has-p'); this.remove()">` : ''}<span><span class="tt">${esc(title(e))}</span><span class="ty">${esc([e.y, e.dir].filter(Boolean).join(', '))}</span></span><span class="tb"><span class="${e._mp ? 'mp' : ''}">${e._mp ? '✦ ' : ''}${fmtR(e._R)}</span><span>${OWN.has(e.id) ? '✓' : ''}</span></span></a>`; }
+function paged(id, items, render, size){   // elenchi lunghi a pagine
+  size = size || 60; let n = size;
+  const draw = () => { const el = $(id); if(!el) return; el.innerHTML = items.slice(0, n).map(render).join('') || '<p class="note">Nessun film.</p>';
+    const w = $(id + '-more'); if(w) w.innerHTML = items.length > n ? `<button class="btn" type="button">Mostra altri (${(items.length - n).toLocaleString('it-IT')})</button>` : ''; };
+  setTimeout(()=>{ draw(); const w = $(id + '-more'); if(w) w.onclick = () => { n += size; draw(); }; }, 0);
+  return `<div class="rows" id="${id}"></div><div class="more-wrap" id="${id}-more"></div>`;
+}
+const SORTS = { fama: ['I più famosi', (a, b)=>b.v - a.v], voto: ['I più votati', (a, b)=>b._br - a._br], punteggio: ['Punteggio dell\'Atlante', (a, b)=>b._s - a._s || b.v - a.v], recenti: ['Dal più recente', (a, b)=>(b.y || '0').localeCompare(a.y || '0')], anno: ['Dal più vecchio', (a, b)=>(a.y || '9').localeCompare(b.y || '9')] };
+function filterBar(state, opts){
+  const gs = [...GENRES.keys()].sort((a, b)=>a.localeCompare(b, 'it')), ds = [...DECADES.keys()].sort();
+  return `<div class="ctrl">${opts.genre ? `<label>Genere<select data-f="g"><option value="">Tutti</option>${gs.map(g=>`<option ${state.g === g ? 'selected' : ''}>${esc(g)}</option>`).join('')}</select></label>` : ''}`
+    + `${opts.decade ? `<label>Decennio<select data-f="d"><option value="">Tutti</option>${ds.map(d=>`<option value="${d}" ${String(state.d) === String(d) ? 'selected' : ''}>Anni ${d}</option>`).join('')}</select></label>` : ''}`
+    + `<label>Ordine<select data-f="o">${Object.entries(SORTS).map(([k, [l]])=>`<option value="${k}" ${state.o === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select></label>`
+    + `${opts.mp ? `<label style="flex-direction:row; align-items:center; gap:8px; height:36px"><input type="checkbox" data-f="mp" ${state.mp ? 'checked' : ''}> Solo capolavori</label>` : ''}</div>`;
+}
+function applyFilters(list, st){ let l = list; if(st.g) l = l.filter(e=>genres(e).includes(st.g)); if(st.d) l = l.filter(e=>decade(e) === +st.d); if(st.mp) l = l.filter(e=>e._mp); return l.slice().sort((SORTS[st.o] || SORTS.fama)[1]); }
+
+/* ---------- Pagine ---------- */
+const V = () => $('view');
+function setNav(k){ document.querySelectorAll('[data-nav]').forEach(a=>a.toggleAttribute('aria-current', a.dataset.nav === k)); if(k) document.querySelectorAll(`[data-nav="${k}"]`).forEach(a=>a.setAttribute('aria-current', 'page')); }
+function viewHome(){
+  setNav('home');
+  const last = Math.floor(new Date().getFullYear() / 10) * 10, ds = []; for(let d = 1900; d <= last; d += 10) ds.push([d, DECADES.get(d) || []]);   // sempre dal 1900 a oggi
+  const max = Math.max(1, ...ds.map(x=>x[1].length));
+  const fr = BY_V.filter(e=>e._f && e._f.s === 1).slice(0, 14);
+  V().innerHTML = `<h1 class="pg">Atlante del Cinema</h1><p class="lead">${ALL.length.toLocaleString('it-IT')} film da esplorare per decennio, genere, regista e attore${CRITICA ? ', con i voti della critica' : ''}${CRIT ? ' e i giudizi di Frusciante e dei Criticoni' : ''}.</p>`
+    + `<div class="ruler" aria-label="Film per decennio">${ds.map(([d, l])=>`<a href="#decennio/${d}" aria-label="Anni ${d}: ${l.length} film"><span class="ct">${l.length >= 1000 ? Math.round(l.length / 100) / 10 + 'k' : l.length}</span><span class="bar" style="height:${Math.max(3, l.length / max * 100)}%"></span><span class="yr">${String(d).slice(2)}</span></a>`).join('')}</div>`
+    + `<div style="display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 4px"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button></div>`
+    + `<h2 class="sec">✦ Capolavori assoluti <a class="more" href="#lista/capolavori">Tutti i ${MASTER.length.toLocaleString('it-IT')}</a></h2><div class="strip">${MASTER.slice(0, 14).map(tile).join('')}</div>`
+    + `<h2 class="sec">I più famosi <a class="more" href="#lista/famosi">Vedi tutti</a></h2><div class="strip">${BY_V.slice(0, 14).map(tile).join('')}</div>`
+    + `<h2 class="sec">I più votati <a class="more" href="#lista/votati">Vedi tutti</a></h2><div class="strip">${BY_BR.slice(0, 14).map(tile).join('')}</div>`
+    + (fr.length ? `<h2 class="sec">🎙 Promossi da Frusciante <a class="more" href="#lista/frusciante-si">Vedi tutti</a></h2><div class="strip">${fr.map(tile).join('')}</div>` : '')
+    + `<h2 class="sec">Per genere</h2><div class="genres">${[...GENRES.entries()].filter(([, l])=>l.length >= 40).sort((a, b)=>b[1].length - a[1].length).map(([g, l])=>`<a class="genre" href="#genere/${encodeURIComponent(g)}" style="--tilebg:hsl(${GCOL[g] != null ? GCOL[g] : 200} 28% 24%)">${esc(g)}<span>${l.length.toLocaleString('it-IT')}</span></a>`).join('')}</div>`;
+  $('surprise').onclick = surprise;
+}
+function surprise(){
+  const pool = MASTER.filter(e=>!has(e.id, 'v')); if(!pool.length){ toast('Hai visto tutti i capolavori: complimenti!'); return; }
+  const tot = pool.reduce((t, e)=>t + Math.log10(e.v), 0); let r = Math.random() * tot;
+  for(const e of pool){ r -= Math.log10(e.v); if(r <= 0){ location.hash = '#film/' + e.id; return; } } location.hash = '#film/' + pool[0].id;
+}
+const LISTS = {
+  capolavori: ['✦ Capolavori assoluti', () => MASTER, 'punteggio', 'Film amati da pubblico e critica, con la spinta dei giudizi di Frusciante e dei Criticoni. Sotto ogni titolo, nella sua scheda, trovi il perché.'],
+  famosi: ['I più famosi', () => BY_V, 'fama', 'I film con più voti su IMDb: quelli che quasi tutti hanno visto.'],
+  votati: ['I più votati', () => BY_BR, 'voto', 'Voto alto e tanti voti insieme: un film con pochi voti, anche se tutti da 10, non scavalca i grandi classici.'],
+  'frusciante-si': ['🎙 Promossi da Frusciante', () => BY_V.filter(e=>e._f && e._f.s === 1), 'fama', ''], 'frusciante-no': ['🎙 Bocciati da Frusciante', () => BY_V.filter(e=>e._f && e._f.s === -1), 'fama', ''],
+  'criticoni-si': ['🎙 Promossi dai Criticoni', () => BY_V.filter(e=>e._c && e._c.s === 1), 'fama', ''], 'criticoni-no': ['🎙 Bocciati dai Criticoni', () => BY_V.filter(e=>e._c && e._c.s === -1), 'fama', ''],
+  discussi: ['🎙 I più discussi da Frusciante', () => BY_V.filter(e=>e._f).sort((a, b)=>b._f.mn - a._f.mn), 'nessuno', 'Ordinati per numero di menzioni nei suoi video.'] };
+function viewList(kind, st, base, heading, lead, opts){
+  const s = Object.assign({ g: '', d: '', o: 'fama', mp: false }, st);
+  V().innerHTML = `${heading}${lead ? `<p class="lead">${esc(lead)}</p>` : ''}${filterBar(s, opts)}<p class="note" id="lcount"></p>${paged('lst', [], row)}`;
+  const redraw = () => { const l = s.o === 'nessuno' ? base.filter(e=>(!s.g || genres(e).includes(s.g)) && (!s.d || decade(e) === +s.d)) : applyFilters(base, s);
+    $('lcount').textContent = `${l.length.toLocaleString('it-IT')} film`; const host = $('lst').parentElement; const html = paged('lst', l, row); $('lst').outerHTML = html.split('</div><div class="more-wrap"')[0] + '</div>'; $('lst-more').remove(); host.querySelector('#lst').insertAdjacentHTML('afterend', '<div class="more-wrap" id="lst-more"></div>'); };
+  V().querySelector('.ctrl').addEventListener('change', ev=>{ const f = ev.target.dataset.f; if(!f) return; s[f] = ev.target.type === 'checkbox' ? ev.target.checked : ev.target.value; redraw(); });
+  redraw();
+}
+function viewNamedList(k){
+  setNav(k === 'capolavori' ? 'lista' : ''); const L = LISTS[k]; if(!L) return viewHome();
+  if(k === 'capolavori' && !CRITICA) L[3] = 'Per ora calcolati su voti IMDb e giudizi di Frusciante e dei Criticoni. Attiva l\'indice della critica (Strumenti) per aggiungere Rotten Tomatoes e Metacritic.';
+  viewList(k, { o: L[2] }, L[1](), `<h1 class="pg">${esc(L[0])}</h1>`, L[3], { genre: true, decade: true, mp: k !== 'capolavori' });
+}
+function viewGenre(g){ setNav(''); const l = GENRES.get(g) || []; viewList('g', { o: 'fama' }, l, `<p class="crumbs"><a href="#">Esplora</a> › Genere</p><h1 class="pg">${esc(g)}</h1>`, `${l.length.toLocaleString('it-IT')} film, di cui ${l.filter(e=>e._mp).length} capolavori.`, { decade: true, mp: true }); }
+function viewDecade(d){ setNav(''); const l = DECADES.get(+d) || []; viewList('d', { o: 'fama' }, l, `<p class="crumbs"><a href="#">Esplora</a> › Decennio</p><h1 class="pg">Anni ${esc(d)}</h1>`, `${l.length.toLocaleString('it-IT')} film, di cui ${l.filter(e=>e._mp).length} capolavori.`, { genre: true, mp: true }); }
+function peopleView(kind, list, q){
+  const f = q ? list.filter(p=>normKey(p.name).includes(normKey(q))) : list;
+  return `<div class="people">${f.slice(0, 300).map(p=>`<a class="person" href="#${kind}/${encodeURIComponent(p.name)}"><b>${esc(p.name)}</b><span>${p.n} film</span></a>`).join('') || '<p class="note">Nessun nome trovato.</p>'}</div>`;
+}
+function viewDirectors(){ setNav('registi'); const list = dirRanking();
+  V().innerHTML = `<h1 class="pg">Registi</h1><p class="lead">I registi con almeno tre film noti, in ordine di importanza: conta quanto sono amati i loro film, e da quante persone.</p><div class="ctrl"><label>Cerca un regista<input id="pq" type="search" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--s1); padding:0 10px"></label></div><div id="pl">${peopleView('regista', list)}</div>`;
+  $('pq').addEventListener('input', ()=>{ $('pl').innerHTML = peopleView('regista', list, $('pq').value); }); }
+function viewActors(){ setNav('attori');
+  if(!CAST_INDEX){ V().innerHTML = `<h1 class="pg">Attori</h1><div class="box"><div class="in">L'indice degli attori non c'è ancora: lo crea l'automazione <b>"Aggiorna indice IMDb"</b> della Videoteca. Lanciala su GitHub (Actions → Run workflow) e poi riapri l'Atlante.</div></div>`; return; }
+  const list = actorRanking();
+  V().innerHTML = `<h1 class="pg">Attori</h1><p class="lead">Gli attori con almeno tre film noti, in ordine di importanza.</p><div class="ctrl"><label>Cerca un attore<input id="pq" type="search" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--s1); padding:0 10px"></label></div><div id="pl">${peopleView('attore', list)}</div>`;
+  $('pq').addEventListener('input', ()=>{ $('pl').innerHTML = peopleView('attore', list, $('pq').value); }); }
+function personPage(kind, name, films, extra){
+  const fs = films.map(enrich), best = fs.filter(e=>e.v >= 5000).sort((a, b)=>b._s - a._s || b.v - a.v).slice(0, 8), chrono = fs.slice().sort((a, b)=>(a.y || '9').localeCompare(b.y || '9'));
+  const mp = fs.filter(e=>e._mp).length, avg = fs.filter(e=>e.v >= 5000), avgR = avg.length ? avg.reduce((t, e)=>t + e._R, 0) / avg.length : 0;
+  V().innerHTML = `<p class="crumbs"><a href="#${kind === 'regista' ? 'registi' : 'attori'}">${kind === 'regista' ? 'Registi' : 'Attori'}</a></p><h1 class="pg">${esc(name)}</h1>`
+    + `<p class="lead">${fs.length} film nell'indice${mp ? `, ${mp} capolavori` : ''}${avgR ? `, voto medio ${fmtR(avgR)}` : ''}.</p>`
+    + (best.length ? `<h2 class="sec">I suoi film migliori</h2><div class="strip">${best.map(tile).join('')}</div>` : '') + (extra || '')
+    + `<h2 class="sec">Filmografia</h2>${paged('pf', chrono, row, 100)}`;
+}
+function viewDirector(name){ setNav('registi'); personPage('regista', name, BY_DIR.get(name) || []); }
+function viewActor(name){ setNav('attori'); if(!CAST_INDEX) return viewActors();
+  const co = offlineCoStars(name, 10); personPage('attore', name, actorFilmography(name), co.length ? `<h2 class="sec">Ha lavorato spesso con</h2><div class="cast">${co.map(c=>`<a href="#attore/${encodeURIComponent(c.name)}">${esc(c.name)} (${c.n})</a>`).join('')}</div>` : ''); }
+function viewSearch(q){
+  setNav(''); const k = normKey(q), words = k.split(' ').filter(Boolean);
+  const films = words.length ? ALL.filter(e=>words.every(w=>e._n.includes(w))).sort((a, b)=>b.v - a.v).slice(0, 120) : [];
+  const dirs = k.length >= 3 ? dirRanking().filter(d=>normKey(d.name).includes(k)).slice(0, 8) : [];
+  const acts = k.length >= 3 && CAST_INDEX ? actorRanking().filter(a=>normKey(a.name).includes(k)).slice(0, 8) : [];
+  V().innerHTML = `<h1 class="pg">Risultati per «${esc(q)}»</h1>`
+    + (dirs.length ? `<h2 class="sec">Registi</h2>${peopleView('regista', dirs)}` : '') + (acts.length ? `<h2 class="sec">Attori</h2>${peopleView('attore', acts)}` : '')
+    + `<h2 class="sec">Film</h2>${films.length ? paged('sr', films, row) : '<p class="note">Nessun film trovato: prova con il titolo originale o con meno parole.</p>'}`;
+}
+
+/* ---------- Scheda del film: dati locali subito, Wikidata e Wikipedia quando c'è rete ---------- */
+let _db = null;
+function db(){ if(_db) return _db; _db = new Promise(res=>{ try{ const r = indexedDB.open('atlante-del-cinema', 1); r.onupgradeneeded = () => r.result.createObjectStore('det'); r.onsuccess = () => res(r.result); r.onerror = () => res(null); }catch(e){ res(null); } }); return _db; }
+async function dget(k){ const d = await db(); if(!d) return null; return new Promise(res=>{ try{ const q = d.transaction('det').objectStore('det').get(k); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }catch(e){ res(null); } }); }
+async function dset(k, v){ const d = await db(); if(!d) return; try{ d.transaction('det', 'readwrite').objectStore('det').put(v, k); }catch(e){} }
+async function jget(u){ const r = await fetch(u); if(!r.ok) throw new Error('http' + r.status); return r.json(); }
+const WDP = { P57: 'regia', P58: 'sceneggiatura', P86: 'musiche', P344: 'fotografia', P162: 'produzione', P272: 'casa di produzione', P495: 'paese', P364: 'lingua originale', P915: 'luoghi delle riprese', P840: 'ambientazione', P166: 'premi', P1411: 'candidature', P155: 'prima', P156: 'dopo', P144: 'tratto da' };
+async function fetchDetails(id){
+  const c = await dget(id); if(c && Date.now() - c.at < 30 * 864e5) return c;
+  if(navigator.onLine === false) return c;
+  const out = { at: Date.now() };
+  const s = await jget(`https://www.wikidata.org/w/api.php?action=query&list=search&srsearch=haswbstatement:P345=${id}&srlimit=1&format=json&origin=*`);
+  const qid = s && s.query && s.query.search && s.query.search[0] && s.query.search[0].title; if(!qid){ await dset(id, out); return out; }
+  out.qid = qid;
+  const ej = await jget(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${qid}&props=claims|sitelinks&format=json&origin=*`), e = ej.entities[qid] || {};
+  const vals = p => ((e.claims || {})[p] || []).map(c=>c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value).filter(Boolean);
+  const refs = {}; Object.keys(WDP).forEach(p=>{ refs[p] = vals(p).map(v=>v.id).filter(Boolean).slice(0, p === 'P166' || p === 'P1411' ? 12 : 6); });
+  const ids = [...new Set(Object.values(refs).flat())].slice(0, 50);
+  let labs = {}; if(ids.length){ const lj = await jget(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${ids.join('|')}&props=labels|claims&languages=it|en&format=json&origin=*`); labs = lj.entities || {}; }
+  const lab = q => { const x = labs[q] && labs[q].labels; return x ? ((x.it || x.en || {}).value || '') : ''; };
+  out.f = {}; Object.entries(refs).forEach(([p, l])=>{ out.f[p] = l.map(q=>({ q, l: lab(q), tt: (((labs[q] || {}).claims || {}).P345 || []).map(c=>c.mainsnak.datavalue && c.mainsnak.datavalue.value)[0] || '' })).filter(x=>x.l); });
+  out.nAw = vals('P166').length; out.nNom = vals('P1411').length;
+  const dur = vals('P2047')[0]; if(dur && dur.amount) out.min = Math.round(Math.abs(parseFloat(dur.amount)) * (/Q7727$/.test(dur.unit) ? 1 : /Q11574$/.test(dur.unit) ? 1 / 60 : 1));
+  for(const k of ['itwiki', 'enwiki']){ const sl = e.sitelinks && e.sitelinks[k]; if(!sl) continue;
+    try{ const w = await jget(`https://${k.slice(0, 2)}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(sl.title.replace(/ /g, '_'))}`);
+      if(w && w.extract){ out.wiki = { lang: k.slice(0, 2), text: w.extract, url: (w.content_urls && w.content_urls.desktop && w.content_urls.desktop.page) || '' }; out.img = (w.originalimage && w.originalimage.source) || (w.thumbnail && w.thumbnail.source) || ''; break; } }catch(err){} }
+  await dset(id, out); return out;
+}
+function critBoxHTML(e){
+  if(!CRIT) return '';
+  const rows = [['f', 'Federico Frusciante', '/frusciante/film/'], ['c', 'Criticoni', '/film/']].map(([k, who, path])=>{ const x = k === 'f' ? e._f : e._c; if(!x) return '';
+    const s = x.s === 1 ? ['pos', 'Positivo'] : x.s === -1 ? ['neg', 'Negativo'] : x.s === 0 ? ['mix', 'Misto'] : null;
+    return `<div class="crit-row"><b>${who}</b>${s ? `<span class="bd ${s[0]}">${s[1]}</span>` : ''}<span class="note">${x.v} video, ${x.mn} ${x.mn === 1 ? 'menzione' : 'menzioni'}</span><a href="${esc(CRIT.site + path + x.slug)}" target="_blank" rel="noopener">Guarda i video ↗</a></div>`; }).join('');
+  return `<div class="box"><h3>🎙 Frusciante e i Criticoni</h3>${rows || '<div class="in note">Né Frusciante né i Criticoni ne parlano nei video indicizzati da filmcriticoni.it.</div>'}</div>`;
+}
+function viewFilm(id){
+  setNav(''); const e = imdbEntry(id);
+  if(!e){ V().innerHTML = `<div class="status"><h1>Film non trovato</h1><p>Questo codice non è nell'indice. <a href="#" style="color:var(--chart)">Torna a Esplora</a></p></div>`; return; }
+  enrich(e);
+  const sameDir = String(e.dir || '').split(/\s*,\s*/).filter(Boolean).flatMap(n=>BY_DIR.get(n) || []).filter(x=>x.id !== e.id).map(enrich).sort((a, b)=>b._s - a._s).slice(0, 10);
+  const g0 = genres(e)[0], sim = g0 ? (GENRES.get(g0) || []).filter(x=>x.id !== e.id && Math.abs(decade(x) - decade(e)) <= 10 && x.v >= 10000 && !sameDir.includes(x)).sort((a, b)=>b._s - a._s).slice(0, 10) : [];
+  const cast = CAST_INDEX ? castOfFilm(id) : [];
+  const q = encodeURIComponent(`${title(e)} ${e.y || ''} trailer italiano`);
+  V().innerHTML = `<p class="crumbs"><a href="javascript:history.back()">← Indietro</a></p>`
+    + `<div class="film-head"><div class="poster" id="poster" style="--tilebg:${tileBg(e)}">${posterUrl(e, 'w500') ? `<img src="${esc(posterUrl(e, 'w500'))}" alt="Locandina di ${esc(title(e))}" onerror="this.remove()">` : ''}<span class="tt">${esc(title(e))}</span></div><div style="min-width:0">`
+    + `<h1 class="pg">${esc(title(e))}</h1>${e.en && e.en !== e.it ? `<p class="orig">${esc(e.en)}</p>` : ''}`
+    + `<div class="facts">${e.y ? `<a href="#decennio/${decade(e)}">${esc(e.y)}</a>` : ''}${String(e.dir || '').split(/\s*,\s*/).filter(Boolean).map(n=>`<a href="#regista/${encodeURIComponent(n)}">${esc(n)}</a>`).join(', ')}${genres(e).map(g=>`<a href="#genere/${encodeURIComponent(g)}">${esc(g)}</a>`).join('')}<span id="dur"></span></div>`
+    + `<div class="scores"><div class="score"><b>${fmtR(e._R)}</b><span>IMDb, ${fmtV(e.v)} voti</span></div>${e._rt != null ? `<div class="score"><b>${e._rt}%</b><span>Rotten Tomatoes</span></div>` : ''}${e._mc != null ? `<div class="score"><b>${e._mc}</b><span>Metacritic</span></div>` : ''}`
+    + `<div class="score ${e._mp ? 'mp' : ''}"><b>${e._mp ? '✦ ' : ''}${e._s}</b><span>${e._mp ? 'Capolavoro assoluto' : 'Punteggio dell\'Atlante'}</span></div></div><p class="why">${esc(why(e))}</p>`
+    + `<div class="marks">${[['v', '✓ Visto'], ['d', '＋ Da vedere'], ['p', '♥ Preferito']].map(([k, l])=>`<button class="btn" type="button" data-mark="${k}" aria-pressed="${has(id, k)}">${l}</button>`).join('')}${OWN.has(id) ? '<span class="bd own" style="align-self:center">✓ Nella tua Videoteca</span>' : ''}</div>`
+    + `<a class="btn" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">▶ Cerca il trailer su YouTube</a></div></div>`
+    + critBoxHTML(e) + `<div id="online"><p class="note">${navigator.onLine === false ? 'Sei offline: trama, curiosità e locandina arriveranno con la rete.' : 'Carico trama e curiosità…'}</p></div>`
+    + (cast.length ? `<div class="box"><h3>Interpreti</h3><div class="in cast">${cast.map(n=>`<a href="#attore/${encodeURIComponent(n)}">${esc(n)}</a>`).join('')}</div></div>` : '')
+    + (sameDir.length ? `<h2 class="sec">Dello stesso regista</h2><div class="strip">${sameDir.map(tile).join('')}</div>` : '')
+    + (sim.length ? `<h2 class="sec">Film simili, stesso genere e periodo</h2><div class="strip">${sim.map(tile).join('')}</div>` : '');
+  V().querySelectorAll('[data-mark]').forEach(b=>b.addEventListener('click', ()=>{ toggle(id, b.dataset.mark); V().querySelectorAll('[data-mark]').forEach(x=>x.setAttribute('aria-pressed', String(has(id, x.dataset.mark)))); }));
+  fetchDetails(id).then(d=>{ if(location.hash !== '#film/' + id || !$('online')) return; renderOnline(e, d); }).catch(()=>{ if($('online')) $('online').innerHTML = '<p class="note">Wikidata non risponde ora: riprova più tardi.</p>'; });
+}
+function renderOnline(e, d){
+  if(!d || !d.qid){ $('online').innerHTML = '<p class="note">Su Wikidata non ci sono altre notizie su questo film.</p>'; return; }
+  if(d.img && !$('poster').querySelector('img')) $('poster').insertAdjacentHTML('afterbegin', `<img src="${esc(d.img)}" alt="Locandina di ${esc(title(e))}" referrerpolicy="no-referrer" onerror="this.remove()">`);
+  if(d.min) $('dur').textContent = d.min + ' minuti';
+  const link = x => x.tt && imdbEntry(x.tt) ? `<a href="#film/${x.tt}">${esc(x.l)}</a>` : esc(x.l);
+  const kv = Object.entries(WDP).filter(([p])=>p !== 'P57' && d.f[p] && d.f[p].length).map(([p, l])=>{ const list = d.f[p], tot = p === 'P166' ? d.nAw : p === 'P1411' ? d.nNom : list.length;
+    return `<dt>${esc(l.charAt(0).toUpperCase() + l.slice(1))}</dt><dd>${list.map(link).join(', ')}${tot > list.length ? ` e altri ${tot - list.length}` : ''}</dd>`; }).join('');
+  $('online').innerHTML = (d.wiki ? `<div class="box"><h3>La storia</h3><div class="in"><p class="plot">${esc(d.wiki.text)}</p><p class="note">${d.wiki.url ? `<a href="${esc(d.wiki.url)}" target="_blank" rel="noopener" style="color:var(--chart)">Continua su Wikipedia ↗</a>, ` : ''}testo con licenza CC BY-SA.</p></div></div>` : '')
+    + (kv ? `<div class="box"><h3>Curiosità e scheda tecnica</h3><div class="in"><dl class="kv">${kv}</dl></div></div>` : '');
+}
+
+/* ---------- Le mie liste e statistiche ---------- */
+function viewLists(tab){
+  setNav('liste'); tab = tab || 'v';
+  const ids = Object.keys(LISTE).filter(id=>has(id, tab)).sort((a, b)=>LISTE[b][tab] - LISTE[a][tab]), films = ids.map(imdbEntry).filter(Boolean).map(enrich);
+  const seen = Object.keys(LISTE).filter(id=>has(id, 'v')).map(imdbEntry).filter(Boolean).map(enrich);
+  const mpSeen = seen.filter(e=>e._mp).length, bars = (m) => { const max = Math.max(1, ...m.map(x=>x[1])); return `<div class="bars">${m.map(([l, v])=>`<div class="barrow"><span>${esc(l)}</span><i style="width:${Math.max(3, v / max * 100)}%"></i><span class="v">${v}</span></div>`).join('')}</div>`; };
+  const cnt = f => { const m = new Map(); seen.forEach(e=>f(e).forEach(k=>m.set(k, (m.get(k) || 0) + 1))); return [...m.entries()]; };
+  const missing = MASTER.filter(e=>!has(e.id, 'v')).slice(0, 14);
+  V().innerHTML = `<h1 class="pg">Le mie liste</h1><div class="marks">${[['v', '✓ Visti'], ['d', '＋ Da vedere'], ['p', '♥ Preferiti']].map(([k, l])=>`<a class="btn" href="#liste/${k}" aria-pressed="${k === tab}">${l} (${Object.keys(LISTE).filter(id=>has(id, k)).length})</a>`).join('')}</div>`
+    + (films.length ? paged('ml', films, row) : `<p class="note">Lista vuota: apri un film e usa i pulsanti Visto, Da vedere e Preferito.</p>`)
+    + (seen.length ? `<h2 class="sec">I tuoi numeri</h2><p class="lead">Hai visto ${seen.length} film, di cui <b style="color:var(--amber2)">${mpSeen} capolavori</b> su ${MASTER.length}.</p>`
+      + `<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:24px"><div><h3 style="font-family:var(--serif)">Per decennio</h3>${bars(cnt(e=>decade(e) ? ['Anni ' + decade(e)] : []).sort((a, b)=>a[0].localeCompare(b[0])))}</div><div><h3 style="font-family:var(--serif)">Per genere</h3>${bars(cnt(e=>genres(e)).sort((a, b)=>b[1] - a[1]).slice(0, 10))}</div></div>` : '')
+    + (missing.length ? `<h2 class="sec">✦ Capolavori da recuperare</h2><div class="strip">${missing.map(tile).join('')}</div>` : '');
+}
+
+/* ---------- Strumenti ---------- */
+const CRITICA_SCRIPT_TEXT = "#!/usr/bin/env python3\n\"\"\"\nIndice della critica per l'Atlante del Cinema.\n\nUna volta al mese raccoglie da Wikidata (gratis, senza chiavi) i voti di Rotten Tomatoes (Tomatometer, in\npercentuale) e di Metacritic per tutti i film che hanno un codice IMDb, e li salva in data/critica.json.gz.\nL'Atlante li usa, insieme ai voti IMDb e ai giudizi di Frusciante e dei Criticoni, per i \"capolavori assoluti\".\n\nUso:\n  python tools/aggiorna_critica.py data/critica.json.gz                  # da Wikidata\n  python tools/aggiorna_critica.py data/critica.json.gz --local CARTELLA # da risposte salvate (q-tt00.json, \u2026)\n\nSicurezza: se Wikidata non risponde o restituisce troppo poco, il file del mese prima resta com'\u00e8.\n\"\"\"\nimport datetime, gzip, json, os, re, sys, time, urllib.parse, urllib.request\n\nENDPOINT = 'https://query.wikidata.org/sparql'\nUA = 'MyPhysicalMovieLibrary-Atlante/1.0 (indice personale aggiornato una volta al mese)'\nRT, MC = 'Q105584', 'Q150248'                      # Rotten Tomatoes, Metacritic\nPREFIXES = ['tt0' + str(i) for i in range(10)] + ['tt' + str(i) for i in range(1, 10)]   # 19 gruppi piccoli\nMIN_RT = 3000                                       # sotto questa soglia qualcosa non va\n\nQUERY = \"\"\"SELECT ?imdb ?score ?by ?date WHERE {\n  ?film wdt:P345 ?imdb . FILTER(STRSTARTS(?imdb, \"%s\"))\n  ?film p:P444 ?st . ?st ps:P444 ?score ; pq:P447 ?by .\n  VALUES ?by { wd:%s wd:%s }\n  OPTIONAL { ?st pq:P585 ?date }\n}\"\"\"\n\n\ndef ask(prefix, local=None, tries=4):\n    if local:\n        path = os.path.join(local, f'q-{prefix}.json')\n        return json.load(open(path, encoding='utf-8')) if os.path.exists(path) else {'results': {'bindings': []}}\n    url = ENDPOINT + '?' + urllib.parse.urlencode({'query': QUERY % (prefix, RT, MC), 'format': 'json'})\n    for k in range(tries):\n        try:\n            req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept': 'application/sparql-results+json'})\n            with urllib.request.urlopen(req, timeout=120) as r:\n                return json.loads(r.read().decode('utf-8'))\n        except Exception as e:\n            if k == tries - 1: raise\n            print(f'  {prefix}: nuovo tentativo tra {10 * (k + 1)} s ({e})'); time.sleep(10 * (k + 1))\n\n\ndef parse(binds, rt, mc, dates):\n    for b in binds:\n        imdb = b.get('imdb', {}).get('value', ''); score = b.get('score', {}).get('value', '').strip()\n        by = b.get('by', {}).get('value', '').rsplit('/', 1)[-1]; date = b.get('date', {}).get('value', '')\n        if not re.match(r'^tt\\d+$', imdb) or not score: continue\n        if by == RT:\n            m = re.match(r'^(\\d{1,3})\\s*%$', score)          # solo il Tomatometer in percentuale, mai le medie \"7.6/10\"\n            if not m or int(m.group(1)) > 100: continue\n            val, key = int(m.group(1)), ('rt', imdb)\n        elif by == MC:\n            m = re.match(r'^(\\d{1,3})(?:\\s*/\\s*100)?$', score)\n            if not m or int(m.group(1)) > 100: continue\n            val, key = int(m.group(1)), ('mc', imdb)\n        else:\n            continue\n        if key in dates and dates[key] > date: continue   # si tiene il valore pi\u00f9 recente\n        dates[key] = date\n        (rt if key[0] == 'rt' else mc)[imdb] = val\n\n\ndef main():\n    args = sys.argv[1:]\n    if not args: print(__doc__); sys.exit(2)\n    out = args[0]\n    local = args[args.index('--local') + 1] if '--local' in args else None\n    built = args[args.index('--date') + 1] if '--date' in args else datetime.date.today().isoformat()\n    min_rt = 1 if '--no-min' in args else MIN_RT\n    rt, mc, dates = {}, {}, {}\n    try:\n        for p in PREFIXES:\n            j = ask(p, local)\n            n0 = len(rt) + len(mc); parse(j.get('results', {}).get('bindings', []), rt, mc, dates)\n            print(f'  {p}: {len(rt) + len(mc) - n0} voti')\n            if not local: time.sleep(2)\n    except Exception as e:\n        print(f'ATTENZIONE: Wikidata non risponde ({e}).', 'Il file del mese prima resta com\\'\u00e8.' if os.path.exists(out) else '')\n        sys.exit(0 if os.path.exists(out) else 1)\n    if len(rt) < min_rt:\n        print(f'ATTENZIONE: trovati solo {len(rt)} voti di Rotten Tomatoes (attesi almeno {min_rt}).', 'Il file del mese prima resta com\\'\u00e8.' if os.path.exists(out) else '')\n        sys.exit(0 if os.path.exists(out) else 1)\n    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)\n    with open(out, 'wb') as f:\n        f.write(gzip.compress(json.dumps({'v': 1, 'built': built, 'rt': rt, 'mc': mc}, separators=(',', ':')).encode('utf-8'), 9))\n    print(f'Fatto: {len(rt)} film con Rotten Tomatoes e {len(mc)} con Metacritic, data {built}.')\n\n\nif __name__ == '__main__':\n    main()\n";
+const CRITICA_WORKFLOW_TEXT = "# Aggiorna ogni mese l'indice della critica dell'Atlante del Cinema (Rotten Tomatoes e Metacritic da Wikidata).\n# Si pu\u00f2 anche avviare a mano: scheda \"Actions\" \u2192 \"Aggiorna la critica (Atlante)\" \u2192 \"Run workflow\".\nname: Aggiorna la critica (Atlante)\non:\n  schedule:\n    - cron: '0 6 15 * *'    # il 15 di ogni mese alle 6:00 UTC\n  workflow_dispatch:\npermissions:\n  contents: write\njobs:\n  aggiorna:\n    runs-on: ubuntu-latest\n    timeout-minutes: 40\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-python@v5\n        with:\n          python-version: '3.12'\n      - name: Raccogli i voti della critica da Wikidata\n        run: python tools/aggiorna_critica.py data/critica.json.gz\n      - name: Pubblica se \u00e8 cambiato\n        run: |\n          git config user.name \"aggiorna-critica\"\n          git config user.email \"github-actions[bot]@users.noreply.github.com\"\n          git add -N data/critica.json.gz 2>/dev/null || true\n          if git diff --quiet -- data; then echo \"Nessuna novit\u00e0\"; exit 0; fi\n          git add data\n          git commit -m \"Indice della critica aggiornato al $(date +%Y-%m-%d)\"\n          git push\n";
+function repoBase(){ const m = location.hostname.match(/^([a-z0-9-]+)\.github\.io$/i), seg = location.pathname.split('/').filter(Boolean); return m && seg.length >= 2 ? `https://github.com/${m[1]}/${seg[0]}` : ''; }
+function viewTools(){
+  setNav('strumenti'); const base = repoBase(), built = id => { const el = document.getElementById(id); return el && el.dataset.built ? el.dataset.built : ''; };
+  const st = (ok, txt) => `<dt>${ok ? '✅' : '⚠️'} ${txt[0]}</dt><dd>${esc(txt[1])}</dd>`;
+  V().innerHTML = `<h1 class="pg">Strumenti</h1>`
+    + `<div class="box"><h3>Gli indici</h3><div class="in"><dl class="kv">${st(true, ['IMDb', `${ALL.length.toLocaleString('it-IT')} film, del ${built('imdbIndexData') || 'ultimo aggiornamento della Videoteca'}`])}`
+    + st(!!CAST_INDEX, ['Attori', CAST_INDEX ? `del ${built('imdbCastData') || '?'}` : 'non ancora creato: lo crea "Aggiorna indice IMDb" della Videoteca'])
+    + st(!!CRIT, ['Frusciante e Criticoni', CRIT ? `del ${CRIT.built}` : 'non ancora creato: lo crea "Aggiorna Frusciante e Criticoni" della Videoteca'])
+    + (()=>{ const n = CRIT ? new Set(['f', 'c'].flatMap(k=>[...CRIT[k].values()].flat().map(x=>x.p).filter(Boolean))).size : 0;
+      return st(n > 0, ['Locandine', n ? `${n.toLocaleString('it-IT')} da filmcriticoni.it` : 'arrivano con l\'indice di Frusciante e Criticoni della Videoteca']); })()
+    + st(!!CRITICA, ['Critica', CRITICA ? `del ${CRITICA.built}: ${Object.keys(CRITICA.rt).length.toLocaleString('it-IT')} film con Rotten Tomatoes, ${Object.keys(CRITICA.mc).length.toLocaleString('it-IT')} con Metacritic` : 'non ancora creato: segui la guida qui sotto'])
+    + `</dl><p class="note">Tutti gli indici si aggiornano da soli ogni mese. <a href="../" style="color:var(--chart)">Apri la Videoteca</a>${CRIT ? '<br>Le locandine sono immagini di TMDB, raccolte dalle schede di filmcriticoni.it.' : ''}</p></div></div>`
+    + `<div class="box"><h3>Attiva l'indice della critica (una volta sola)</h3><div class="in"><p>Serve per i capolavori con Rotten Tomatoes e Metacritic. Lo crea un'automazione su GitHub il 15 di ogni mese.</p>`
+    + (base ? `<ol style="line-height:1.8"><li><b>Lo script:</b> <button class="btn" type="button" data-copy="s">📋 Copia lo script</button> poi <a class="btn" target="_blank" rel="noopener" href="${esc(base + '/new/main?filename=' + encodeURIComponent('tools/aggiorna_critica.py'))}">Crea il file ↗</a>, incolla e premi "Commit changes".</li>`
+      + `<li><b>L'automazione:</b> <a class="btn" target="_blank" rel="noopener" href="${esc(base + '/new/main?filename=' + encodeURIComponent('.github/workflows/aggiorna-critica.yml') + '&value=' + encodeURIComponent(CRITICA_WORKFLOW_TEXT))}">Crea l'automazione ↗</a> e premi "Commit changes".</li>`
+      + `<li><b>Il primo aggiornamento:</b> <a class="btn" target="_blank" rel="noopener" href="${esc(base + '/actions/workflows/aggiorna-critica.yml')}">Apri GitHub Actions ↗</a> → "Run workflow". Dopo 10-20 minuti, riapri l'Atlante.</li></ol>`
+      : `<p class="note">Pubblica prima l'Atlante su GitHub Pages, nella cartella atlante del repository della Videoteca: qui compariranno i link diretti.</p><button class="btn" type="button" data-copy="s">📋 Copia lo script</button>`)
+    + `<textarea class="copy hidden" id="copyArea" readonly></textarea></div></div>`
+    + `<div class="box"><h3>Le tue liste</h3><div class="in"><p>Visti, da vedere e preferiti restano su questo dispositivo. Fai una copia per non perderli.</p><div class="marks"><button class="btn" type="button" id="bk">💾 Scarica le liste</button><button class="btn" type="button" id="rs">📥 Ripristina le liste</button><input type="file" id="rsIn" accept=".json,application/json" class="hidden"></div></div></div>`
+    + `<div class="box"><h3>Come si calcolano i capolavori</h3><div class="in"><p>Ogni film riceve un punteggio da 0 a 100: per metà dal voto IMDb (pesato sul numero di voti, così pochi voti contano poco), per il 35% dalla critica (Rotten Tomatoes e Metacritic) e per il 15% dai giudizi di Frusciante e dei Criticoni. Se una fonte manca, le altre pesano di più. È un capolavoro assoluto con almeno 50.000 voti, voto pesato da 7,8 in su, punteggio da 78 in su e, se c'è, una critica dall'80% in su.</p></div></div>`;
+  V().querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(CRITICA_SCRIPT_TEXT); toast('📋 Script copiato: ora premi "Crea il file" e incollalo'); }catch(err){ const t = $('copyArea'); t.value = CRITICA_SCRIPT_TEXT; t.classList.remove('hidden'); t.select(); } }));
+  $('bk').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ app: 'Atlante del Cinema', liste: LISTE }, null, 1)], { type: 'application/json' })); a.download = `atlante-liste-${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(), 1000); toast('Liste scaricate'); };
+  $('rs').onclick = () => $('rsIn').click();
+  $('rsIn').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if(!f) return; const r = new FileReader();
+    r.onload = () => { try{ const j = JSON.parse(r.result); if(!j || typeof j.liste !== 'object') throw new Error('x'); Object.entries(j.liste).forEach(([id, v])=>{ LISTE[id] = Object.assign({}, LISTE[id] || {}, v); }); localStorage.setItem(LKEY, JSON.stringify(LISTE)); toast(`Liste ripristinate: ${Object.keys(j.liste).length} film`); }catch(err){ toast('Questo file non è una copia delle liste dell\'Atlante'); } }; r.readAsText(f); };
+}
+
+/* ---------- Navigazione ---------- */
+function route(){
+  if(BOOT_ERR) return;
+  const h = decodeURIComponent(location.hash.replace(/^#/, '')), [k, ...rest] = h.split('/'), arg = rest.join('/');
+  window.scrollTo && window.scrollTo(0, 0);
+  if(k === 'film') return viewFilm(arg);
+  if(k === 'lista') return viewNamedList(arg);
+  if(k === 'genere') return viewGenre(arg);
+  if(k === 'decennio') return viewDecade(arg);
+  if(k === 'registi') return viewDirectors();
+  if(k === 'regista') return viewDirector(arg);
+  if(k === 'attori') return viewActors();
+  if(k === 'attore') return viewActor(arg);
+  if(k === 'cerca') return viewSearch(arg);
+  if(k === 'liste') return viewLists(arg);
+  if(k === 'strumenti') return viewTools();
+  viewHome();
+}
+let _qT = null;
+$('q').addEventListener('input', ()=>{ clearTimeout(_qT); const v = $('q').value.trim(); _qT = setTimeout(()=>{ if(v.length >= 2) location.hash = '#cerca/' + encodeURIComponent(v); }, 350); });
+$('searchForm').addEventListener('submit', ev=>{ ev.preventDefault(); const v = $('q').value.trim(); if(v) location.hash = '#cerca/' + encodeURIComponent(v); });
+window.addEventListener('hashchange', route);
+async function boot(){
+  try{ await importVideoteca(); }
+  catch(e){ BOOT_ERR = e.message; V().innerHTML = `<div class="status"><h1>Non trovo la Videoteca</h1><p>L'Atlante legge gli indici della Videoteca, quindi va messo nella cartella <b>atlante</b> del repository della Videoteca e aperto dal suo indirizzo GitHub Pages (per esempio tuonome.github.io/videoteca/atlante/).</p><p class="note">Dettaglio: ${esc(e.message)}${navigator.onLine === false ? ', e sei offline: la prima apertura richiede la rete' : ''}</p></div>`; return; }
+  await ensureImdbIndex();
+  if(!IMDB_INDEX){ BOOT_ERR = 'index'; V().innerHTML = '<div class="status"><h1>Indice non leggibile</h1><p>Il browser non riesce a leggere l\'indice: aggiorna Edge, Chrome o Safari all\'ultima versione.</p></div>'; return; }
+  await Promise.all([ensureCritIndex(), loadCritica(), ensureCastIndex()]);
+  readOwn(); computeAll(); route();
+  if('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
+  window.__ready = true;
+}
+boot();
+
+</script>
+</body>
+</html>

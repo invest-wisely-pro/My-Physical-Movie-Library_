@@ -5,7 +5,7 @@ Indice "Frusciante e i Criticoni" per My Physical Movie Library.
 Legge, una volta al mese, SOLO gli elenchi dei film di filmcriticoni.it (indice indipendente dei
 film discussi nei video di Federico Frusciante e dei Criticoni) e scrive nell'app un indice compatto:
 per ogni film titolo, anno, regista, giudizio complessivo, numero di video e di menzioni, indirizzo
-della sua pagina. Le frasi trascritte delle menzioni NON vengono copiate: per quelle l'app rimanda
+della sua pagina e la locandina mostrata nella scheda (un'immagine di TMDB, che il sito usa). Le frasi trascritte delle menzioni NON vengono copiate: per quelle l'app rimanda
 alla pagina del film sul sito.
 
 Uso:
@@ -17,7 +17,7 @@ Se il sito non risponde o cambia struttura (troppo pochi film), lo script rimett
 copia salvata invece di fermarsi: i giudizi raccolti non si perdono, anche caricando un index.html nuovo.
 Solo se manca anche la copia si ferma con un errore, SENZA modificare index.html.
 """
-import base64, datetime, gzip, html, json, os, re, sys, time, urllib.request
+import base64, datetime, gzip, html, json, os, re, sys, time, urllib.parse, urllib.request
 from html.parser import HTMLParser
 
 BASE = 'https://filmcriticoni.it'
@@ -27,6 +27,7 @@ SENT = {'positivo': 1, 'negativo': -1, 'misto': 0}
 MIN_FILMS = {'c': 300, 'f': 1000}                   # sotto queste soglie qualcosa non va
 HREF_RE = re.compile(r'^(?:https?://(?:www\.)?filmcriticoni\.it)?/(frusciante/)?film/([a-z0-9][a-z0-9-]*)/?$')
 PAGE_RE = re.compile(r'[?&]page=(\d+)')
+POSTER_RE = re.compile(r'image\.tmdb\.org/t/p/[a-z0-9_]+(/[A-Za-z0-9_\-]+\.(?:jpg|jpeg|png|webp))', re.I)
 
 
 class ListParser(HTMLParser):
@@ -41,7 +42,7 @@ class ListParser(HTMLParser):
             href = (a.get('href') or '').strip()
             m = HREF_RE.match(href)
             if m and self._cur is None:
-                self._cur = {'fr': bool(m.group(1)), 'slug': m.group(2), 'chunks': [], 'alt': ''}
+                self._cur = {'fr': bool(m.group(1)), 'slug': m.group(2), 'chunks': [], 'alt': '', 'img': ''}
                 self._depth = 1
                 return
             pm = PAGE_RE.search(href)
@@ -49,6 +50,10 @@ class ListParser(HTMLParser):
         if self._cur is not None:
             if tag == 'a': self._depth += 1
             if tag == 'img' and a.get('alt') and not self._cur['alt']: self._cur['alt'] = a['alt'].strip()
+            if tag in ('img', 'source') and not self._cur['img']:
+                for k in ('src', 'srcset', 'data-src'):   # anche quando passa per l'ottimizzatore di immagini (/_next/image?url=…)
+                    pm = POSTER_RE.search(urllib.parse.unquote(a.get(k) or ''))
+                    if pm: self._cur['img'] = pm.group(1); break
 
     def handle_endtag(self, tag):
         if self._cur is not None and tag == 'a':
@@ -90,7 +95,7 @@ def parse_card(c):
         tm = re.match(r'^(.*?)\s+(?:Positivo|Negativo|Misto|(?:18|19|20)\d{2})\b', joined)
         title = tm.group(1).strip() if tm else ''
     if not title: return None
-    return [c['slug'], html.unescape(title), year, html.unescape(director), sent, vid, men]
+    return [c['slug'], html.unescape(title), year, html.unescape(director), sent, vid, men, c.get('img', '')]
 
 
 def get(url, tries=4):
@@ -183,7 +188,8 @@ def main():
                                       f'(attesi almeno {mins[src]}): la struttura del sito potrebbe essere cambiata')
     size = embed(html_path, data, built)
     save_backup(html_path, data)
-    print(f'Fatto: {len(data["c"])} film dei Criticoni e {len(data["f"])} di Frusciante, indice di {size // 1024} KB, data {built}.')
+    np = len({r[7] for src in ('c', 'f') for r in data[src] if len(r) > 7 and r[7]})
+    print(f'Fatto: {len(data["c"])} film dei Criticoni e {len(data["f"])} di Frusciante, {np} locandine, indice di {size // 1024} KB, data {built}.')
 
 
 if __name__ == '__main__':
