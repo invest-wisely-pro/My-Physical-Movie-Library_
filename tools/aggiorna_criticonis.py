@@ -12,8 +12,10 @@ Uso:
   python tools/aggiorna_criticoni.py index.html                 # dal sito (una pagina al secondo)
   python tools/aggiorna_criticoni.py index.html --local CARTELLA # da pagine salvate (c-1.html, f-1.html, …)
 
-Se il sito cambiasse struttura e lo script trovasse troppo pochi film, si ferma con un errore
-SENZA modificare index.html.
+Copia di sicurezza: l'indice viene salvato anche in data/criticoni.json.gz, accanto a index.html.
+Se il sito non risponde o cambia struttura (troppo pochi film), lo script rimette nell'app l'ultima
+copia salvata invece di fermarsi: i giudizi raccolti non si perdono, anche caricando un index.html nuovo.
+Solo se manca anche la copia si ferma con un errore, SENZA modificare index.html.
 """
 import base64, datetime, gzip, html, json, os, re, sys, time, urllib.request
 from html.parser import HTMLParser
@@ -141,6 +143,27 @@ def embed(html_path, data, built):
     return len(b64)
 
 
+def backup_path(html_path):
+    return os.path.join(os.path.dirname(os.path.abspath(html_path)), 'data', 'criticoni.json.gz')
+
+
+def save_backup(html_path, data):
+    bp = backup_path(html_path); os.makedirs(os.path.dirname(bp), exist_ok=True)
+    with open(bp, 'wb') as f: f.write(gzip.compress(json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode('utf-8'), 9))
+
+
+def restore_backup(html_path, reason):
+    bp = backup_path(html_path)
+    if not os.path.exists(bp):
+        print(f'ERRORE: {reason} e non c\'è una copia salvata (data/criticoni.json.gz): index.html NON è stato modificato.')
+        sys.exit(1)
+    data = json.loads(gzip.decompress(open(bp, 'rb').read()).decode('utf-8'))
+    embed(html_path, data, data.get('built', ''))
+    print(f'ATTENZIONE: {reason}. Rimessa nell\'app l\'ultima copia salvata (del {data.get("built", "?")}): '
+          f'{len(data.get("c", []))} film dei Criticoni e {len(data.get("f", []))} di Frusciante.')
+    sys.exit(0)
+
+
 def main():
     args = sys.argv[1:]
     if not args: print(__doc__); sys.exit(2)
@@ -151,12 +174,15 @@ def main():
     data = {'v': 1, 'built': built, 'site': BASE}
     for src in ('c', 'f'):
         print(f'Leggo gli elenchi: {"Criticoni" if src == "c" else "Frusciante"}…')
-        data[src] = crawl(src, local=local, delay=0 if local else 1.0)
+        try:
+            data[src] = crawl(src, local=local, delay=0 if local else 1.0)
+        except Exception as e:
+            restore_backup(html_path, f'il sito non risponde ({e})')
         if len(data[src]) < mins[src]:
-            print(f'ERRORE: trovati solo {len(data[src])} film per {"i Criticoni" if src == "c" else "Frusciante"} '
-                  f'(attesi almeno {mins[src]}). La struttura del sito potrebbe essere cambiata: index.html NON è stato modificato.')
-            sys.exit(1)
+            restore_backup(html_path, f'trovati solo {len(data[src])} film per {"i Criticoni" if src == "c" else "Frusciante"} '
+                                      f'(attesi almeno {mins[src]}): la struttura del sito potrebbe essere cambiata')
     size = embed(html_path, data, built)
+    save_backup(html_path, data)
     print(f'Fatto: {len(data["c"])} film dei Criticoni e {len(data["f"])} di Frusciante, indice di {size // 1024} KB, data {built}.')
 
 
