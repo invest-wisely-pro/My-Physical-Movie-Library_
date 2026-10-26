@@ -1,0 +1,29 @@
+# Aggiorna ogni mese l'indice "Frusciante e i Criticoni" (giudizi e numero di video da filmcriticoni.it).
+# Si può anche avviare a mano: scheda "Actions" → "Aggiorna Frusciante e Criticoni" → "Run workflow".
+name: Aggiorna Frusciante e Criticoni
+on:
+  schedule:
+    - cron: '0 5 10 * *'    # il 10 di ogni mese alle 5:00 UTC
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Ricostruisci l'indice dagli elenchi di filmcriticoni.it
+        run: python tools/aggiorna_criticoni.py index.html
+      - name: Pubblica se è cambiato
+        run: |
+          git config user.name "aggiorna-criticoni"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -N data/criticoni.json.gz 2>/dev/null || true
+          if git diff --quiet -- index.html data; then echo "Nessuna novità"; exit 0; fi
+          git add index.html data
+          git commit -m "Indice Frusciante e Criticoni aggiornato al $(date +%Y-%m-%d)"
+          git push
