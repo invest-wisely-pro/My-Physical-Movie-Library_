@@ -128,9 +128,17 @@ ATTIVALO (una volta sola)
   3. Quando compare la spunta verde, riapri l'app: il riquadro e il filtro compaiono da soli.
      Da lì in poi l'indice si aggiorna da solo il 10 di ogni mese.
 
+COPIA DI SICUREZZA (i giudizi non si perdono)
+  - Ogni aggiornamento salva l'indice anche nel repository, nel file data/criticoni.json.gz.
+  - Se filmcriticoni.it non risponde, cambia struttura o chiude, l'automazione rimette nell'app l'ultima copia
+    salvata: i giudizi raccolti restano, anche dopo aver caricato un index.html nuovo.
+  - L'app stessa, se il suo indice interno è vuoto, legge la copia dal repository.
+  - Non cancellare la cartella "data" dal repository. (Se il sito chiudesse, i giudizi restano, ma i link
+    "Guarda i video" smetterebbero di funzionare.)
+
 SE QUALCOSA NON VA
-  - Se l'automazione si ferma con "trovati solo N film", il sito ha cambiato struttura: l'app NON viene
-    toccata. Mandami il messaggio di errore e lo sistemiamo.
+  - Se l'automazione si ferma con "non c'è una copia salvata", il sito non risponde ed è il primo lancio:
+    riprova più tardi. Se succede spesso, mandami il messaggio di errore e lo sistemiamo.
   - Dopo aver caricato un nuovo index.html, rilancia anche questa automazione (oltre a quella dell'indice IMDb).
 
 I dati vengono dall'indice indipendente filmcriticoni.it. L'app ne usa solo il giudizio complessivo, il numero
