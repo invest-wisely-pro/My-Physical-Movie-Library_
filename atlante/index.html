@@ -283,7 +283,7 @@ function ensureCritIndex(){
     if(!txt) throw new Error('nessun indice');
     const d = JSON.parse(txt), idx = { built: d.built || critBuilt(), site: d.site || 'https://filmcriticoni.it', c: new Map(), f: new Map(), n: { c: (d.c || []).length, f: (d.f || []).length } };
     ['c', 'f'].forEach(src=>(d[src] || []).forEach(r=>{
-      const e = { slug: r[0], t: r[1], y: String(r[2] || ''), dir: r[3] || '', s: r[4], v: r[5] || 0, mn: r[6] || 0, p: r[7] || '' }, k = normKey(e.t);
+      const e = { slug: r[0], t: r[1], y: String(r[2] || ''), dir: r[3] || '', s: r[4], v: r[5] || 0, mn: r[6] || 0, p: (r[7] && r[7][0] === '/') ? r[7] : '' }, k = normKey(e.t);
       if(!k || !/^[a-z0-9-]+$/.test(e.slug)) return;
       const arr = idx[src].get(k); if(arr) arr.push(e); else idx[src].set(k, [e]);
     }));
@@ -328,7 +328,16 @@ document.addEventListener('click', ev=>{ const g = ev.target.closest('[data-go]'
 
 /* ---------- Dati: indici della Videoteca, collezione, critica ---------- */
 let CRITICA = null, OWN = new Set(), BOOT_ERR = '';
-const posterUrl = (e, size) => { enrich(e); const p = (e._f && e._f.p) || (e._c && e._c.p) || ''; return p ? 'https://image.tmdb.org/t/p/' + (size || 'w342') + p : ''; };   // dall'indice di filmcriticoni.it
+const BADP = new Set((()=>{ try{ return JSON.parse(localStorage.getItem('atlante-badp') || '[]'); }catch(e){ return []; } })());   // film con uno sfondo al posto della locandina
+function posterCheck(img, id){   // l'immagine del sito si usa solo se verticale: se è orizzontale è uno sfondo, e si cerca su Wikipedia
+  if(!img || !(img.naturalWidth > img.naturalHeight)) return;
+  BADP.add(id); try{ localStorage.setItem('atlante-badp', JSON.stringify([...BADP])); }catch(e){}
+  const host = img.closest('.tile, .fr, .poster, .rk'); if(!host) return;
+  if(img.classList.contains('th')) img.outerHTML = '<span class="th"></span>'; else img.remove();
+  host.classList.remove('has-p'); host.removeAttribute('data-pw'); host.setAttribute('data-pid', id); wantPoster(id);
+}
+const chk = (p, id) => /image\.tmdb\.org/.test(p) ? ` onload="posterCheck(this, '${id}')"` : '';
+const posterUrl = (e, size) => { enrich(e); if(BADP.has(e.id)) return ''; const p = (e._f && e._f.p) || (e._c && e._c.p) || ''; return p ? 'https://image.tmdb.org/t/p/' + (size || 'w342') + p : ''; };   // dall'indice di filmcriticoni.it
 async function importVideoteca(){   // la pagina della Videoteca contiene gli indici: si copiano qui, così le sue funzioni li leggono uguali
   const r = await fetch('../index.html', { cache: 'no-cache' }); if(!r.ok) throw new Error('http' + r.status);
   const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
@@ -437,6 +446,7 @@ function paintPoster(id){
   const u = WPOST.get(id);
   document.querySelectorAll(`[data-pid="${id}"]`).forEach(el=>{ el.removeAttribute('data-pid'); if(!u) return;
     if(el.classList.contains('tile')){ el.insertAdjacentHTML('afterbegin', `<img class="tp" src="${esc(u)}" alt="" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-p'); this.remove()">`); el.classList.add('has-p'); }
+    else if(el.classList.contains('poster')){ if(!el.querySelector('img')) el.insertAdjacentHTML('afterbegin', `<img src="${esc(u)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`); }
     else { const th = el.querySelector('.th'); if(th) th.outerHTML = `<img class="th" src="${esc(u)}" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">`; } });
 }
 const _pio = 'IntersectionObserver' in window ? new IntersectionObserver(en=>en.forEach(x=>{ if(x.isIntersecting){ _pio.unobserve(x.target); wantPoster(x.target.dataset.pid); } }), { rootMargin: '400px' }) : null;
@@ -509,10 +519,10 @@ function badges(e){
 }
 function row(e){
   enrich(e); const p = posterUrl(e, 'w92') || WPOST.get(e.id) || '';
-  return `<a class="fr" href="#film/${e.id}"${p || WPOST.has(e.id) ? '' : ` data-pid="${e.id}"`}><span class="sc ${e._mp ? 'mp' : ''}">${fmtR(e._R)}<small>${fmtV(e.v)}</small></span>${p ? `<img class="th" src="${esc(p)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<span class="th"></span>'}<span style="min-width:0"><b>${esc(title(e))}</b>${e.en && e.en !== e.it ? ` <em>${esc(e.en)}</em>` : ''}`
+  return `<a class="fr" href="#film/${e.id}"${p || WPOST.has(e.id) ? '' : ` data-pid="${e.id}"`}><span class="sc ${e._mp ? 'mp' : ''}">${fmtR(e._R)}<small>${fmtV(e.v)}</small></span>${p ? `<img class="th" src="${esc(p)}" alt="" loading="lazy"${chk(p, e.id)} onerror="this.style.visibility='hidden'">` : '<span class="th"></span>'}<span style="min-width:0"><b>${esc(title(e))}</b>${e.en && e.en !== e.it ? ` <em>${esc(e.en)}</em>` : ''}`
     + `<span class="sub">${[e.y ? esc(e.y) : '', dirs(e).map(n=>goDir(n)).join(', '), genres(e).slice(0, 3).map(goGen).join(', '), e.r ? esc(e.r + ' min') : ''].filter(Boolean).join(', ')}</span></span>${badges(e)}</a>`;
 }
-function tile(e){ enrich(e); const p = posterUrl(e, 'w342') || WPOST.get(e.id) || ''; return `<a class="tile${p ? ' has-p' : ''}" href="#film/${e.id}"${p || WPOST.has(e.id) ? '' : ` data-pid="${e.id}"`} style="--tilebg:${tileBg(e)}" aria-label="${esc(title(e) + (e.y ? ', ' + e.y : ''))}">${p ? `<img class="tp" src="${esc(p)}" alt="" loading="lazy" onerror="this.parentElement.classList.remove('has-p'); this.remove()">` : ''}<span><span class="tt">${esc(title(e))}</span><span class="ty">${[e.y ? esc(e.y) : '', dirs(e).map(n=>goDir(n)).join(', ')].filter(Boolean).join(', ')}</span></span><span class="tb"><span class="${e._mp ? 'mp' : ''}">${e._mp ? '✦ ' : ''}${fmtR(e._R)}</span><span>${OWN.has(e.id) ? '✓' : ''}</span></span></a>`; }
+function tile(e){ enrich(e); const p = posterUrl(e, 'w342') || WPOST.get(e.id) || ''; return `<a class="tile${p ? ' has-p' : ''}" href="#film/${e.id}"${p || WPOST.has(e.id) ? '' : ` data-pid="${e.id}"`} style="--tilebg:${tileBg(e)}" aria-label="${esc(title(e) + (e.y ? ', ' + e.y : ''))}">${p ? `<img class="tp" src="${esc(p)}" alt="" loading="lazy"${chk(p, e.id)} onerror="this.parentElement.classList.remove('has-p'); this.remove()">` : ''}<span><span class="tt">${esc(title(e))}</span><span class="ty">${[e.y ? esc(e.y) : '', dirs(e).map(n=>goDir(n)).join(', ')].filter(Boolean).join(', ')}</span></span><span class="tb"><span class="${e._mp ? 'mp' : ''}">${e._mp ? '✦ ' : ''}${fmtR(e._R)}</span><span>${OWN.has(e.id) ? '✓' : ''}</span></span></a>`; }
 function paged(id, items, render, size){   // elenchi lunghi a pagine
   size = size || 60; let n = size;
   const draw = () => { const el = $(id); if(!el) return; el.innerHTML = items.slice(0, n).map(render).join('') || '<p class="note">Nessun film.</p>';
@@ -695,7 +705,7 @@ function viewFilm(id){
   const cast = CAST_INDEX ? castOfFilm(id) : [], my = (LISTE[id] && LISTE[id].r) || 0;
   const q = encodeURIComponent(`${title(e)} ${e.y || ''} trailer italiano`);
   V().innerHTML = `<p class="crumbs"><a href="javascript:history.back()">← Indietro</a></p>`
-    + `<div class="film-head"><div class="poster" id="poster" style="--tilebg:${tileBg(e)}">${(posterUrl(e, 'w500') || WPOST.get(e.id)) ? `<img src="${esc(posterUrl(e, 'w500') || WPOST.get(e.id))}" alt="Locandina di ${esc(title(e))}" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}<span class="tt">${esc(title(e))}</span></div><div style="min-width:0">`
+    + `<div class="film-head"><div class="poster" id="poster" style="--tilebg:${tileBg(e)}">${(posterUrl(e, 'w500') || WPOST.get(e.id)) ? `<img src="${esc(posterUrl(e, 'w500') || WPOST.get(e.id))}" alt="Locandina di ${esc(title(e))}" referrerpolicy="no-referrer"${chk(posterUrl(e, 'w500'), e.id)} onerror="this.remove()">` : ''}<span class="tt">${esc(title(e))}</span></div><div style="min-width:0">`
     + `<h1 class="pg">${esc(title(e))}</h1>${e.en && e.en !== e.it ? `<p class="orig">${esc(e.en)}</p>` : ''}`
     + `<div class="facts">${e.y ? `<a href="#decennio/${decade(e)}">${esc(e.y)}</a>` : ''}${String(e.dir || '').split(/\s*,\s*/).filter(Boolean).map(n=>`<a href="#regista/${encodeURIComponent(n)}">${esc(n)}</a>`).join(', ')}${genres(e).map(g=>`<a href="#genere/${encodeURIComponent(g)}">${esc(g)}</a>`).join('')}<span id="dur"></span></div>`
     + `<div class="scores"><div class="score"><b>${fmtR(e._R)}</b><span>IMDb, ${fmtV(e.v)} voti</span></div>${e._rt != null ? `<div class="score"><b>${e._rt}%</b><span>Rotten Tomatoes</span></div>` : ''}${e._mc != null ? `<div class="score"><b>${e._mc}</b><span>Metacritic</span></div>` : ''}`

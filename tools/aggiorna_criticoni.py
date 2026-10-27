@@ -5,7 +5,8 @@ Indice "Frusciante e i Criticoni" per My Physical Movie Library.
 Legge, una volta al mese, SOLO gli elenchi dei film di filmcriticoni.it (indice indipendente dei
 film discussi nei video di Federico Frusciante e dei Criticoni) e scrive nell'app un indice compatto:
 per ogni film titolo, anno, regista, giudizio complessivo, numero di video e di menzioni, indirizzo
-della sua pagina e la locandina mostrata nella scheda (un'immagine di TMDB, che il sito usa). Le frasi trascritte delle menzioni NON vengono copiate: per quelle l'app rimanda
+della sua pagina e la locandina, presa dalla pagina del film (un'immagine di TMDB, che il sito usa).
+Le pagine dei film si leggono una volta sola: i mesi dopo solo quelle dei film nuovi. Le frasi trascritte delle menzioni NON vengono copiate: per quelle l'app rimanda
 alla pagina del film sul sito.
 
 Uso:
@@ -135,6 +136,44 @@ def crawl(src, local=None, delay=1.0, max_pages=400):
     return films
 
 
+FILM_PATH = {'c': '/film/', 'f': '/frusciante/film/'}
+NO_POSTER = '!'   # pagina letta, ma senza immagine: non si rilegge
+
+
+def film_poster(src, slug, local=None):
+    """La locandina dalla pagina del film: negli elenchi del sito le immagini le aggiunge il browser, qui ci sono."""
+    if local:
+        path = os.path.join(local, f'film-{src}-{slug}.html')
+        if not os.path.exists(path): return NO_POSTER
+        page = open(path, encoding='utf-8').read()
+    else:
+        page = get(BASE + FILM_PATH[src] + urllib.parse.quote(slug))
+    m = POSTER_RE.search(urllib.parse.unquote(page))
+    return m.group(1) if m else NO_POSTER
+
+
+def fill_posters(data, prev, local=None, delay=1.0, budget_s=300 * 60):
+    """Completa le locandine: prima dalla copia del mese prima, poi leggendo le pagine dei film mancanti,
+    dai più discussi. Restituisce (pagine lette, film rimasti per il mese prossimo)."""
+    known = {(src, r[0]): r[7] for src in ('c', 'f') for r in prev.get(src, []) if len(r) > 7 and r[7]}
+    same = {}                                                    # stesso film in entrambi gli elenchi: una pagina sola
+    rows = [(src, r) for src in ('c', 'f') for r in data[src]]
+    for src, r in rows:
+        if not r[7] and known.get((src, r[0])): r[7] = known[(src, r[0])]
+        if r[7] and r[7] != NO_POSTER: same[(r[0], r[2])] = r[7]
+    todo = sorted([x for x in rows if not x[1][7]], key=lambda x: -(x[1][6] or 0))
+    t0, read, left = time.time(), 0, 0
+    for src, r in todo:
+        if same.get((r[0], r[2])): r[7] = same[(r[0], r[2])]; continue
+        if time.time() - t0 > budget_s: left += 1; continue
+        try: r[7] = film_poster(src, r[0], local); read += 1
+        except Exception: r[7] = ''                              # si riprova il mese prossimo
+        if r[7] and r[7] != NO_POSTER: same[(r[0], r[2])] = r[7]
+        if not local: time.sleep(delay)
+        if read and read % 500 == 0: print(f'  {read} pagine dei film lette…')
+    return read, left
+
+
 def embed(html_path, data, built):
     b64 = base64.b64encode(gzip.compress(json.dumps(data, ensure_ascii=False, separators=(',', ':')).encode('utf-8'), 9)).decode('ascii')
     tag = f'<script type="text/plain" id="criticoniData" data-built="{built}">{b64}</script>'
@@ -186,9 +225,16 @@ def main():
         if len(data[src]) < mins[src]:
             restore_backup(html_path, f'trovati solo {len(data[src])} film per {"i Criticoni" if src == "c" else "Frusciante"} '
                                       f'(attesi almeno {mins[src]}): la struttura del sito potrebbe essere cambiata')
+    prev = {}
+    try: prev = json.loads(gzip.decompress(open(backup_path(html_path), 'rb').read()).decode('utf-8'))
+    except Exception: pass
+    budget = float(args[args.index('--max-minutes') + 1]) if '--max-minutes' in args else 300.0
+    print('Leggo le locandine dalle pagine dei film (solo quelle nuove)…')
+    read, left = fill_posters(data, prev, local=local, delay=0 if local else 1.0, budget_s=budget * 60)
+    print(f'Pagine dei film lette questo mese: {read}.' + (f' Ne restano {left}: si riprende il mese prossimo.' if left else ''))
     size = embed(html_path, data, built)
     save_backup(html_path, data)
-    np = len({r[7] for src in ('c', 'f') for r in data[src] if len(r) > 7 and r[7]})
+    np = len({r[7] for src in ('c', 'f') for r in data[src] if len(r) > 7 and r[7] and r[7] != NO_POSTER})
     print(f'Fatto: {len(data["c"])} film dei Criticoni e {len(data["f"])} di Frusciante, {np} locandine, indice di {size // 1024} KB, data {built}.')
 
 
