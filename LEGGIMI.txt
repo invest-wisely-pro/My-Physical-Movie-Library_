@@ -180,3 +180,20 @@ mostrata nella scheda di ogni film del sito (circa 8.000 film). Nessuna chiave e
 Le immagini sono di TMDB: è il sito filmcriticoni.it a usarle, e le app le mostrano dagli stessi server.
 Dopo aver caricato il nuovo pacchetto, rilancia una volta "Aggiorna Frusciante e Criticoni" (script e
 automazione sono cambiati) e "Aggiorna indice IMDb".
+
+NOVITÀ DELL'ATLANTE (ottobre 2026)
+==================================
+  - Capolavori con una regola esplicita (spiegata in Strumenti), punteggi più precisi e il "banco di prova
+    del tempo": i film degli ultimi 4 anni servono la conferma della critica o di Frusciante e dei Criticoni.
+  - "Scopri": gemme nascoste, grandi classici, recenti da non perdere, amati dalla critica e snobbati dal
+    pubblico (e viceversa), Frusciante controcorrente, brevi capolavori, kolossal oltre le 3 ore, animazione.
+  - Registi e attori: foto, biografia, premi, i più famosi, i migliori, i più recenti, collaboratori,
+    carriera per decennio, filmografia ordinabile. Sceneggiatori, compositori e altri hanno la loro pagina.
+  - Nomi sempre cliccabili; fino a 10 interpreti per film; più specifiche (montaggio, budget, incassi…)
+    e link a IMDb, Wikipedia, Letterboxd e JustWatch.
+  - Il tuo voto da 1 a 10 e "🏆 Le mie classifiche" (Top 5, 10, 20, libere, anche per genere).
+  - Locandine: dal sito di Frusciante e Criticoni, e per gli altri film da Wikipedia mentre sfogli.
+
+VIDEOTECA: LOCANDINE MANCANTI
+  La Videoteca cerca da sola su Wikidata e Wikipedia la locandina dei film che ne sono senza, con lo stesso
+  metodo dell'Atlante. Non tocca mai le locandine che hai già.
