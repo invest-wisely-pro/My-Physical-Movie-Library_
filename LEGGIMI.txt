@@ -197,3 +197,13 @@ NOVITÀ DELL'ATLANTE (ottobre 2026)
 VIDEOTECA: LOCANDINE MANCANTI
   La Videoteca cerca da sola su Wikidata e Wikipedia la locandina dei film che ne sono senza, con lo stesso
   metodo dell'Atlante. Non tocca mai le locandine che hai già.
+
+ATLANTE SUL TELEVISORE (Android TV, per esempio Sony XE9005)
+============================================================
+  1. Dal Play Store del televisore installa un browser per il telecomando, per esempio "TV Bro" (gratuito).
+  2. Aprilo e vai a:  https://TUONOME.github.io/NOME-REPOSITORY/atlante/?tv=1
+     (il "?tv=1" accende la modalità TV: testi grandi, margini di sicurezza, frecce del telecomando).
+  3. Aggiungi la pagina ai preferiti del browser, o alla schermata iniziale se il browser lo permette.
+  Comandi: frecce = spostarsi, OK = aprire, Indietro = pagina precedente. Nella ricerca, OK apre la tastiera.
+  Se l'Atlante dice "Indice non leggibile": aggiorna dal Play Store "Android System WebView" e riprova.
+  La modalità TV si spegne dagli Strumenti dell'Atlante, oppure aprendo l'indirizzo con ?tv=0.

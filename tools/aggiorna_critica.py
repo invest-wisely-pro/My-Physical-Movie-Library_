@@ -3,90 +3,94 @@
 Indice della critica per l'Atlante del Cinema.
 
 Una volta al mese raccoglie da Wikidata (gratis, senza chiavi) i voti di Rotten Tomatoes (Tomatometer, in
-percentuale) e di Metacritic per tutti i film che hanno un codice IMDb, e li salva in data/critica.json.gz.
-L'Atlante li usa, insieme ai voti IMDb e ai giudizi di Frusciante e dei Criticoni, per i "capolavori assoluti".
+percentuale) e di Metacritic per i film con un codice IMDb, e li salva in data/critica.json.gz. L'Atlante li
+usa, con i voti IMDb e i giudizi di Frusciante e dei Criticoni, per i "capolavori assoluti".
+
+Due richieste leggere (una per Rotten Tomatoes, una per Metacritic) che partono dai voti, non da tutti i film.
+Prima su QLever (motore veloce sui dati di Wikidata), poi, se non risponde, sul servizio ufficiale di Wikidata.
 
 Uso:
-  python tools/aggiorna_critica.py data/critica.json.gz                  # da Wikidata
-  python tools/aggiorna_critica.py data/critica.json.gz --local CARTELLA # da risposte salvate (q-tt00.json, …)
+  python tools/aggiorna_critica.py data/critica.json.gz
+  python tools/aggiorna_critica.py data/critica.json.gz --local CARTELLA   # risposte salvate: q-rt.json e q-mc.json
 
-Sicurezza: se Wikidata non risponde o restituisce troppo poco, il file del mese prima resta com'è.
+Sicurezza: se nessun servizio risponde, o i voti sono troppo pochi, il file del mese prima resta com'è.
 """
 import datetime, gzip, json, os, re, sys, time, urllib.parse, urllib.request
 
-ENDPOINT = 'https://query.wikidata.org/sparql'
-UA = 'MyPhysicalMovieLibrary-Atlante/1.0 (indice personale aggiornato una volta al mese)'
-RT, MC = 'Q105584', 'Q150248'                      # Rotten Tomatoes, Metacritic
-PREFIXES = ['tt0' + str(i) for i in range(10)] + ['tt' + str(i) for i in range(1, 10)]   # 19 gruppi piccoli
-MIN_RT = 3000                                       # sotto questa soglia qualcosa non va
-
-QUERY = """SELECT ?imdb ?score ?by ?date WHERE {
-  ?film wdt:P345 ?imdb . FILTER(STRSTARTS(?imdb, "%s"))
-  ?film p:P444 ?st . ?st ps:P444 ?score ; pq:P447 ?by .
-  VALUES ?by { wd:%s wd:%s }
+UA = 'MyPhysicalMovieLibrary-Atlante/1.1 (indice personale aggiornato una volta al mese)'
+ENDPOINTS = [('QLever', 'https://qlever.cs.uni-freiburg.de/api/wikidata'), ('Wikidata', 'https://query.wikidata.org/sparql')]
+SOURCES = {'rt': ('Rotten Tomatoes', 'Q105584'), 'mc': ('Metacritic', 'Q150248')}
+MIN_RT = 3000
+QUERY = """PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX p: <http://www.wikidata.org/prop/>
+PREFIX ps: <http://www.wikidata.org/prop/statement/>
+PREFIX pq: <http://www.wikidata.org/prop/qualifier/>
+SELECT ?imdb ?score ?date WHERE {
+  ?st pq:P447 wd:%s .
+  ?film p:P444 ?st .
+  ?st ps:P444 ?score .
+  ?film wdt:P345 ?imdb .
   OPTIONAL { ?st pq:P585 ?date }
 }"""
 
 
-def ask(prefix, local=None, tries=4):
+def ask(key, local=None):
     if local:
-        path = os.path.join(local, f'q-{prefix}.json')
-        return json.load(open(path, encoding='utf-8')) if os.path.exists(path) else {'results': {'bindings': []}}
-    url = ENDPOINT + '?' + urllib.parse.urlencode({'query': QUERY % (prefix, RT, MC), 'format': 'json'})
-    for k in range(tries):
-        try:
-            req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept': 'application/sparql-results+json'})
-            with urllib.request.urlopen(req, timeout=120) as r:
-                return json.loads(r.read().decode('utf-8'))
-        except Exception as e:
-            if k == tries - 1: raise
-            print(f'  {prefix}: nuovo tentativo tra {10 * (k + 1)} s ({e})'); time.sleep(10 * (k + 1))
+        path = os.path.join(local, f'q-{key}.json')
+        if not os.path.exists(path): raise RuntimeError('risposta di prova mancante')
+        return json.load(open(path, encoding='utf-8')), 'prova'
+    errors = []
+    for name, url in ENDPOINTS:
+        for k in range(3):
+            try:
+                req = urllib.request.Request(url + '?' + urllib.parse.urlencode({'query': QUERY % SOURCES[key][1]}),
+                                             headers={'User-Agent': UA, 'Accept': 'application/sparql-results+json'})
+                with urllib.request.urlopen(req, timeout=180) as r:
+                    j = json.loads(r.read().decode('utf-8'))
+                if 'results' in j: return j, name
+                errors.append(f'{name}: risposta senza risultati')
+            except Exception as e:
+                errors.append(f'{name}: {e}')
+                time.sleep(5 * (k + 1))
+    raise RuntimeError(' | '.join(errors[-3:]))
 
 
-def parse(binds, rt, mc, dates):
+def parse(key, binds, out, dates):
     for b in binds:
-        imdb = b.get('imdb', {}).get('value', ''); score = b.get('score', {}).get('value', '').strip()
-        by = b.get('by', {}).get('value', '').rsplit('/', 1)[-1]; date = b.get('date', {}).get('value', '')
+        imdb = b.get('imdb', {}).get('value', ''); score = b.get('score', {}).get('value', '').strip(); date = b.get('date', {}).get('value', '')
         if not re.match(r'^tt\d+$', imdb) or not score: continue
-        if by == RT:
-            m = re.match(r'^(\d{1,3})\s*%$', score)          # solo il Tomatometer in percentuale, mai le medie "7.6/10"
-            if not m or int(m.group(1)) > 100: continue
-            val, key = int(m.group(1)), ('rt', imdb)
-        elif by == MC:
-            m = re.match(r'^(\d{1,3})(?:\s*/\s*100)?$', score)
-            if not m or int(m.group(1)) > 100: continue
-            val, key = int(m.group(1)), ('mc', imdb)
+        if key == 'rt':
+            m = re.match(r'^(\d{1,3})\s*%$', score)                     # solo il Tomatometer in percentuale, mai le medie "7.6/10"
         else:
-            continue
-        if key in dates and dates[key] > date: continue   # si tiene il valore più recente
-        dates[key] = date
-        (rt if key[0] == 'rt' else mc)[imdb] = val
+            m = re.match(r'^(\d{1,3})(?:\s*/\s*100)?$', score)
+        if not m or int(m.group(1)) > 100: continue
+        if imdb in dates and dates[imdb] > date: continue                # si tiene il valore più recente
+        dates[imdb] = date; out[imdb] = int(m.group(1))
 
 
 def main():
     args = sys.argv[1:]
     if not args: print(__doc__); sys.exit(2)
-    out = args[0]
+    out_path = args[0]
     local = args[args.index('--local') + 1] if '--local' in args else None
     built = args[args.index('--date') + 1] if '--date' in args else datetime.date.today().isoformat()
     min_rt = 1 if '--no-min' in args else MIN_RT
-    rt, mc, dates = {}, {}, {}
-    try:
-        for p in PREFIXES:
-            j = ask(p, local)
-            n0 = len(rt) + len(mc); parse(j.get('results', {}).get('bindings', []), rt, mc, dates)
-            print(f'  {p}: {len(rt) + len(mc) - n0} voti')
-            if not local: time.sleep(2)
-    except Exception as e:
-        print(f'ATTENZIONE: Wikidata non risponde ({e}).', 'Il file del mese prima resta com\'è.' if os.path.exists(out) else '')
-        sys.exit(0 if os.path.exists(out) else 1)
-    if len(rt) < min_rt:
-        print(f'ATTENZIONE: trovati solo {len(rt)} voti di Rotten Tomatoes (attesi almeno {min_rt}).', 'Il file del mese prima resta com\'è.' if os.path.exists(out) else '')
-        sys.exit(0 if os.path.exists(out) else 1)
-    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
-    with open(out, 'wb') as f:
-        f.write(gzip.compress(json.dumps({'v': 1, 'built': built, 'rt': rt, 'mc': mc}, separators=(',', ':')).encode('utf-8'), 9))
-    print(f'Fatto: {len(rt)} film con Rotten Tomatoes e {len(mc)} con Metacritic, data {built}.')
+    keep = 'Il file del mese prima resta com\'è.' if os.path.exists(out_path) else ''
+    res = {'rt': {}, 'mc': {}}
+    for key in ('rt', 'mc'):
+        try:
+            j, via = ask(key, local)
+        except Exception as e:
+            print(f'ATTENZIONE: {SOURCES[key][0]}: nessun servizio ha risposto ({e}). {keep}'); sys.exit(0 if keep else 1)
+        parse(key, j.get('results', {}).get('bindings', []), res[key], {})
+        print(f'  {SOURCES[key][0]}: {len(res[key])} film (da {via})')
+    if len(res['rt']) < min_rt:
+        print(f'ATTENZIONE: solo {len(res["rt"])} voti di Rotten Tomatoes (attesi almeno {min_rt}). {keep}'); sys.exit(0 if keep else 1)
+    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
+    with open(out_path, 'wb') as f:
+        f.write(gzip.compress(json.dumps({'v': 1, 'built': built, 'rt': res['rt'], 'mc': res['mc']}, separators=(',', ':')).encode('utf-8'), 9))
+    print(f'Fatto: {len(res["rt"])} film con Rotten Tomatoes e {len(res["mc"])} con Metacritic, data {built}.')
 
 
 if __name__ == '__main__':

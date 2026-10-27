@@ -5,7 +5,9 @@ Indice "Frusciante e i Criticoni" per My Physical Movie Library.
 Legge, una volta al mese, SOLO gli elenchi dei film di filmcriticoni.it (indice indipendente dei
 film discussi nei video di Federico Frusciante e dei Criticoni) e scrive nell'app un indice compatto:
 per ogni film titolo, anno, regista, giudizio complessivo, numero di video e di menzioni, indirizzo
-della sua pagina e la locandina, presa dalla pagina del film (un'immagine di TMDB, che il sito usa).
+della sua pagina e la locandina (un'immagine di TMDB, che il sito usa).
+Le locandine stanno negli elenchi (nelle schede o nei dati che il browser usa per disegnarle); nelle pagine dei
+film si prendono solo immagini in formato locandina, mai lo sfondo panoramico del riquadro video (w780 e oltre).
 Le pagine dei film si leggono una volta sola: i mesi dopo solo quelle dei film nuovi. Le frasi trascritte delle menzioni NON vengono copiate: per quelle l'app rimanda
 alla pagina del film sul sito.
 
@@ -28,7 +30,29 @@ SENT = {'positivo': 1, 'negativo': -1, 'misto': 0}
 MIN_FILMS = {'c': 300, 'f': 1000}                   # sotto queste soglie qualcosa non va
 HREF_RE = re.compile(r'^(?:https?://(?:www\.)?filmcriticoni\.it)?/(frusciante/)?film/([a-z0-9][a-z0-9-]*)/?$')
 PAGE_RE = re.compile(r'[?&]page=(\d+)')
-POSTER_RE = re.compile(r'image\.tmdb\.org/t/p/[a-z0-9_]+(/[A-Za-z0-9_\-]+\.(?:jpg|jpeg|png|webp))', re.I)
+POSTER_RE = re.compile(r'image\.tmdb\.org/t/p/(?:w92|w154|w185|w300|w342|w500)(/[A-Za-z0-9_\-]+\.(?:jpg|jpeg|png|webp))', re.I)   # misure da locandina, mai gli sfondi
+KEY_RE = re.compile(r'"[A-Za-z_]*[pP]oster[A-Za-z_]*"\s*:\s*"(?:https?://image\.tmdb\.org/t/p/[a-z0-9]+)?(/[A-Za-z0-9_\-]+\.(?:jpg|jpeg|png|webp))"')
+POSTER_V = 2   # versione delle locandine: quelle raccolte prima (sfondi) si ignorano
+
+
+def plain(page):
+    """La pagina con i dati incorporati resi leggibili: niente codifiche %2F né virgolette precedute da \\."""
+    t = urllib.parse.unquote(page)
+    for _ in range(3): t = t.replace('\\"', '"')
+    return t
+
+
+def json_posters(page, slugs):
+    """Locandine nei dati incorporati degli elenchi: per ogni film, la voce "poster…" dentro la sua stessa voce."""
+    t, out = plain(page), {}
+    for slug in slugs:
+        for m in re.finditer(r'film/' + re.escape(slug) + r'(?![A-Za-z0-9\-])', t):
+            a, b = t.rfind('{', 0, m.start()), t.find('}', m.end())   # solo dentro la voce di questo film, mai quella accanto
+            if a < 0 or b < 0 or m.start() - a > 2000 or b - m.end() > 2000: continue
+            win = t[a:b]
+            k = KEY_RE.search(win) or POSTER_RE.search(win)
+            if k: out[slug] = k.group(1); break
+    return out
 
 
 class ListParser(HTMLParser):
@@ -123,12 +147,17 @@ def crawl(src, local=None, delay=1.0, max_pages=400):
             time.sleep(delay)
         p = ListParser(); p.feed(text)
         if p.pages: last = max(last, max(p.pages))
-        n = 0
+        n, new = 0, []
         for c in p.cards:
             if (src == 'f') != c['fr']: continue        # solo le schede della sezione giusta
             row = parse_card(c)
             if row and row[0] not in seen:
-                seen.add(row[0]); films.append(row); n += 1
+                seen.add(row[0]); films.append(row); new.append(row); n += 1
+        missing = [r[0] for r in new if not r[7]]
+        if missing:                                     # locandine nei dati incorporati della pagina
+            found = json_posters(text, missing)
+            for r in new:
+                if not r[7] and found.get(r[0]): r[7] = found[r[0]]
         print(f'  {"Criticoni" if src == "c" else "Frusciante"} pagina {page}/{last}: {n} film')
         empty = empty + 1 if n == 0 else 0
         if empty >= 2: break
@@ -148,14 +177,15 @@ def film_poster(src, slug, local=None):
         page = open(path, encoding='utf-8').read()
     else:
         page = get(BASE + FILM_PATH[src] + urllib.parse.quote(slug))
-    m = POSTER_RE.search(urllib.parse.unquote(page))
+    t = plain(page)
+    m = KEY_RE.search(t) or POSTER_RE.search(t)   # una voce "poster…", oppure un'immagine in formato locandina
     return m.group(1) if m else NO_POSTER
 
 
 def fill_posters(data, prev, local=None, delay=1.0, budget_s=300 * 60):
     """Completa le locandine: prima dalla copia del mese prima, poi leggendo le pagine dei film mancanti,
     dai più discussi. Restituisce (pagine lette, film rimasti per il mese prossimo)."""
-    known = {(src, r[0]): r[7] for src in ('c', 'f') for r in prev.get(src, []) if len(r) > 7 and r[7]}
+    known = {(src, r[0]): r[7] for src in ('c', 'f') for r in prev.get(src, []) if len(r) > 7 and r[7]} if prev.get('pv') == POSTER_V else {}   # le vecchie (sfondi) no
     same = {}                                                    # stesso film in entrambi gli elenchi: una pagina sola
     rows = [(src, r) for src in ('c', 'f') for r in data[src]]
     for src, r in rows:
@@ -215,7 +245,7 @@ def main():
     local = args[args.index('--local') + 1] if '--local' in args else None
     built = args[args.index('--date') + 1] if '--date' in args else datetime.date.today().isoformat()
     mins = {'c': 1, 'f': 1} if '--no-min' in args else MIN_FILMS
-    data = {'v': 1, 'built': built, 'site': BASE}
+    data = {'v': 1, 'pv': POSTER_V, 'built': built, 'site': BASE}
     for src in ('c', 'f'):
         print(f'Leggo gli elenchi: {"Criticoni" if src == "c" else "Frusciante"}…')
         try:

@@ -27,11 +27,36 @@ button, input, select{font:inherit; color:inherit;}
 .rate-wrap{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:8px 0 2px;} .rate{display:flex; gap:4px; flex-wrap:wrap;}
 .rate button{width:32px; height:32px; border-radius:7px; border:1px solid var(--line); background:var(--s2); cursor:pointer; font-weight:700; font-size:13px;}
 .rate button[aria-pressed="true"]{background:var(--amber); border-color:var(--amber); color:#1d1406;}
-.pphoto{border-radius:50%; aspect-ratio:1; max-width:200px; align-items:center; justify-content:center;} .pphoto .tt{font-size:42px; color:var(--paper3);}
+.poster.pphoto{border-radius:50%; aspect-ratio:1; width:200px; max-width:100%; align-items:center; justify-content:center; padding:0;} .poster.pphoto .tt{font-size:42px; color:var(--paper3);}   /* tondo: più specifico di .poster */
 .rk-list{display:flex; flex-direction:column; border-top:1px solid var(--line); margin-bottom:16px;}
 .rk{display:grid; grid-template-columns:40px 34px minmax(0, 1fr) auto; gap:12px; align-items:center; padding:8px 4px; border-bottom:1px solid var(--line);}
 .rk .rk-n{font-family:var(--serif); font-weight:700; font-size:22px; text-align:center; color:var(--amber2);} .rk .th{width:34px; height:51px; object-fit:cover; border-radius:3px; background:var(--s2); display:block;}
 .rk .sub{display:block; color:var(--paper2); font-size:13px;} .rk-a{display:flex; gap:6px;} .rk-a .btn{height:32px; padding:0 10px;} .rk-a .btn:disabled{opacity:.35; cursor:default;}
+/* ---------- 📺 Modalità TV: da leggere dal divano, con il telecomando ---------- */
+html.tv{font-size:20px;}
+html.tv body{font-size:20px;}
+html.tv .top{backdrop-filter:none; background:var(--ink);}
+html.tv .top-in, html.tv main{max-width:none; padding-left:5vw; padding-right:5vw;}   /* margini di sicurezza ai bordi */
+html.tv main{padding-top:3vh; padding-bottom:6vh;}
+html.tv .nav a{font-size:19px; padding:10px 16px;}
+html.tv .search input{height:52px; font-size:20px;}
+html.tv h1.pg{font-size:46px;} html.tv h2.sec{font-size:28px; margin-top:34px;}
+html.tv .strip{grid-auto-columns:minmax(200px, 220px); gap:18px; padding:10px 8px 14px; scroll-snap-type:none;}
+html.tv .tiles{grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));}
+html.tv .tile .tt{font-size:22px;} html.tv .tile .ty, html.tv .tile .tb{font-size:16px;}
+html.tv .fr{grid-template-columns:70px 46px minmax(0, 1fr) auto; padding:14px 8px;} html.tv .fr .th{width:46px; height:69px;}
+html.tv .fr b{font-size:22px;} html.tv .fr .sub{font-size:17px;} html.tv .fr .sc{font-size:26px;}
+html.tv .btn{height:52px; padding:0 22px; font-size:19px; border-radius:26px;}
+html.tv .rate button{width:46px; height:46px; font-size:18px;}
+html.tv .genre{padding:20px; font-size:21px;} html.tv .person{padding:16px;}
+html.tv .kv{grid-template-columns:220px minmax(0, 1fr); font-size:18px;} html.tv .plot{font-size:21px;}
+html.tv .ruler{height:200px;} html.tv .ruler .yr{font-size:16px;}
+html.tv :focus{outline:none;}
+html.tv a:focus, html.tv button:focus, html.tv input:focus, html.tv select:focus{outline:5px solid var(--amber); outline-offset:4px; border-radius:8px;}
+html.tv .tile:focus, html.tv .genre:focus, html.tv .person:focus{transform:scale(1.07); box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:2; position:relative;}
+html.tv .fr:focus, html.tv .rk a:focus{background:var(--s2);}
+html.tv .tile, html.tv .genre, html.tv .person{transition:transform .12s ease-out;}
+html.tv .tile .tp{will-change:auto;}
 @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
 
 /* ---------- Testata ---------- */
@@ -116,6 +141,7 @@ h2.sec a.more{font-family:var(--ui); font-size:13px; font-weight:600; color:var(
 @media (max-width:700px){ .film-head{grid-template-columns:minmax(0, 1fr);} .poster{max-width:240px;} }
 .poster{aspect-ratio:2/3; border-radius:8px; overflow:hidden; background:var(--tilebg, var(--s2)); position:relative; display:flex; align-items:flex-end; padding:14px;}
 .poster img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover;}
+.poster img ~ .tt{display:none;}   /* con la foto o la locandina, niente titolo né iniziali sopra */
 .poster .tt{font-family:var(--serif); font-weight:700; font-size:22px; line-height:1.15; position:relative;}
 .orig{font-family:var(--serif); font-style:italic; color:var(--paper2); font-size:17px; margin:-2px 0 8px;}
 .facts{display:flex; flex-wrap:wrap; gap:6px 14px; color:var(--paper2); font-size:14px; margin-bottom:12px;} .facts a{color:var(--chart);}
@@ -311,6 +337,52 @@ function critMatch(src, m){
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c=>({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c]);
 const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+/* ---------- 📺 Modalità TV: telecomando, testi grandi, margini di sicurezza ----------
+   Si attiva da sola sui televisori, con ?tv=1 nell'indirizzo, o dagli Strumenti. ?tv=0 la spegne. */
+const TV = (()=>{
+  try{ const q = new URLSearchParams(location.search).get('tv'); if(q === '1' || q === '0') localStorage.setItem('atlante-tv', q);
+    const s = localStorage.getItem('atlante-tv'); if(s === '1') return true; if(s === '0') return false; }catch(e){}
+  return /Android ?TV|BRAVIA|AFT[A-Z]|SmartTV|SMART-TV|GoogleTV|Large Screen|CrKey|Tizen|WebOS|TV Bro/i.test(navigator.userAgent || '');
+})();
+if(TV) document.documentElement.classList.add('tv');
+function tvFocusables(){
+  return [...document.querySelectorAll('a[href], button:not([disabled]), input, select, textarea')].filter(el=>{
+    if(el.closest('.hidden') || el.closest('[aria-hidden="true"]')) return false;
+    const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+}
+function tvMove(dir){   // la selezione va all'elemento più vicino nella direzione della freccia
+  const list = tvFocusables(), cur = list.includes(document.activeElement) ? document.activeElement : null;
+  if(!cur){ const f = list.find(el=>el.closest('#view')) || list[0]; if(f){ f.focus({ preventScroll: true }); f.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } return f || null; }
+  const a = cur.getBoundingClientRect(), ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+  let best = null, bs = Infinity;
+  for(const el of list){
+    if(el === cur || el.contains(cur) || cur.contains(el)) continue;
+    const b = el.getBoundingClientRect(), bx = b.left + b.width / 2, by = b.top + b.height / 2;
+    let main, side;
+    if(dir === 'right'){ if(b.left < a.right - 4 && bx <= ax + 4) continue; main = Math.max(0, b.left - a.right) + 1; side = Math.max(0, Math.max(a.top, b.top) - Math.min(a.bottom, b.bottom)) ; }
+    else if(dir === 'left'){ if(b.right > a.left + 4 && bx >= ax - 4) continue; main = Math.max(0, a.left - b.right) + 1; side = Math.max(0, Math.max(a.top, b.top) - Math.min(a.bottom, b.bottom)); }
+    else if(dir === 'down'){ if(b.top < a.bottom - 4 && by <= ay + 4) continue; main = Math.max(0, b.top - a.bottom) + 1; side = Math.max(0, Math.max(a.left, b.left) - Math.min(a.right, b.right)); }
+    else { if(b.bottom > a.top + 4 && by >= ay - 4) continue; main = Math.max(0, a.top - b.bottom) + 1; side = Math.max(0, Math.max(a.left, b.left) - Math.min(a.right, b.right)); }
+    const score = main + side * 3 + (dir === 'left' || dir === 'right' ? Math.abs(by - ay) : Math.abs(bx - ax)) * 0.05;   // allineati prima, poi i più vicini
+    if(score < bs){ bs = score; best = el; }
+  }
+  if(best){ best.focus({ preventScroll: true }); best.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+  return best;
+}
+document.addEventListener('keydown', ev=>{
+  if(!TV) return;
+  const t = ev.target, typing = t && (t.tagName === 'INPUT' && !/^(checkbox|radio|button)$/.test(t.type) || t.tagName === 'TEXTAREA');
+  const dir = { ArrowRight: 'right', ArrowLeft: 'left', ArrowDown: 'down', ArrowUp: 'up' }[ev.key];
+  if(dir){ if(typing && (dir === 'left' || dir === 'right')) return; ev.preventDefault(); tvMove(dir); return; }
+  if((ev.key === 'Escape' || ev.key === 'GoBack' || ev.key === 'BrowserBack' || (ev.key === 'Backspace' && !typing)) && location.hash){ ev.preventDefault(); history.back(); }
+});
+function tvLanding(){   // ogni pagina nuova parte con la selezione sul primo contenuto
+  if(!TV) return;
+  setTimeout(()=>{ const v = document.getElementById('view'); if(!v) return;   // prima i film, poi il resto (i filtri si raggiungono con la freccia su)
+    const f = ['.tile', '.fr', '.rk a', '.genre, .person', '.btn, .marks a', 'select, input', 'a[href]'].map(q=>v.querySelector(q)).find(Boolean);
+    if(f){ f.focus({ preventScroll: true }); } window.scrollTo && window.scrollTo(0, 0); }, 60);
+}
+
 let _tT; function toast(m){ const el = $('toast'); el.textContent = m; el.classList.add('show'); clearTimeout(_tT); _tT = setTimeout(()=>el.classList.remove('show'), 3200); }
 const fmtR = x => x ? Number(x).toFixed(1).replace('.', ',') : '—';
 const fmtV = v => v >= 1e6 ? (v / 1e6).toFixed(1).replace('.', ',') + ' mln' : v >= 1e3 ? Math.round(v / 1e3) + ' mila' : String(v || 0);
@@ -454,9 +526,16 @@ function watchPosters(){ document.querySelectorAll('[data-pid]:not([data-pw])').
 new MutationObserver(()=>watchPosters()).observe(document.getElementById('view'), { childList: true, subtree: true });
 
 /* ---------- Persone: biografia da Wikidata e Wikipedia, partendo dai loro film più famosi (niente omonimi) ---------- */
+const ROLE_P = { P57: 'Regia', P161: 'Interprete', P58: 'Sceneggiatura', P86: 'Musiche', P344: 'Fotografia', P1040: 'Montaggio', P2554: 'Scenografia', P2515: 'Costumi', P162: 'Produzione' };
+async function personFilms(qid){   // tutti i film in cui la persona ha avuto un ruolo, con il codice IMDb
+  const q = `SELECT ?imdb ?prop WHERE { VALUES ?prop { ${Object.keys(ROLE_P).map(p=>'wdt:' + p).join(' ')} } ?f ?prop wd:${qid} ; wdt:P345 ?imdb . }`;
+  const j = await jget('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q)), out = {};
+  ((j.results && j.results.bindings) || []).forEach(b=>{ const id = b.imdb && b.imdb.value, p = b.prop && b.prop.value.split('/').pop(); if(id && ROLE_P[p]) (out[id] = out[id] || []).includes(p) || out[id].push(p); });
+  return out;
+}
 const fmtD = iso => { if(!iso) return ''; const [y, m, d] = iso.split('-'); if(!m || m === '00') return y; try{ return new Date(`${y}-${m}-${d === '00' ? '01' : d}T12:00:00`).toLocaleDateString('it-IT', d === '00' ? { month: 'long', year: 'numeric' } : { day: 'numeric', month: 'long', year: 'numeric' }); }catch(e){ return y; } };
 async function fetchPerson(name, films){
-  const key = 'person2:' + normKey(name), c = await dget(key);
+  const key = 'person3:' + normKey(name), c = await dget(key);
   if(c && Date.now() - c.at < 60 * 864e5) return c; if(navigator.onLine === false) return c;
   const out = { at: Date.now() }, k = normKey(name); let qid = '';
   const anchor = (films || []).slice().sort((a, b)=>b.v - a.v).slice(0, 3).map(e=>e.id);
@@ -480,6 +559,7 @@ async function fetchPerson(name, films){
   const lab = q => { const x = labs[q] && labs[q].labels; return x ? ((x.it || x.en || {}).value || '') : ''; };
   out.f = {}; Object.entries(refs).forEach(([x, l])=>{ out.f[x] = l.map(lab).filter(Boolean); });
   out.nAw = vals('P166').length; out.nNom = vals('P1411').length;
+  try{ out.films = await personFilms(qid); }catch(err){}
   for(const w of ['itwiki', 'enwiki']){ const sl = e.sitelinks && e.sitelinks[w]; if(!sl) continue;
     try{ const j = await jget(`https://${w.slice(0, 2)}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(sl.title.replace(/ /g, '_'))}`);
       if(j && j.extract){ out.wiki = { lang: w.slice(0, 2), text: j.extract, url: (j.content_urls && j.content_urls.desktop && j.content_urls.desktop.page) || '' }; if(!out.photo && j.thumbnail) out.photo = j.thumbnail.source; break; } }catch(err){} }
@@ -489,7 +569,8 @@ function renderPersonOnline(name, d){
   if(!$('pfacts')) return;
   if(!d || !d.qid){ $('pfacts').innerHTML = '<p class="note">Su Wikidata non ci sono altre notizie su questa persona.</p>'; return; }
   if(d.photo && !$('pphoto').querySelector('img')) $('pphoto').insertAdjacentHTML('afterbegin', `<img src="${esc(d.photo)}" alt="${esc(name)}" referrerpolicy="no-referrer" onerror="this.remove()">`);
-  const f = d.f || {}, list = (a, tot) => esc(a.join(', ')) + (tot > a.length ? ` e altri ${tot - a.length}` : '');
+  const f = d.f || {}, list = (a, tot) => { const m = new Map(); a.forEach(x=>m.set(x, (m.get(x) || 0) + 1));
+    return esc([...m.entries()].map(([x, n])=>n > 1 ? `${x} (${n})` : x).join(', ')) + (tot > a.length ? ` e altri ${tot - a.length}` : ''); };
   const by = d.born ? parseInt(d.born, 10) : 0, age = by && !d.died ? new Date().getFullYear() - by - (new Date().getMonth() + 1 < (parseInt(d.born.slice(5, 7), 10) || 1) ? 1 : 0) : 0;
   const rows = [d.born ? ['Nascita', esc(fmtD(d.born)) + (f.bp && f.bp[0] ? ', ' + esc(f.bp[0]) : '') + (age ? ` (${age} anni)` : '')] : null, d.died ? ['Morte', esc(fmtD(d.died)) + (f.dp && f.dp[0] ? ', ' + esc(f.dp[0]) : '')] : null,
     f.nat && f.nat.length ? ['Nazionalità', list(f.nat, f.nat.length)] : null, f.occ && f.occ.length ? ['Professioni', list(f.occ, f.occ.length)] : null,
@@ -608,7 +689,7 @@ function viewActors(){ setNav('attori');
   const list = actorRanking();
   V().innerHTML = `<h1 class="pg">Attori</h1><p class="lead">Gli attori con almeno tre film noti, in ordine di importanza.</p><div class="ctrl"><label>Cerca un attore<input id="pq" type="search" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--s1); padding:0 10px"></label></div><div id="pl">${peopleView('attore', list)}</div>`;
   $('pq').addEventListener('input', ()=>{ $('pl').innerHTML = peopleView('attore', list, $('pq').value); }); }
-function personPage(kind, name, films){
+function personPage(kind, name, films, roles){
   const seen = new Set(), fs = films.filter(e=>e && !seen.has(e.id) && seen.add(e.id)).map(enrich), known = fs.filter(e=>e.v >= 1000);
   const years = fs.map(e=>parseInt(e.y, 10)).filter(Boolean), mp = fs.filter(e=>e._mp).length, rated = fs.filter(e=>e.v >= 5000);
   const avgR = rated.length ? rated.reduce((t, e)=>t + e._R, 0) / rated.length : 0;
@@ -623,11 +704,13 @@ function personPage(kind, name, films){
     const top = [...m.entries()].filter(x=>x[1] >= 2).sort((a, b)=>b[1] - a[1]).slice(0, 10), co = CAST_INDEX && kind === 'attore' ? offlineCoStars(name, 12) : [];
     if(top.length) collab += `<h2 class="sec">I registi con cui ha lavorato di più</h2><div class="cast">${top.map(([n, c])=>`<a href="#regista/${encodeURIComponent(n)}">${esc(n)} (${c})</a>`).join('')}</div>`;
     if(co.length) collab += `<h2 class="sec">Ha recitato spesso con</h2><div class="cast">${co.map(c=>`<a href="#attore/${encodeURIComponent(c.name)}">${esc(c.name)} (${c.n})</a>`).join('')}</div>`; }
-  const roles = { regista: 'Regista', attore: 'Interprete', persona: 'Cinema' }[kind] || '';
+  const rc = new Map(); if(roles) Object.entries(roles).forEach(([id, ps])=>{ if(seen.has(id)) ps.forEach(p=>rc.set(p, (rc.get(p) || 0) + 1)); });
+  const roleTxt = rc.size ? [...rc.entries()].sort((a, b)=>b[1] - a[1]).map(([p, n])=>`${ROLE_P[p]} in ${n} ${n === 1 ? 'film' : 'film'}`).join(', ') : '';
+  const roleName = { regista: 'Regista', attore: 'Interprete', persona: 'Cinema' }[kind] || '';
   const back = kind === 'regista' ? '<a href="#registi">Registi</a>' : kind === 'attore' ? '<a href="#attori">Attori</a>' : '<a href="#">Esplora</a>';
   const ini = name.split(/\s+/).map(x=>x[0]).join('').slice(0, 2).toUpperCase();
   V().innerHTML = `<p class="crumbs">${back}</p><div class="film-head person-head"><div class="poster pphoto" id="pphoto"><span class="tt">${esc(ini)}</span></div><div style="min-width:0">`
-    + `<h1 class="pg">${esc(name)}</h1><p class="lead">${roles}${fs.length ? `: ${fs.length} film nell'indice` : ''}${years.length ? `, dal ${Math.min(...years)} al ${Math.max(...years)}` : ''}.</p>`
+    + `<h1 class="pg">${esc(name)}</h1><p class="lead">${roleTxt ? esc(roleTxt) : roleName + (fs.length ? `: ${fs.length} film nell'indice` : '')}${years.length ? `, dal ${Math.min(...years)} al ${Math.max(...years)}` : ''}.</p>`
     + `<div class="scores"><div class="score"><b>${fs.length}</b><span>film</span></div>${mp ? `<div class="score mp"><b>✦ ${mp}</b><span>capolavori</span></div>` : ''}${avgR ? `<div class="score"><b>${fmtR(avgR)}</b><span>voto medio IMDb</span></div>` : ''}${fs.length ? `<div class="score"><b>${fmtV(fs.reduce((t, e)=>t + (e.v || 0), 0))}</b><span>voti in tutto</span></div>` : ''}</div>`
     + `<div id="pfacts"><p class="note">${navigator.onLine === false ? 'Sei offline: biografia e foto arriveranno con la rete.' : 'Carico biografia e foto…'}</p></div>`
     + (gcount.size ? `<div class="cast" style="margin-top:10px">${[...gcount.entries()].sort((a, b)=>b[1] - a[1]).slice(0, 8).map(([g, c])=>`<a href="#genere/${encodeURIComponent(g)}">${esc(g)} (${c})</a>`).join('')}</div>` : '') + `</div></div>`
@@ -640,7 +723,11 @@ function personPage(kind, name, films){
     + (fs.length ? `<h2 class="sec">Filmografia completa</h2><div class="ctrl"><label>Ordine<select id="pfo"><option value="anno">Dal più vecchio</option><option value="recenti">Dal più recente</option><option value="fama">I più famosi</option><option value="punteggio">Punteggio dell'Atlante</option></select></label><label>Genere<select id="pfg"><option value="">Tutti</option>${[...gcount.keys()].sort((a, b)=>a.localeCompare(b, 'it')).map(g=>`<option>${esc(g)}</option>`).join('')}</select></label></div><div id="pfwrap">${paged('pf', applyFilters(fs, { o: 'anno' }), row, 100)}</div>` : '');
   const redo = () => { $('pfwrap').innerHTML = paged('pf', applyFilters(fs, { o: $('pfo').value, g: $('pfg').value }), row, 100); };
   if($('pfo')){ $('pfo').onchange = redo; $('pfg').onchange = redo; }
-  fetchPerson(name, fs).then(d=>{ if(decodeURIComponent(location.hash).endsWith('/' + name)) renderPersonOnline(name, d); }).catch(()=>{ if($('pfacts')) $('pfacts').innerHTML = '<p class="note">Wikidata non risponde ora.</p>'; });
+  fetchPerson(name, fs).then(d=>{ if(!decodeURIComponent(location.hash).endsWith('/' + name)) return;
+    if(!roles && d && d.films && Object.keys(d.films).length){   // i film trovati su Wikidata completano la pagina (una volta sola)
+      const more = Object.keys(d.films).map(imdbEntry).filter(Boolean);
+      if(more.some(e=>!seen.has(e.id)) || kind === 'persona'){ personPage(kind, name, fs.concat(more), d.films); return; } }
+    renderPersonOnline(name, d); }).catch(()=>{ if($('pfacts')) $('pfacts').innerHTML = '<p class="note">Wikidata non risponde ora.</p>'; });
 }
 function viewDirector(name){ setNav('registi'); personPage('regista', name, BY_DIR.get(name) || []); }
 function viewActor(name){ setNav('attori'); if(!CAST_INDEX) return viewPersona(name); personPage('attore', name, actorFilmography(name)); }
@@ -813,8 +900,8 @@ function viewRanking(cid){
 }
 
 /* ---------- Strumenti ---------- */
-const CRITICA_SCRIPT_TEXT = "#!/usr/bin/env python3\n\"\"\"\nIndice della critica per l'Atlante del Cinema.\n\nUna volta al mese raccoglie da Wikidata (gratis, senza chiavi) i voti di Rotten Tomatoes (Tomatometer, in\npercentuale) e di Metacritic per tutti i film che hanno un codice IMDb, e li salva in data/critica.json.gz.\nL'Atlante li usa, insieme ai voti IMDb e ai giudizi di Frusciante e dei Criticoni, per i \"capolavori assoluti\".\n\nUso:\n  python tools/aggiorna_critica.py data/critica.json.gz                  # da Wikidata\n  python tools/aggiorna_critica.py data/critica.json.gz --local CARTELLA # da risposte salvate (q-tt00.json, \u2026)\n\nSicurezza: se Wikidata non risponde o restituisce troppo poco, il file del mese prima resta com'\u00e8.\n\"\"\"\nimport datetime, gzip, json, os, re, sys, time, urllib.parse, urllib.request\n\nENDPOINT = 'https://query.wikidata.org/sparql'\nUA = 'MyPhysicalMovieLibrary-Atlante/1.0 (indice personale aggiornato una volta al mese)'\nRT, MC = 'Q105584', 'Q150248'                      # Rotten Tomatoes, Metacritic\nPREFIXES = ['tt0' + str(i) for i in range(10)] + ['tt' + str(i) for i in range(1, 10)]   # 19 gruppi piccoli\nMIN_RT = 3000                                       # sotto questa soglia qualcosa non va\n\nQUERY = \"\"\"SELECT ?imdb ?score ?by ?date WHERE {\n  ?film wdt:P345 ?imdb . FILTER(STRSTARTS(?imdb, \"%s\"))\n  ?film p:P444 ?st . ?st ps:P444 ?score ; pq:P447 ?by .\n  VALUES ?by { wd:%s wd:%s }\n  OPTIONAL { ?st pq:P585 ?date }\n}\"\"\"\n\n\ndef ask(prefix, local=None, tries=4):\n    if local:\n        path = os.path.join(local, f'q-{prefix}.json')\n        return json.load(open(path, encoding='utf-8')) if os.path.exists(path) else {'results': {'bindings': []}}\n    url = ENDPOINT + '?' + urllib.parse.urlencode({'query': QUERY % (prefix, RT, MC), 'format': 'json'})\n    for k in range(tries):\n        try:\n            req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept': 'application/sparql-results+json'})\n            with urllib.request.urlopen(req, timeout=120) as r:\n                return json.loads(r.read().decode('utf-8'))\n        except Exception as e:\n            if k == tries - 1: raise\n            print(f'  {prefix}: nuovo tentativo tra {10 * (k + 1)} s ({e})'); time.sleep(10 * (k + 1))\n\n\ndef parse(binds, rt, mc, dates):\n    for b in binds:\n        imdb = b.get('imdb', {}).get('value', ''); score = b.get('score', {}).get('value', '').strip()\n        by = b.get('by', {}).get('value', '').rsplit('/', 1)[-1]; date = b.get('date', {}).get('value', '')\n        if not re.match(r'^tt\\d+$', imdb) or not score: continue\n        if by == RT:\n            m = re.match(r'^(\\d{1,3})\\s*%$', score)          # solo il Tomatometer in percentuale, mai le medie \"7.6/10\"\n            if not m or int(m.group(1)) > 100: continue\n            val, key = int(m.group(1)), ('rt', imdb)\n        elif by == MC:\n            m = re.match(r'^(\\d{1,3})(?:\\s*/\\s*100)?$', score)\n            if not m or int(m.group(1)) > 100: continue\n            val, key = int(m.group(1)), ('mc', imdb)\n        else:\n            continue\n        if key in dates and dates[key] > date: continue   # si tiene il valore pi\u00f9 recente\n        dates[key] = date\n        (rt if key[0] == 'rt' else mc)[imdb] = val\n\n\ndef main():\n    args = sys.argv[1:]\n    if not args: print(__doc__); sys.exit(2)\n    out = args[0]\n    local = args[args.index('--local') + 1] if '--local' in args else None\n    built = args[args.index('--date') + 1] if '--date' in args else datetime.date.today().isoformat()\n    min_rt = 1 if '--no-min' in args else MIN_RT\n    rt, mc, dates = {}, {}, {}\n    try:\n        for p in PREFIXES:\n            j = ask(p, local)\n            n0 = len(rt) + len(mc); parse(j.get('results', {}).get('bindings', []), rt, mc, dates)\n            print(f'  {p}: {len(rt) + len(mc) - n0} voti')\n            if not local: time.sleep(2)\n    except Exception as e:\n        print(f'ATTENZIONE: Wikidata non risponde ({e}).', 'Il file del mese prima resta com\\'\u00e8.' if os.path.exists(out) else '')\n        sys.exit(0 if os.path.exists(out) else 1)\n    if len(rt) < min_rt:\n        print(f'ATTENZIONE: trovati solo {len(rt)} voti di Rotten Tomatoes (attesi almeno {min_rt}).', 'Il file del mese prima resta com\\'\u00e8.' if os.path.exists(out) else '')\n        sys.exit(0 if os.path.exists(out) else 1)\n    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)\n    with open(out, 'wb') as f:\n        f.write(gzip.compress(json.dumps({'v': 1, 'built': built, 'rt': rt, 'mc': mc}, separators=(',', ':')).encode('utf-8'), 9))\n    print(f'Fatto: {len(rt)} film con Rotten Tomatoes e {len(mc)} con Metacritic, data {built}.')\n\n\nif __name__ == '__main__':\n    main()\n";
-const CRITICA_WORKFLOW_TEXT = "# Aggiorna ogni mese l'indice della critica dell'Atlante del Cinema (Rotten Tomatoes e Metacritic da Wikidata).\n# Si pu\u00f2 anche avviare a mano: scheda \"Actions\" \u2192 \"Aggiorna la critica (Atlante)\" \u2192 \"Run workflow\".\nname: Aggiorna la critica (Atlante)\non:\n  schedule:\n    - cron: '0 6 15 * *'    # il 15 di ogni mese alle 6:00 UTC\n  workflow_dispatch:\npermissions:\n  contents: write\njobs:\n  aggiorna:\n    runs-on: ubuntu-latest\n    timeout-minutes: 40\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-python@v5\n        with:\n          python-version: '3.12'\n      - name: Raccogli i voti della critica da Wikidata\n        run: python tools/aggiorna_critica.py data/critica.json.gz\n      - name: Pubblica se \u00e8 cambiato\n        run: |\n          git config user.name \"aggiorna-critica\"\n          git config user.email \"github-actions[bot]@users.noreply.github.com\"\n          git add -N data/critica.json.gz 2>/dev/null || true\n          if git diff --quiet -- data; then echo \"Nessuna novit\u00e0\"; exit 0; fi\n          git add data\n          git commit -m \"Indice della critica aggiornato al $(date +%Y-%m-%d)\"\n          git push\n";
+const CRITICA_SCRIPT_TEXT = "#!/usr/bin/env python3\n\"\"\"\nIndice della critica per l'Atlante del Cinema.\n\nUna volta al mese raccoglie da Wikidata (gratis, senza chiavi) i voti di Rotten Tomatoes (Tomatometer, in\npercentuale) e di Metacritic per i film con un codice IMDb, e li salva in data/critica.json.gz. L'Atlante li\nusa, con i voti IMDb e i giudizi di Frusciante e dei Criticoni, per i \"capolavori assoluti\".\n\nDue richieste leggere (una per Rotten Tomatoes, una per Metacritic) che partono dai voti, non da tutti i film.\nPrima su QLever (motore veloce sui dati di Wikidata), poi, se non risponde, sul servizio ufficiale di Wikidata.\n\nUso:\n  python tools/aggiorna_critica.py data/critica.json.gz\n  python tools/aggiorna_critica.py data/critica.json.gz --local CARTELLA   # risposte salvate: q-rt.json e q-mc.json\n\nSicurezza: se nessun servizio risponde, o i voti sono troppo pochi, il file del mese prima resta com'\u00e8.\n\"\"\"\nimport datetime, gzip, json, os, re, sys, time, urllib.parse, urllib.request\n\nUA = 'MyPhysicalMovieLibrary-Atlante/1.1 (indice personale aggiornato una volta al mese)'\nENDPOINTS = [('QLever', 'https://qlever.cs.uni-freiburg.de/api/wikidata'), ('Wikidata', 'https://query.wikidata.org/sparql')]\nSOURCES = {'rt': ('Rotten Tomatoes', 'Q105584'), 'mc': ('Metacritic', 'Q150248')}\nMIN_RT = 3000\nQUERY = \"\"\"PREFIX wd: <http://www.wikidata.org/entity/>\nPREFIX wdt: <http://www.wikidata.org/prop/direct/>\nPREFIX p: <http://www.wikidata.org/prop/>\nPREFIX ps: <http://www.wikidata.org/prop/statement/>\nPREFIX pq: <http://www.wikidata.org/prop/qualifier/>\nSELECT ?imdb ?score ?date WHERE {\n  ?st pq:P447 wd:%s .\n  ?film p:P444 ?st .\n  ?st ps:P444 ?score .\n  ?film wdt:P345 ?imdb .\n  OPTIONAL { ?st pq:P585 ?date }\n}\"\"\"\n\n\ndef ask(key, local=None):\n    if local:\n        path = os.path.join(local, f'q-{key}.json')\n        if not os.path.exists(path): raise RuntimeError('risposta di prova mancante')\n        return json.load(open(path, encoding='utf-8')), 'prova'\n    errors = []\n    for name, url in ENDPOINTS:\n        for k in range(3):\n            try:\n                req = urllib.request.Request(url + '?' + urllib.parse.urlencode({'query': QUERY % SOURCES[key][1]}),\n                                             headers={'User-Agent': UA, 'Accept': 'application/sparql-results+json'})\n                with urllib.request.urlopen(req, timeout=180) as r:\n                    j = json.loads(r.read().decode('utf-8'))\n                if 'results' in j: return j, name\n                errors.append(f'{name}: risposta senza risultati')\n            except Exception as e:\n                errors.append(f'{name}: {e}')\n                time.sleep(5 * (k + 1))\n    raise RuntimeError(' | '.join(errors[-3:]))\n\n\ndef parse(key, binds, out, dates):\n    for b in binds:\n        imdb = b.get('imdb', {}).get('value', ''); score = b.get('score', {}).get('value', '').strip(); date = b.get('date', {}).get('value', '')\n        if not re.match(r'^tt\\d+$', imdb) or not score: continue\n        if key == 'rt':\n            m = re.match(r'^(\\d{1,3})\\s*%$', score)                     # solo il Tomatometer in percentuale, mai le medie \"7.6/10\"\n        else:\n            m = re.match(r'^(\\d{1,3})(?:\\s*/\\s*100)?$', score)\n        if not m or int(m.group(1)) > 100: continue\n        if imdb in dates and dates[imdb] > date: continue                # si tiene il valore pi\u00f9 recente\n        dates[imdb] = date; out[imdb] = int(m.group(1))\n\n\ndef main():\n    args = sys.argv[1:]\n    if not args: print(__doc__); sys.exit(2)\n    out_path = args[0]\n    local = args[args.index('--local') + 1] if '--local' in args else None\n    built = args[args.index('--date') + 1] if '--date' in args else datetime.date.today().isoformat()\n    min_rt = 1 if '--no-min' in args else MIN_RT\n    keep = 'Il file del mese prima resta com\\'\u00e8.' if os.path.exists(out_path) else ''\n    res = {'rt': {}, 'mc': {}}\n    for key in ('rt', 'mc'):\n        try:\n            j, via = ask(key, local)\n        except Exception as e:\n            print(f'ATTENZIONE: {SOURCES[key][0]}: nessun servizio ha risposto ({e}). {keep}'); sys.exit(0 if keep else 1)\n        parse(key, j.get('results', {}).get('bindings', []), res[key], {})\n        print(f'  {SOURCES[key][0]}: {len(res[key])} film (da {via})')\n    if len(res['rt']) < min_rt:\n        print(f'ATTENZIONE: solo {len(res[\"rt\"])} voti di Rotten Tomatoes (attesi almeno {min_rt}). {keep}'); sys.exit(0 if keep else 1)\n    os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)\n    with open(out_path, 'wb') as f:\n        f.write(gzip.compress(json.dumps({'v': 1, 'built': built, 'rt': res['rt'], 'mc': res['mc']}, separators=(',', ':')).encode('utf-8'), 9))\n    print(f'Fatto: {len(res[\"rt\"])} film con Rotten Tomatoes e {len(res[\"mc\"])} con Metacritic, data {built}.')\n\n\nif __name__ == '__main__':\n    main()\n";
+const CRITICA_WORKFLOW_TEXT = "# Aggiorna ogni mese l'indice della critica dell'Atlante del Cinema (Rotten Tomatoes e Metacritic da Wikidata).\n# Si pu\u00f2 anche avviare a mano: scheda \"Actions\" \u2192 \"Aggiorna la critica (Atlante)\" \u2192 \"Run workflow\".\nname: Aggiorna la critica (Atlante)\non:\n  schedule:\n    - cron: '0 6 15 * *'    # il 15 di ogni mese alle 6:00 UTC\n  workflow_dispatch:\npermissions:\n  contents: write\njobs:\n  aggiorna:\n    runs-on: ubuntu-latest\n    timeout-minutes: 30\n    steps:\n      - uses: actions/checkout@v4\n      - uses: actions/setup-python@v5\n        with:\n          python-version: '3.12'\n      - name: Raccogli i voti della critica da Wikidata\n        run: python tools/aggiorna_critica.py data/critica.json.gz\n      - name: Pubblica se \u00e8 cambiato\n        run: |\n          git config user.name \"aggiorna-critica\"\n          git config user.email \"github-actions[bot]@users.noreply.github.com\"\n          git add -N data/critica.json.gz 2>/dev/null || true\n          if git diff --quiet -- data; then echo \"Nessuna novit\u00e0\"; exit 0; fi\n          git add data\n          git commit -m \"Indice della critica aggiornato al $(date +%Y-%m-%d)\"\n          git pull --rebase --autostash   # se intanto un'altra automazione ha salvato, si allinea prima\n          git push\n";
 function repoBase(){ const m = location.hostname.match(/^([a-z0-9-]+)\.github\.io$/i), seg = location.pathname.split('/').filter(Boolean); return m && seg.length >= 2 ? `https://github.com/${m[1]}/${seg[0]}` : ''; }
 function viewTools(){
   setNav('strumenti'); const base = repoBase(), built = id => { const el = document.getElementById(id); return el && el.dataset.built ? el.dataset.built : ''; };
@@ -828,15 +915,17 @@ function viewTools(){
     + st(true, ['Locandine degli altri film', 'da Wikipedia, cercate mentre sfogli e salvate sul dispositivo'])
     + st(!!CRITICA, ['Critica', CRITICA ? `del ${CRITICA.built}: ${Object.keys(CRITICA.rt).length.toLocaleString('it-IT')} film con Rotten Tomatoes, ${Object.keys(CRITICA.mc).length.toLocaleString('it-IT')} con Metacritic` : 'non ancora creato: segui la guida qui sotto'])
     + `</dl><p class="note">Tutti gli indici si aggiornano da soli ogni mese. <a href="../" style="color:var(--chart)">Apri la Videoteca</a>${CRIT ? '<br>Le locandine sono immagini di TMDB, raccolte dalle schede di filmcriticoni.it.' : ''}</p></div></div>`
-    + `<div class="box"><h3>Attiva l'indice della critica (una volta sola)</h3><div class="in"><p>Serve per i capolavori con Rotten Tomatoes e Metacritic. Lo crea un'automazione su GitHub il 15 di ogni mese.</p>`
+    + `<div class="box"><h3>Attiva l'indice della critica (una volta sola)</h3><div class="in"><p>Serve per i capolavori con Rotten Tomatoes e Metacritic. Lo crea un'automazione su GitHub il 15 di ogni mese.</p><p class="note"><b>Hai caricato il pacchetto completo?</b> Allora lo script (tools/aggiorna_critica.py) e l'automazione (.github/workflows/aggiorna-critica.yml) sono già nel repository: passa direttamente al punto 3. Se l'automazione si ferma, l'ultima riga del riepilogo dice il perché.</p>`
     + (base ? `<ol style="line-height:1.8"><li><b>Lo script:</b> <button class="btn" type="button" data-copy="s">📋 Copia lo script</button> poi <a class="btn" target="_blank" rel="noopener" href="${esc(base + '/new/main?filename=' + encodeURIComponent('tools/aggiorna_critica.py'))}">Crea il file ↗</a>, incolla e premi "Commit changes".</li>`
       + `<li><b>L'automazione:</b> <a class="btn" target="_blank" rel="noopener" href="${esc(base + '/new/main?filename=' + encodeURIComponent('.github/workflows/aggiorna-critica.yml') + '&value=' + encodeURIComponent(CRITICA_WORKFLOW_TEXT))}">Crea l'automazione ↗</a> e premi "Commit changes".</li>`
       + `<li><b>Il primo aggiornamento:</b> <a class="btn" target="_blank" rel="noopener" href="${esc(base + '/actions/workflows/aggiorna-critica.yml')}">Apri GitHub Actions ↗</a> → "Run workflow". Dopo 10-20 minuti, riapri l'Atlante.</li></ol>`
       : `<p class="note">Pubblica prima l'Atlante su GitHub Pages, nella cartella atlante del repository della Videoteca: qui compariranno i link diretti.</p><button class="btn" type="button" data-copy="s">📋 Copia lo script</button>`)
     + `<textarea class="copy hidden" id="copyArea" readonly></textarea></div></div>`
+    + `<div class="box"><h3>📺 Modalità TV</h3><div class="in"><p>Testi grandi, margini di sicurezza e navigazione con le frecce del telecomando: OK apre, Indietro torna alla pagina precedente. Si attiva da sola sui televisori; per salvarla nei preferiti del browser del televisore usa l'indirizzo che finisce con <b>?tv=1</b>.</p><div class="marks"><button class="btn${TV ? ' amber' : ''}" type="button" id="tvBtn" aria-pressed="${TV}">${TV ? '📺 Modalità TV attiva: disattiva' : '📺 Attiva la modalità TV'}</button></div></div></div>`
     + `<div class="box"><h3>Le tue liste</h3><div class="in"><p>Visti, da vedere, preferiti, i tuoi voti e le classifiche restano su questo dispositivo. Fai una copia per non perderli.</p><div class="marks"><button class="btn" type="button" id="bk">💾 Scarica le liste</button><button class="btn" type="button" id="rs">📥 Ripristina le liste</button><input type="file" id="rsIn" accept=".json,application/json" class="hidden"></div></div></div>`
     + `<div class="box"><h3>Come si calcolano i capolavori</h3><div class="in"><p>Ogni film riceve un punteggio da 0 a 100: per metà dal voto IMDb (pesato sul numero di voti, così pochi voti contano poco), per il 35% dalla critica (Rotten Tomatoes e Metacritic) e per il 15% dai giudizi di Frusciante e dei Criticoni. Se una fonte manca, le altre pesano di più. Il punteggio serve a ordinare.</p><p>È un <b>capolavoro assoluto</b> un film con: almeno 50.000 voti; voto pesato da 8,0 in su, oppure da 7,8 in su se la critica supera il 90% o se Frusciante o i Criticoni lo promuovono; la critica, quando c'è, almeno all'80%; nessuna stroncatura di Frusciante, a meno che la critica non superi il 90%. I film degli ultimi 4 anni devono superare anche il banco di prova del tempo: serve la conferma della critica (almeno 85%) o di Frusciante o dei Criticoni, perché i voti dei film nuovi possono essere gonfiati da campagne organizzate.</p></div></div>`;
   V().querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(CRITICA_SCRIPT_TEXT); toast('📋 Script copiato: ora premi "Crea il file" e incollalo'); }catch(err){ const t = $('copyArea'); t.value = CRITICA_SCRIPT_TEXT; t.classList.remove('hidden'); t.select(); } }));
+  $('tvBtn').onclick = () => { try{ localStorage.setItem('atlante-tv', TV ? '0' : '1'); }catch(e){} location.reload(); };
   $('bk').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ app: 'Atlante del Cinema', liste: LISTE, classifiche: CLS }, null, 1)], { type: 'application/json' })); a.download = `atlante-liste-${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(), 1000); toast('Liste scaricate'); };
   $('rs').onclick = () => $('rsIn').click();
   $('rsIn').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if(!f) return; const r = new FileReader();
@@ -866,6 +955,7 @@ function route(){
   if(k === 'strumenti') return viewTools();
   viewHome();
 }
+window.addEventListener('hashchange', tvLanding);
 let _qT = null;
 $('q').addEventListener('input', ()=>{ clearTimeout(_qT); const v = $('q').value.trim(); _qT = setTimeout(()=>{ if(v.length >= 2) location.hash = '#cerca/' + encodeURIComponent(v); }, 350); });
 $('searchForm').addEventListener('submit', ev=>{ ev.preventDefault(); const v = $('q').value.trim(); if(v) location.hash = '#cerca/' + encodeURIComponent(v); });
@@ -876,7 +966,7 @@ async function boot(){
   await ensureImdbIndex();
   if(!IMDB_INDEX){ BOOT_ERR = 'index'; V().innerHTML = '<div class="status"><h1>Indice non leggibile</h1><p>Il browser non riesce a leggere l\'indice: aggiorna Edge, Chrome o Safari all\'ultima versione.</p></div>'; return; }
   await Promise.all([ensureCritIndex(), loadCritica(), ensureCastIndex()]);
-  readOwn(); computeAll(); route();
+  readOwn(); computeAll(); route(); tvLanding();
   if('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
   window.__ready = true;
 }
