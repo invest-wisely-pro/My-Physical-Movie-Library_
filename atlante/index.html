@@ -27,7 +27,7 @@ button, input, select{font:inherit; color:inherit;}
 .rate-wrap{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:8px 0 2px;} .rate{display:flex; gap:4px; flex-wrap:wrap;}
 .rate button{width:32px; height:32px; border-radius:7px; border:1px solid var(--line); background:var(--s2); cursor:pointer; font-weight:700; font-size:13px;}
 .rate button[aria-pressed="true"]{background:var(--amber); border-color:var(--amber); color:#1d1406;}
-.poster.pphoto{border-radius:50%; aspect-ratio:1; width:200px; max-width:100%; align-items:center; justify-content:center; padding:0;} .poster.pphoto .tt{font-size:42px; color:var(--paper3);}   /* tondo: più specifico di .poster */
+.pphoto{border-radius:50%; aspect-ratio:1; max-width:200px; align-items:center; justify-content:center;} .pphoto .tt{font-size:42px; color:var(--paper3);}
 .rk-list{display:flex; flex-direction:column; border-top:1px solid var(--line); margin-bottom:16px;}
 .rk{display:grid; grid-template-columns:40px 34px minmax(0, 1fr) auto; gap:12px; align-items:center; padding:8px 4px; border-bottom:1px solid var(--line);}
 .rk .rk-n{font-family:var(--serif); font-weight:700; font-size:22px; text-align:center; color:var(--amber2);} .rk .th{width:34px; height:51px; object-fit:cover; border-radius:3px; background:var(--s2); display:block;}
@@ -454,16 +454,9 @@ function watchPosters(){ document.querySelectorAll('[data-pid]:not([data-pw])').
 new MutationObserver(()=>watchPosters()).observe(document.getElementById('view'), { childList: true, subtree: true });
 
 /* ---------- Persone: biografia da Wikidata e Wikipedia, partendo dai loro film più famosi (niente omonimi) ---------- */
-const ROLE_P = { P57: 'Regia', P161: 'Interprete', P58: 'Sceneggiatura', P86: 'Musiche', P344: 'Fotografia', P1040: 'Montaggio', P2554: 'Scenografia', P2515: 'Costumi', P162: 'Produzione' };
-async function personFilms(qid){   // tutti i film in cui la persona ha avuto un ruolo, con il codice IMDb
-  const q = `SELECT ?imdb ?prop WHERE { VALUES ?prop { ${Object.keys(ROLE_P).map(p=>'wdt:' + p).join(' ')} } ?f ?prop wd:${qid} ; wdt:P345 ?imdb . }`;
-  const j = await jget('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q)), out = {};
-  ((j.results && j.results.bindings) || []).forEach(b=>{ const id = b.imdb && b.imdb.value, p = b.prop && b.prop.value.split('/').pop(); if(id && ROLE_P[p]) (out[id] = out[id] || []).includes(p) || out[id].push(p); });
-  return out;
-}
 const fmtD = iso => { if(!iso) return ''; const [y, m, d] = iso.split('-'); if(!m || m === '00') return y; try{ return new Date(`${y}-${m}-${d === '00' ? '01' : d}T12:00:00`).toLocaleDateString('it-IT', d === '00' ? { month: 'long', year: 'numeric' } : { day: 'numeric', month: 'long', year: 'numeric' }); }catch(e){ return y; } };
 async function fetchPerson(name, films){
-  const key = 'person3:' + normKey(name), c = await dget(key);
+  const key = 'person2:' + normKey(name), c = await dget(key);
   if(c && Date.now() - c.at < 60 * 864e5) return c; if(navigator.onLine === false) return c;
   const out = { at: Date.now() }, k = normKey(name); let qid = '';
   const anchor = (films || []).slice().sort((a, b)=>b.v - a.v).slice(0, 3).map(e=>e.id);
@@ -487,7 +480,6 @@ async function fetchPerson(name, films){
   const lab = q => { const x = labs[q] && labs[q].labels; return x ? ((x.it || x.en || {}).value || '') : ''; };
   out.f = {}; Object.entries(refs).forEach(([x, l])=>{ out.f[x] = l.map(lab).filter(Boolean); });
   out.nAw = vals('P166').length; out.nNom = vals('P1411').length;
-  try{ out.films = await personFilms(qid); }catch(err){}
   for(const w of ['itwiki', 'enwiki']){ const sl = e.sitelinks && e.sitelinks[w]; if(!sl) continue;
     try{ const j = await jget(`https://${w.slice(0, 2)}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(sl.title.replace(/ /g, '_'))}`);
       if(j && j.extract){ out.wiki = { lang: w.slice(0, 2), text: j.extract, url: (j.content_urls && j.content_urls.desktop && j.content_urls.desktop.page) || '' }; if(!out.photo && j.thumbnail) out.photo = j.thumbnail.source; break; } }catch(err){} }
@@ -497,8 +489,7 @@ function renderPersonOnline(name, d){
   if(!$('pfacts')) return;
   if(!d || !d.qid){ $('pfacts').innerHTML = '<p class="note">Su Wikidata non ci sono altre notizie su questa persona.</p>'; return; }
   if(d.photo && !$('pphoto').querySelector('img')) $('pphoto').insertAdjacentHTML('afterbegin', `<img src="${esc(d.photo)}" alt="${esc(name)}" referrerpolicy="no-referrer" onerror="this.remove()">`);
-  const f = d.f || {}, list = (a, tot) => { const m = new Map(); a.forEach(x=>m.set(x, (m.get(x) || 0) + 1));
-    return esc([...m.entries()].map(([x, n])=>n > 1 ? `${x} (${n})` : x).join(', ')) + (tot > a.length ? ` e altri ${tot - a.length}` : ''); };
+  const f = d.f || {}, list = (a, tot) => esc(a.join(', ')) + (tot > a.length ? ` e altri ${tot - a.length}` : '');
   const by = d.born ? parseInt(d.born, 10) : 0, age = by && !d.died ? new Date().getFullYear() - by - (new Date().getMonth() + 1 < (parseInt(d.born.slice(5, 7), 10) || 1) ? 1 : 0) : 0;
   const rows = [d.born ? ['Nascita', esc(fmtD(d.born)) + (f.bp && f.bp[0] ? ', ' + esc(f.bp[0]) : '') + (age ? ` (${age} anni)` : '')] : null, d.died ? ['Morte', esc(fmtD(d.died)) + (f.dp && f.dp[0] ? ', ' + esc(f.dp[0]) : '')] : null,
     f.nat && f.nat.length ? ['Nazionalità', list(f.nat, f.nat.length)] : null, f.occ && f.occ.length ? ['Professioni', list(f.occ, f.occ.length)] : null,
@@ -617,7 +608,7 @@ function viewActors(){ setNav('attori');
   const list = actorRanking();
   V().innerHTML = `<h1 class="pg">Attori</h1><p class="lead">Gli attori con almeno tre film noti, in ordine di importanza.</p><div class="ctrl"><label>Cerca un attore<input id="pq" type="search" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--s1); padding:0 10px"></label></div><div id="pl">${peopleView('attore', list)}</div>`;
   $('pq').addEventListener('input', ()=>{ $('pl').innerHTML = peopleView('attore', list, $('pq').value); }); }
-function personPage(kind, name, films, roles){
+function personPage(kind, name, films){
   const seen = new Set(), fs = films.filter(e=>e && !seen.has(e.id) && seen.add(e.id)).map(enrich), known = fs.filter(e=>e.v >= 1000);
   const years = fs.map(e=>parseInt(e.y, 10)).filter(Boolean), mp = fs.filter(e=>e._mp).length, rated = fs.filter(e=>e.v >= 5000);
   const avgR = rated.length ? rated.reduce((t, e)=>t + e._R, 0) / rated.length : 0;
@@ -632,13 +623,11 @@ function personPage(kind, name, films, roles){
     const top = [...m.entries()].filter(x=>x[1] >= 2).sort((a, b)=>b[1] - a[1]).slice(0, 10), co = CAST_INDEX && kind === 'attore' ? offlineCoStars(name, 12) : [];
     if(top.length) collab += `<h2 class="sec">I registi con cui ha lavorato di più</h2><div class="cast">${top.map(([n, c])=>`<a href="#regista/${encodeURIComponent(n)}">${esc(n)} (${c})</a>`).join('')}</div>`;
     if(co.length) collab += `<h2 class="sec">Ha recitato spesso con</h2><div class="cast">${co.map(c=>`<a href="#attore/${encodeURIComponent(c.name)}">${esc(c.name)} (${c.n})</a>`).join('')}</div>`; }
-  const rc = new Map(); if(roles) Object.entries(roles).forEach(([id, ps])=>{ if(seen.has(id)) ps.forEach(p=>rc.set(p, (rc.get(p) || 0) + 1)); });
-  const roleTxt = rc.size ? [...rc.entries()].sort((a, b)=>b[1] - a[1]).map(([p, n])=>`${ROLE_P[p]} in ${n} ${n === 1 ? 'film' : 'film'}`).join(', ') : '';
-  const roleName = { regista: 'Regista', attore: 'Interprete', persona: 'Cinema' }[kind] || '';
+  const roles = { regista: 'Regista', attore: 'Interprete', persona: 'Cinema' }[kind] || '';
   const back = kind === 'regista' ? '<a href="#registi">Registi</a>' : kind === 'attore' ? '<a href="#attori">Attori</a>' : '<a href="#">Esplora</a>';
   const ini = name.split(/\s+/).map(x=>x[0]).join('').slice(0, 2).toUpperCase();
   V().innerHTML = `<p class="crumbs">${back}</p><div class="film-head person-head"><div class="poster pphoto" id="pphoto"><span class="tt">${esc(ini)}</span></div><div style="min-width:0">`
-    + `<h1 class="pg">${esc(name)}</h1><p class="lead">${roleTxt ? esc(roleTxt) : roleName + (fs.length ? `: ${fs.length} film nell'indice` : '')}${years.length ? `, dal ${Math.min(...years)} al ${Math.max(...years)}` : ''}.</p>`
+    + `<h1 class="pg">${esc(name)}</h1><p class="lead">${roles}${fs.length ? `: ${fs.length} film nell'indice` : ''}${years.length ? `, dal ${Math.min(...years)} al ${Math.max(...years)}` : ''}.</p>`
     + `<div class="scores"><div class="score"><b>${fs.length}</b><span>film</span></div>${mp ? `<div class="score mp"><b>✦ ${mp}</b><span>capolavori</span></div>` : ''}${avgR ? `<div class="score"><b>${fmtR(avgR)}</b><span>voto medio IMDb</span></div>` : ''}${fs.length ? `<div class="score"><b>${fmtV(fs.reduce((t, e)=>t + (e.v || 0), 0))}</b><span>voti in tutto</span></div>` : ''}</div>`
     + `<div id="pfacts"><p class="note">${navigator.onLine === false ? 'Sei offline: biografia e foto arriveranno con la rete.' : 'Carico biografia e foto…'}</p></div>`
     + (gcount.size ? `<div class="cast" style="margin-top:10px">${[...gcount.entries()].sort((a, b)=>b[1] - a[1]).slice(0, 8).map(([g, c])=>`<a href="#genere/${encodeURIComponent(g)}">${esc(g)} (${c})</a>`).join('')}</div>` : '') + `</div></div>`
@@ -651,11 +640,7 @@ function personPage(kind, name, films, roles){
     + (fs.length ? `<h2 class="sec">Filmografia completa</h2><div class="ctrl"><label>Ordine<select id="pfo"><option value="anno">Dal più vecchio</option><option value="recenti">Dal più recente</option><option value="fama">I più famosi</option><option value="punteggio">Punteggio dell'Atlante</option></select></label><label>Genere<select id="pfg"><option value="">Tutti</option>${[...gcount.keys()].sort((a, b)=>a.localeCompare(b, 'it')).map(g=>`<option>${esc(g)}</option>`).join('')}</select></label></div><div id="pfwrap">${paged('pf', applyFilters(fs, { o: 'anno' }), row, 100)}</div>` : '');
   const redo = () => { $('pfwrap').innerHTML = paged('pf', applyFilters(fs, { o: $('pfo').value, g: $('pfg').value }), row, 100); };
   if($('pfo')){ $('pfo').onchange = redo; $('pfg').onchange = redo; }
-  fetchPerson(name, fs).then(d=>{ if(!decodeURIComponent(location.hash).endsWith('/' + name)) return;
-    if(!roles && d && d.films && Object.keys(d.films).length){   // i film trovati su Wikidata completano la pagina (una volta sola)
-      const more = Object.keys(d.films).map(imdbEntry).filter(Boolean);
-      if(more.some(e=>!seen.has(e.id)) || kind === 'persona'){ personPage(kind, name, fs.concat(more), d.films); return; } }
-    renderPersonOnline(name, d); }).catch(()=>{ if($('pfacts')) $('pfacts').innerHTML = '<p class="note">Wikidata non risponde ora.</p>'; });
+  fetchPerson(name, fs).then(d=>{ if(decodeURIComponent(location.hash).endsWith('/' + name)) renderPersonOnline(name, d); }).catch(()=>{ if($('pfacts')) $('pfacts').innerHTML = '<p class="note">Wikidata non risponde ora.</p>'; });
 }
 function viewDirector(name){ setNav('registi'); personPage('regista', name, BY_DIR.get(name) || []); }
 function viewActor(name){ setNav('attori'); if(!CAST_INDEX) return viewPersona(name); personPage('attore', name, actorFilmography(name)); }
