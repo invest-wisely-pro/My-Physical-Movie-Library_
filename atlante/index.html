@@ -143,6 +143,14 @@ html.tv .tl-bg{filter:brightness(.42); inset:0;}
 .fr{display:grid; grid-template-columns:52px 34px minmax(0, 1fr) auto; gap:12px; align-items:center; padding:10px 4px; border-bottom:1px solid var(--line);}
 .fr:hover{background:var(--s1);}
 .fr .th{width:34px; height:51px; object-fit:cover; border-radius:3px; background:var(--s2); display:block;}
+@media (max-width:640px){   /* telefono: locandina più grande, titolo largo, distintivi sotto il titolo */
+  .fr:not(.ep){grid-template-columns:58px minmax(0, 1fr) auto; grid-template-areas:"th main sc" "th badges badges"; column-gap:12px; row-gap:6px; align-items:start; padding:12px 2px;}
+  .fr:not(.ep) .th{grid-area:th; width:58px; height:87px; border-radius:5px;}
+  .fr:not(.ep) .fr-main{grid-area:main;} .fr:not(.ep) .sc{grid-area:sc; font-size:18px; text-align:right;} .fr:not(.ep) .sc small{font-size:10px;}
+  .fr:not(.ep) .badges{grid-area:badges; justify-content:flex-start;}
+  .fr b{font-size:16px; line-height:1.25;} .fr .sub{font-size:12.5px; margin-top:2px;}
+  .fr.ep{grid-template-columns:30px 88px minmax(0, 1fr); column-gap:10px;} .fr.ep .badges{display:none;} .fr .th.epi{width:88px; height:50px;}
+}
 .fr .sc{font-family:var(--serif); font-weight:700; font-size:20px; text-align:center; font-variant-numeric:tabular-nums;}
 .fr .sc small{display:block; font-family:var(--ui); font-size:10.5px; font-weight:600; color:var(--paper3);}
 .fr .sc.mp{color:var(--amber2);}
@@ -441,6 +449,9 @@ const title = e => e.it || e.en || e.id;
 const dirs = e => String(e.dir || '').split(/\s*,\s*/).filter(Boolean);
 const goDir = (n, cls) => `<span class="lnk${cls ? ' ' + cls : ''}" data-go="#regista/${encodeURIComponent(n)}">${esc(n)}</span>`;
 const goGen = g => `<span class="lnk" data-go="#genere/${encodeURIComponent(g)}">${esc(g)}</span>`;
+const castKey = n => normKey(n).split(' ').filter(w=>w.length > 1).join(' ');   // "Tom S. Holland" = "Tom Holland"
+const uniqNames = l => { const seen = new Set(); return l.filter(n=>{ const k = castKey(n); if(!k || seen.has(k)) return false; seen.add(k); return true; }); };
+const _castOfFilm = castOfFilm; castOfFilm = id => uniqNames(_castOfFilm(id) || []);   // alla fonte: ogni interprete una volta sola, anche nei conteggi delle persone
 const castCard = (n, kind, role, ph) => `<a class="cm" data-name="${esc(n)}" href="#${kind || 'persona'}/${encodeURIComponent(n)}"><span class="cm-ph">${ph ? `<img src="${esc(ph)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}<i>${esc(n.split(/\s+/).map(x=>x[0]).join('').slice(0, 2).toUpperCase())}</i></span><span class="cm-t"><b>${esc(n)}</b>${role ? `<small>${esc(role)}</small>` : ''}</span></a>`;
 const goPerson = (n, kind) => `<a class="lnk" href="#${kind || 'persona'}/${encodeURIComponent(n)}">${esc(n)}</a>`;
 document.addEventListener('click', ev=>{ const g = ev.target.closest('[data-go]'); if(!g) return; ev.preventDefault(); ev.stopPropagation(); location.hash = g.dataset.go; }, true);
@@ -705,7 +716,7 @@ function badges(e){
 }
 function row(e){
   enrich(e); const p0 = posterUrl(e, 'w92') || WPOST.get(e.id) || '', p = isL(p0) ? '' : p0, pl = isL(p0) ? unL(p0) : '';
-  return `<a class="fr" href="#film/${e.id}"${p || WPOST.has(e.id) ? '' : ` data-pid="${e.id}"`}><span class="sc ${e._mp ? 'mp' : ''}">${fmtR(e._R)}<small>${fmtV(e.v)}</small></span>${p ? `<img class="th" src="${esc(p)}" alt="" loading="lazy"${chk(p, e.id)} onerror="this.style.visibility='hidden'">` : pl ? `<img class="th thl" src="${esc(pl)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<span class="th"></span>'}<span style="min-width:0"><b>${esc(title(e))}</b>${e.en && e.en !== e.it ? ` <em>${esc(e.en)}</em>` : ''}`
+  return `<a class="fr" href="#film/${e.id}"${p || WPOST.has(e.id) ? '' : ` data-pid="${e.id}"`}><span class="sc ${e._mp ? 'mp' : ''}">${fmtR(e._R)}<small>${fmtV(e.v)}</small></span>${p ? `<img class="th" src="${esc(p)}" alt="" loading="lazy"${chk(p, e.id)} onerror="this.style.visibility='hidden'">` : pl ? `<img class="th thl" src="${esc(pl)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<span class="th"></span>'}<span class="fr-main" style="min-width:0"><b>${esc(title(e))}</b>${e.en && e.en !== e.it ? ` <em>${esc(e.en)}</em>` : ''}`
     + `<span class="sub">${SEASON_BY.get(e.id) ? `<b class="nv">Stagione ${SEASON_BY.get(e.id).ord} dal ${esc(fmtD(SEASON_BY.get(e.id).d))}</b>, ` : NOVITA && NOVITA.get(e.id) && (parseInt(e.y, 10) || 0) >= new Date().getFullYear() - 1 ? `<b class="nv">uscita: ${esc(fmtD(NOVITA.get(e.id)))}</b>, ` : ''}${[e.y ? esc(e.y) : '', dirs(e).map(n=>goDir(n)).join(', '), genres(e).slice(0, 3).map(goGen).join(', '), e.r ? esc(e.r + ' min') : ''].filter(Boolean).join(', ')}</span></span>${badges(e)}</a>`;
 }
 function tile(e){ enrich(e); const p0 = posterUrl(e, 'w342') || WPOST.get(e.id) || '';
@@ -1001,7 +1012,7 @@ function viewFilm(id){
   enrich(e);
   const sameDir = String(e.dir || '').split(/\s*,\s*/).filter(Boolean).flatMap(n=>BY_DIR.get(n) || []).filter(x=>x.id !== e.id).map(enrich).sort((a, b)=>b._s - a._s).slice(0, 10);
   const g0 = genres(e)[0], sim = g0 ? (GENRES.get(g0) || []).filter(x=>x.id !== e.id && Math.abs(decade(x) - decade(e)) <= 10 && x.v >= 10000 && !sameDir.includes(x)).sort((a, b)=>b._s - a._s).slice(0, 10) : [];
-  const cast = CAST_INDEX ? castOfFilm(id) : [], my = (LISTE[id] && LISTE[id].r) || 0;
+  const cast = CAST_INDEX ? uniqNames(castOfFilm(id)) : [], my = (LISTE[id] && LISTE[id].r) || 0;
   const q = encodeURIComponent(`${title(e)} ${e.y || ''} trailer italiano`);
   V().innerHTML = `<p class="crumbs"><a href="javascript:history.back()">← Indietro</a></p>`
     + `<div class="film-head"><div class="poster${isL(WPOST.get(e.id)) && !posterUrl(e, 'w500') ? ' has-l' : ''}" id="poster" style="--tilebg:${tileBg(e)}">${isL(WPOST.get(e.id)) && !posterUrl(e, 'w500') ? landHTML(WPOST.get(e.id)) : ''}${(posterUrl(e, 'w500') || (WPOST.get(e.id) && !isL(WPOST.get(e.id)))) ? `<img src="${esc(posterUrl(e, 'w500') || WPOST.get(e.id))}" alt="Locandina di ${esc(title(e))}" referrerpolicy="no-referrer"${chk(posterUrl(e, 'w500'), e.id)} onerror="this.remove()">` : ''}<span class="tt">${esc(title(e))}</span></div><div style="min-width:0">`
@@ -1032,9 +1043,10 @@ const link = (x, p) => x.tt && imdbEntry(x.tt) ? `<a href="#film/${x.tt}">${esc(
     return `<dt>${esc(l.charAt(0).toUpperCase() + l.slice(1))}</dt><dd>${list.map(x=>link(x, p)).join(', ')}${tot > list.length ? ` e altri ${tot - list.length}` : ''}</dd>`; }).join('')
     + (d.rel ? `<dt>Uscita</dt><dd>${esc(fmtD(d.rel))}</dd>` : '') + (e._min ? `<dt>Durata</dt><dd>${e._min} minuti</dd>` : '') + (d.budget ? `<dt>Budget</dt><dd>${esc(d.budget)}</dd>` : '') + (d.box ? `<dt>Incassi</dt><dd>${esc(d.box)}</dd>` : '');
   if(d.f.P161 && d.f.P161.length && $('castList')){   // fino a 10 interpreti: prima quelli dell'indice, poi gli altri da Wikidata; con personaggio e foto
-    const have = [...$('castList').querySelectorAll('a')].map(a=>a.dataset.name || a.textContent), keys = new Set(have.map(normKey)), wd = new Map(d.f.P161.map(x=>[normKey(x.l), x]));
-    d.f.P161.forEach(x=>{ if(have.length < 10 && !keys.has(normKey(x.l))){ have.push(x.l); keys.add(normKey(x.l)); } });
-    $('castList').innerHTML = have.map(n=>{ const x = wd.get(normKey(n)) || {}; return castCard(n, CAST_INDEX && CAST_INDEX.byActor.has(normKey(n)) ? 'attore' : 'persona', x.role, x.ph); }).join(''); $('castBox').classList.remove('hidden'); }
+    const have = uniqNames([...$('castList').querySelectorAll('a')].map(a=>a.dataset.name || a.textContent)), keys = new Set(have.map(castKey)), wd = new Map();
+    d.f.P161.forEach(x=>{ const k = castKey(x.l), cur = wd.get(k); if(!cur || (!cur.ph && x.ph) || (!cur.role && x.role)) wd.set(k, Object.assign({}, cur || {}, x, { ph: (cur && cur.ph) || x.ph, role: (cur && cur.role) || x.role })); });   // doppioni: la scheda più completa
+    d.f.P161.forEach(x=>{ const k = castKey(x.l); if(have.length < 10 && !keys.has(k)){ have.push(x.l); keys.add(k); } });
+    $('castList').innerHTML = have.map(n=>{ const x = wd.get(castKey(n)) || {}; return castCard(n, CAST_INDEX && CAST_INDEX.byActor.has(normKey(n)) ? 'attore' : 'persona', x.role, x.ph); }).join(''); $('castBox').classList.remove('hidden'); }
   const ext = [`<a href="https://www.imdb.com/title/${e.id}/" target="_blank" rel="noopener">IMDb ↗</a>`, d.wiki && d.wiki.url ? `<a href="${esc(d.wiki.url)}" target="_blank" rel="noopener">Wikipedia ↗</a>` : '',
     `<a href="https://letterboxd.com/imdb/${e.id}/" target="_blank" rel="noopener">Letterboxd ↗</a>`, `<a href="https://www.justwatch.com/it/cerca?q=${encodeURIComponent(title(e))}" target="_blank" rel="noopener">Dove vederlo (JustWatch) ↗</a>`].filter(Boolean).join('');
   $('online').innerHTML = (d.wiki ? `<div class="box"><h3>${EPISODES ? 'In breve' : 'In breve'}</h3><div class="in">${d.wiki.lang === 'en' ? trBlock('sumTr', d.wiki.text) : `<p class="plot">${esc(d.wiki.text)}</p>`}<p class="note">${d.wiki.url ? `<a href="${esc(d.wiki.url)}" target="_blank" rel="noopener" style="color:var(--chart)">Continua su Wikipedia ↗</a>, ` : ''}testo con licenza CC BY-SA.</p></div></div>` : '')
@@ -1318,6 +1330,7 @@ async function boot(){
   await ensureImdbIndex();
   if(!IMDB_INDEX){ BOOT_ERR = 'index'; V().innerHTML = '<div class="status"><h1>Indice non leggibile</h1><p>Il browser non riesce a leggere l\'indice: aggiorna Edge, Chrome o Safari all\'ultima versione.</p></div>'; return; }
   await Promise.all([ensureCritIndex(), loadCritica(), ensureCastIndex()]);
+  if(CAST_INDEX && CAST_INDEX.byActor) CAST_INDEX.byActor.forEach((ids, k)=>CAST_INDEX.byActor.set(k, [...new Set(ids)]));   // ogni film una volta sola per attore
   readOwn(); computeAll(); route(); tvLanding();
   fetchNovita().then(()=>{ if(!location.hash || location.hash === '#') viewHome(); else if(/^#lista\/(novita|nuove)/.test(location.hash)) route(); }).catch(()=>{});
   if('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
