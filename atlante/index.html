@@ -402,11 +402,15 @@ document.addEventListener('keydown', ev=>{
   if(dir){ if(typing && (dir === 'left' || dir === 'right')) return; ev.preventDefault(); tvMove(dir); return; }
   if((ev.key === 'Escape' || ev.key === 'GoBack' || ev.key === 'BrowserBack' || (ev.key === 'Backspace' && !typing)) && location.hash){ ev.preventDefault(); history.back(); }
 });
-function tvLanding(){   // ogni pagina nuova parte con la selezione sul primo contenuto
+function tvLanding(){   // ogni pagina nuova parte con la selezione sul primo contenuto: si aspetta che i film siano disegnati
   if(!TV) return;
-  setTimeout(()=>{ const v = document.getElementById('view'); if(!v) return;   // prima i film, poi il resto (i filtri si raggiungono con la freccia su)
-    const f = ['.tile', '.fr', '.rk a', '.genre, .person', '.btn, .marks a', 'select, input', 'a[href]'].map(q=>v.querySelector(q)).find(Boolean);
-    if(f){ f.focus({ preventScroll: true }); } window.scrollTo && window.scrollTo(0, 0); }, 60);
+  let tries = 0;
+  const go = () => { const v = document.getElementById('view'); if(!v) return;
+    const main = ['.tile', '.fr', '.rk a', '.genre, .person'].map(q=>v.querySelector(q)).find(Boolean);
+    if(!main && ++tries < 16){ setTimeout(go, 60); return; }   // l'elenco non è ancora pronto: si riprova (fino a circa un secondo)
+    const f = main || ['.btn, .marks a', 'select, input', 'a[href]'].map(q=>v.querySelector(q)).find(Boolean);
+    if(f) f.focus({ preventScroll: true }); window.scrollTo && window.scrollTo(0, 0); };
+  setTimeout(go, 60);
 }
 
 let _tT; function toast(m){ const el = $('toast'); el.textContent = m; el.classList.add('show'); clearTimeout(_tT); _tT = setTimeout(()=>el.classList.remove('show'), 3200); }
@@ -517,13 +521,23 @@ async function flushPosters(){
   try{
     const ids = [..._pq].slice(0, 40); ids.forEach(i=>_pq.delete(i));
     const todo = [];
-    for(const id of ids){ const c = await dget('p:' + id); if(c && Date.now() - c.at < (c.img ? 60 : 14) * 864e5){ WPOST.set(id, c.img); paintPoster(id); } else todo.push(id); }
+    for(const id of ids){ const c = await dget('p2:' + id); if(c && Date.now() - c.at < (c.img ? 60 : 14) * 864e5){ WPOST.set(id, c.img); paintPoster(id); } else todo.push(id); }
     if(todo.length && navigator.onLine !== false){
       const found = await wikiPosters(todo);
-      todo.forEach(id=>{ const u = found[id] || ''; WPOST.set(id, u); dset('p:' + id, { at: Date.now(), img: u }); paintPoster(id); });
+      todo.forEach(id=>{ const u = found[id] || ''; WPOST.set(id, u); dset('p2:' + id, { at: Date.now(), img: u }); paintPoster(id); });
     }
   }catch(e){}
   finally{ _pBusy = false; if(_pq.size) setTimeout(flushPosters, 300); }
+}
+const SEASON_POSTERS = false;   // nell'Atlante Serie TV: se la voce ha un logo, si cerca la locandina della stagione
+const portrait = t => t && t.source && t.width && t.height && t.height >= t.width * 1.2;   // le locandine sono verticali; loghi e schermate no
+async function pageImages(lang, titles){   // titolo → immagine verticale della voce di Wikipedia
+  const out = {}; if(!titles.length) return out;
+  const w = await jget(`https://${lang}.wikipedia.org/w/api.php?action=query&prop=pageimages&piprop=thumbnail&pithumbsize=500&pilicense=any&redirects=1&format=json&origin=*&titles=${encodeURIComponent(titles.join('|'))}`);
+  const qq = w.query || {}, alias = {}; (qq.normalized || []).concat(qq.redirects || []).forEach(n=>{ alias[n.from] = n.to; });
+  const img = {}; Object.values(qq.pages || {}).forEach(pg=>{ if(portrait(pg.thumbnail)) img[pg.title] = pg.thumbnail.source; });
+  titles.forEach(t0=>{ let t = t0; for(let k = 0; k < 3 && alias[t]; k++) t = alias[t]; if(img[t]) out[t0] = img[t]; });
+  return out;
 }
 async function wikiPosters(ids){
   const q = `SELECT ?imdb ?en ?it WHERE { VALUES ?imdb { ${ids.map(i=>'"' + i + '"').join(' ')} } ?f wdt:P345 ?imdb . `
@@ -534,10 +548,16 @@ async function wikiPosters(ids){
   const out = {};
   for(const lang of ['en', 'it']){
     const need = ids.filter(id=>!out[id] && T[id] && T[id][lang]); if(!need.length) continue;
-    const w = await jget(`https://${lang}.wikipedia.org/w/api.php?action=query&prop=pageimages&piprop=thumbnail&pithumbsize=500&pilicense=any&redirects=1&format=json&origin=*&titles=${encodeURIComponent(need.map(id=>T[id][lang]).join('|'))}`);
-    const qq = w.query || {}, alias = {}; (qq.normalized || []).concat(qq.redirects || []).forEach(n=>{ alias[n.from] = n.to; });
-    const img = {}; Object.values(qq.pages || {}).forEach(pg=>{ if(pg.thumbnail && pg.thumbnail.source) img[pg.title] = pg.thumbnail.source; });
-    need.forEach(id=>{ let t = T[id][lang]; for(let k = 0; k < 3 && alias[t]; k++) t = alias[t]; if(img[t]) out[id] = img[t]; });
+    const got = await pageImages(lang, need.map(id=>T[id][lang])); need.forEach(id=>{ if(got[T[id][lang]]) out[id] = got[T[id][lang]]; });
+  }
+  const rest = ids.filter(id=>!out[id]);
+  if(SEASON_POSTERS && rest.length){   // la voce della serie ha un logo: la locandina sta nella voce della prima (o seconda) stagione
+    const qs = `SELECT ?imdb ?ord ?en WHERE { VALUES ?imdb { ${rest.map(i=>'"' + i + '"').join(' ')} } ?s wdt:P345 ?imdb . ?season p:P179 ?st . ?st ps:P179 ?s ; pq:P1545 ?ord . FILTER(?ord IN ("1", "2")) `
+      + `?en schema:about ?season ; schema:isPartOf <https://en.wikipedia.org/> . }`;
+    try{ const js = await jget('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(qs)), S = {};
+      ((js.results && js.results.bindings) || []).sort((a, b)=>(a.ord.value > b.ord.value ? 1 : -1)).forEach(b=>{ const id = b.imdb.value; (S[id] = S[id] || []).push(tt(b.en.value)); });
+      const titles = [...new Set(Object.values(S).flat())], got = await pageImages('en', titles);
+      rest.forEach(id=>{ const hit = (S[id] || []).find(t=>got[t]); if(hit) out[id] = got[hit]; }); }catch(err){}
   }
   return out;
 }
