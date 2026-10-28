@@ -875,12 +875,26 @@ async function fetchPlot(id, sl){
   if(!out.text && sl && sl.en){ try{ const t = await wikiSection('en', sl.en, /^(plot|plot summary|synopsis|premise)$/i); if(t){ out.text = t; out.lang = 'en'; out.url = link('en', sl.en); } }catch(e){} }
   await dset(key, out); return out;
 }
+function premiseFrom(text){   // l'inizio della storia: al massimo due frasi del primo paragrafo (il finale sta sempre più avanti)
+  const par = String(text || '').split(/\n+/)[0].trim(); if(!par) return '';
+  const sent = par.match(/[^.!?]+[.!?]+(\s|$)/g) || [par]; let out = '';
+  for(const x of sent){ if(out && (out + x).length > 380) break; out += x; if(out.split(/[.!?]/).length > 2) break; }
+  out = out.trim(); if(out.length > 420) out = out.slice(0, 400).replace(/\s+\S*$/, '') + '…';
+  return out;
+}
 async function loadPlot(e, d){
-  if(!d || !d.sl || !$('online')) return;
-  const p = await fetchPlot(e.id, d.sl).catch(()=>null); if(!p || !p.text || !$('online') || $('plotBox')) return;
-  const html = `<div class="box" id="plotBox"><h3>La trama</h3><div class="in"><details id="plotDet"><summary class="btn" style="display:inline-flex; list-style:none">📖 Mostra la trama completa (racconta anche il finale)</summary><div id="plotTxt" style="margin-top:12px">${p.lang === 'it' ? `<p class="plot">${esc(p.text)}</p>` : trBlock('plotTr', p.text)}</div></details><p class="note"><a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:var(--chart)">Da Wikipedia${p.lang === 'en' ? ' in inglese' : ''} ↗</a>, testo con licenza CC BY-SA.</p></div></div>`;
+  if(!$('online')) return;
+  const [p, show] = await Promise.all([d && d.sl ? fetchPlot(e.id, d.sl).catch(()=>null) : null, EPISODES ? fetchShow(e.id).catch(()=>null) : null]);
+  if(!$('online') || $('plotBox')) return;
+  const tv = show && show.sum, pre = tv ? { t: show.sum, lang: 'en', src: 'TVmaze, sinossi senza anticipazioni' } : p && p.text ? { t: premiseFrom(p.text), lang: p.lang, src: 'l\'inizio della trama di Wikipedia, senza il finale' } : null;
+  if(!pre && !(p && p.text)) return;
+  const html = `<div class="box" id="plotBox"><h3>Di cosa parla</h3><div class="in">`
+    + (pre ? (pre.lang === 'it' ? `<p class="plot" id="premise">${esc(pre.t)}</p>` : trBlock('premTr', pre.t)) + `<p class="note">${tv ? 'Sinossi senza anticipazioni, da TVmaze.' : 'L\'inizio della storia, senza il finale.'}</p>` : '')
+    + (p && p.text ? `<details id="plotDet" style="margin-top:12px"><summary class="btn" style="display:inline-flex; list-style:none">📖 La trama completa (racconta anche il finale)</summary><div id="plotTxt" style="margin-top:12px">${p.lang === 'it' ? `<p class="plot">${esc(p.text)}</p>` : trBlock('plotTr', p.text)}</div></details><p class="note"><a href="${esc(p.url)}" target="_blank" rel="noopener" style="color:var(--chart)">Da Wikipedia${p.lang === 'en' ? ' in inglese' : ''} ↗</a>, testo con licenza CC BY-SA.</p>` : '')
+    + `</div></div>`;
   const story = $('online').querySelector('.box'); if(story) story.insertAdjacentHTML('afterend', html); else $('online').insertAdjacentHTML('afterbegin', html);
-  if(p.lang === 'en') $('plotDet').addEventListener('toggle', ()=>{ if($('plotDet').open && !$('plotDet').dataset.tr){ $('plotDet').dataset.tr = '1'; fillTr('plotTr', p.text); } });   // si traduce solo se la apri
+  if(pre && pre.lang === 'en') fillTr('premTr', pre.t);   // breve: si traduce subito
+  if(p && p.text && p.lang === 'en') $('plotDet').addEventListener('toggle', ()=>{ if($('plotDet').open && !$('plotDet').dataset.tr){ $('plotDet').dataset.tr = '1'; fillTr('plotTr', p.text); } });   // la trama completa solo se la apri
 }
 
 /* ---------- Scheda della serie: dati locali subito, Wikidata e Wikipedia quando c'è rete ---------- */
@@ -1133,14 +1147,14 @@ const TVM_NOTE = '<p class="note">Dati degli episodi: <a href="https://www.tvmaz
 const stripHTML = h => { const d = document.createElement('div'); d.innerHTML = String(h || ''); return (d.textContent || '').replace(/\s+/g, ' ').trim(); };
 const sxe = (s, n) => `${s}×${String(n).padStart(2, '0')}`;
 async function fetchShow(tt){
-  const e = imdbEntry(tt), key = 'tvm1:' + tt, c = await dget(key), ttl = (e && !e.y2 ? 7 : 60) * 864e5;
+  const e = imdbEntry(tt), key = 'tvm2:' + tt, c = await dget(key), ttl = (e && !e.y2 ? 7 : 60) * 864e5;
   if(c && Date.now() - c.at < ttl) return c; if(navigator.onLine === false) return c;
   const out = { at: Date.now() };
   let sh = null; try{ sh = await jget(`https://api.tvmaze.com/lookup/shows?imdb=${tt}`); }catch(err){}
   if(!sh || !sh.id){ await dset(key, out); return out; }
   const full = await jget(`https://api.tvmaze.com/shows/${sh.id}?embed[]=seasons&embed[]=episodes`), em = full._embedded || {};
   const img = x => x && (x.original || x.medium) || '';
-  out.id = sh.id; out.url = full.url || sh.url || '';
+  out.id = sh.id; out.url = full.url || sh.url || ''; out.sum = stripHTML(full.summary);   // la premessa della serie, scritta senza anticipazioni
   out.seasons = (em.seasons || []).filter(s=>s.number > 0).map(s=>({ n: s.number, eps: s.episodeOrder || 0, prem: s.premiereDate || '', end: s.endDate || '', img: img(s.image), url: s.url || '' }));
   out.eps = (em.episodes || []).filter(x=>x.season > 0 && x.number).map(x=>({ s: x.season, n: x.number, t: x.name || '', d: x.airdate || '', rt: x.runtime || 0, r: x.rating && x.rating.average || 0, img: img(x.image), sum: stripHTML(x.summary), url: x.url || '' }));
   out.seasons.forEach(s=>{ if(!s.eps) s.eps = out.eps.filter(x=>x.s === s.n).length; });
@@ -1194,8 +1208,8 @@ function viewTools(){
 
     + st(true, ['Locandine', 'da Wikipedia, cercate mentre sfogli e salvate sul dispositivo'])
     + st(!!CRITICA, ['Critica', CRITICA ? `del ${CRITICA.built}: ${Object.keys(CRITICA.rt).length.toLocaleString('it-IT')} serie con Rotten Tomatoes, ${Object.keys(CRITICA.mc).length.toLocaleString('it-IT')} con Metacritic` : 'non ancora creato: segui la guida qui sotto'])
-    + `</dl><p class="note">Tutti gli indici si aggiornano da soli ogni mese. <a href="../" style="color:var(--chart)">Apri la Videoteca</a>, <a href="../atlante/" style="color:var(--chart)">Apri l'Atlante del Cinema</a>${CRIT ? '<br>Le locandine sono immagini di TMDB, raccolte dalle schede di filmcriticoni.it.' : ''}</p></div></div>`
-    + `<div class="box"><h3>Attiva l'indice della critica (una volta sola)</h3><div class="in"><p>Serve per i capolavori con Rotten Tomatoes e Metacritic. Lo crea un'automazione su GitHub il 15 di ogni mese.</p><p class="note"><b>Hai caricato il pacchetto completo?</b> Allora lo script (tools/aggiorna_critica.py) e l'automazione (.github/workflows/aggiorna-critica.yml) sono già nel repository: passa direttamente al punto 3. Se l'automazione si ferma, l'ultima riga del riepilogo dice il perché.</p>`
+    + `</dl><p class="note">Tutti gli indici si aggiornano da soli ogni notte alle 2 (ora di Roma). <a href="../" style="color:var(--chart)">Apri la Videoteca</a>, <a href="../atlante/" style="color:var(--chart)">Apri l'Atlante del Cinema</a>${CRIT ? '<br>Le locandine sono immagini di TMDB, raccolte dalle schede di filmcriticoni.it.' : ''}</p></div></div>`
+    + `<div class="box"><h3>Attiva l'indice della critica (una volta sola)</h3><div class="in"><p>Serve per i capolavori con Rotten Tomatoes e Metacritic. Si aggiorna ogni notte alle 2 (ora di Roma) con l'automazione \"Aggiornamento notturno\".</p><p class="note"><b>Hai caricato il pacchetto completo?</b> Allora lo script (tools/aggiorna_critica.py) e l'automazione (.github/workflows/aggiorna-critica.yml) sono già nel repository: passa direttamente al punto 3. Se l'automazione si ferma, l'ultima riga del riepilogo dice il perché.</p>`
     + (base ? `<ol style="line-height:1.8"><li><b>Lo script:</b> <button class="btn" type="button" data-copy="s">📋 Copia lo script</button> poi <a class="btn" target="_blank" rel="noopener" href="${esc(base + '/new/main?filename=' + encodeURIComponent('tools/aggiorna_critica.py'))}">Crea il file ↗</a>, incolla e premi "Commit changes".</li>`
       + `<li><b>L'automazione:</b> <a class="btn" target="_blank" rel="noopener" href="${esc(base + '/new/main?filename=' + encodeURIComponent('.github/workflows/aggiorna-critica.yml') + '&value=' + encodeURIComponent(CRITICA_WORKFLOW_TEXT))}">Crea l'automazione ↗</a> e premi "Commit changes".</li>`
       + `<li><b>Il primo aggiornamento:</b> <a class="btn" target="_blank" rel="noopener" href="${esc(base + '/actions/workflows/aggiorna-critica.yml')}">Apri GitHub Actions ↗</a> → "Run workflow". Dopo 10-20 minuti, riapri l'Atlante.</li></ol>`
