@@ -2,7 +2,7 @@
    - L'app: prima la rete, copia salvata se offline.
    - Gli indici della Videoteca (../index.html, ../data/*.gz): copia salvata subito, aggiornata in sottofondo.
    - Locandine: copia salvata (massimo 300). Wikidata, Wikipedia, YouTube: sempre rete. */
-const VERSION = 'atlante-1.2';
+const VERSION = 'atlante-1.3';
 const SHELL = VERSION + '-shell', DATA = 'atlante-dati', IMG = 'atlante-locandine';
 const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './fonts/inter-var.woff2'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(SHELL).then(c => c.addAll(SHELL_FILES)).then(() => self.skipWaiting())); });
@@ -10,7 +10,7 @@ self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Pr
 self.addEventListener('fetch', e => {
   const req = e.request; if(req.method !== 'GET') return;
   const url = new URL(req.url);
-  if(/(^|\.)wikidata\.org$|(^|\.)wikipedia\.org$|youtube|filmcriticoni/.test(url.hostname)) return;
+  if(/(^|\.)wikidata\.org$|(^|\.)wikipedia\.org$|youtube|filmcriticoni|api\.tvmaze\.com/.test(url.hostname)) return;
   if(url.origin === self.location.origin){
     const inApp = url.pathname.includes('/atlante/');
     if(inApp && (req.mode === 'navigate' || /\/atlante\/(index\.html)?$/.test(url.pathname))){
@@ -27,7 +27,7 @@ self.addEventListener('fetch', e => {
     e.respondWith(caches.match(req).then(hit => hit || fetch(req)));
     return;
   }
-  if(req.destination === 'image' && /upload\.wikimedia\.org|image\.tmdb\.org/.test(url.hostname)){
+  if(req.destination === 'image' && /upload\.wikimedia\.org|image\.tmdb\.org|static\.tvmaze\.com/.test(url.hostname)){
     e.respondWith(caches.open(IMG).then(c => c.match(req).then(hit => hit || fetch(req).then(async r => { if(r && (r.ok || r.type === 'opaque')){ c.put(req, r.clone()); const ks = await c.keys(); for(let i = 0; i < ks.length - 800; i++) c.delete(ks[i]); } return r; }))));
   }
 });
