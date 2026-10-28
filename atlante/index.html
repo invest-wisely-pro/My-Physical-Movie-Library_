@@ -118,6 +118,12 @@ h2.sec a.more{font-family:var(--ui); font-size:13px; font-weight:600; color:var(
 .tile .mp{color:var(--amber2);}
 .tile:hover{border-color:var(--chart);}
 .tile .tp{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;}
+.tl-bg{position:absolute; inset:-14%; background:center/cover no-repeat; filter:blur(18px) brightness(.5) saturate(1.25); z-index:0;}   /* logo o schermata: intera, su sfondo sfocato di se stessa */
+.tile .tl, .poster .tl{position:absolute; left:7%; top:50%; transform:translateY(-50%); width:86%; height:auto; max-height:72%; object-fit:contain; z-index:0; filter:drop-shadow(0 8px 20px rgba(0,0,0,.55));}
+.tile.has-l > span:first-of-type{visibility:hidden;} .tile.has-l::after{height:30%; background:linear-gradient(180deg, transparent, rgba(0,0,0,.75));}
+.poster.has-l .tt{display:none;} .fr .th.thl{object-fit:contain; background:#000;}
+.nv{color:var(--amber2); font-weight:650;}
+html.tv .tl-bg{filter:brightness(.42); inset:0;}
 .tile.has-p > span:first-of-type{visibility:hidden;}   /* la locandina ha già il titolo */
 .tile.has-p::after{height:30%; background:linear-gradient(180deg, transparent, rgba(0,0,0,.75));}
 .tiles{display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:12px;}
@@ -521,22 +527,23 @@ async function flushPosters(){
   try{
     const ids = [..._pq].slice(0, 40); ids.forEach(i=>_pq.delete(i));
     const todo = [];
-    for(const id of ids){ const c = await dget('p2:' + id); if(c && Date.now() - c.at < (c.img ? 60 : 14) * 864e5){ WPOST.set(id, c.img); paintPoster(id); } else todo.push(id); }
+    for(const id of ids){ const c = await dget('p3:' + id); if(c && Date.now() - c.at < (c.img ? 60 : 14) * 864e5){ WPOST.set(id, c.img); paintPoster(id); } else todo.push(id); }
     if(todo.length && navigator.onLine !== false){
       const found = await wikiPosters(todo);
-      todo.forEach(id=>{ const u = found[id] || ''; WPOST.set(id, u); dset('p2:' + id, { at: Date.now(), img: u }); paintPoster(id); });
+      todo.forEach(id=>{ const u = found[id] || ''; WPOST.set(id, u); dset('p3:' + id, { at: Date.now(), img: u }); paintPoster(id); });
     }
   }catch(e){}
   finally{ _pBusy = false; if(_pq.size) setTimeout(flushPosters, 300); }
 }
 const SEASON_POSTERS = false;   // nell'Atlante Serie TV: se la voce ha un logo, si cerca la locandina della stagione
+const LAND = {};   // titolo → immagine orizzontale (logo o schermata), usata solo se manca la locandina
 const portrait = t => t && t.source && t.width && t.height && t.height >= t.width * 1.2;   // le locandine sono verticali; loghi e schermate no
 async function pageImages(lang, titles){   // titolo → immagine verticale della voce di Wikipedia
   const out = {}; if(!titles.length) return out;
   const w = await jget(`https://${lang}.wikipedia.org/w/api.php?action=query&prop=pageimages&piprop=thumbnail&pithumbsize=500&pilicense=any&redirects=1&format=json&origin=*&titles=${encodeURIComponent(titles.join('|'))}`);
   const qq = w.query || {}, alias = {}; (qq.normalized || []).concat(qq.redirects || []).forEach(n=>{ alias[n.from] = n.to; });
-  const img = {}; Object.values(qq.pages || {}).forEach(pg=>{ if(portrait(pg.thumbnail)) img[pg.title] = pg.thumbnail.source; });
-  titles.forEach(t0=>{ let t = t0; for(let k = 0; k < 3 && alias[t]; k++) t = alias[t]; if(img[t]) out[t0] = img[t]; });
+  const img = {}, land = {}; Object.values(qq.pages || {}).forEach(pg=>{ const t = pg.thumbnail; if(!t || !t.source) return; if(portrait(t)) img[pg.title] = t.source; else land[pg.title] = t.source; });
+  titles.forEach(t0=>{ let t = t0; for(let k = 0; k < 3 && alias[t]; k++) t = alias[t]; if(img[t]) out[t0] = img[t]; else if(land[t]) LAND[t0] = land[t]; });   // le orizzontali si tengono da parte
   return out;
 }
 async function wikiPosters(ids){
@@ -559,12 +566,17 @@ async function wikiPosters(ids){
       const titles = [...new Set(Object.values(S).flat())], got = await pageImages('en', titles);
       rest.forEach(id=>{ const hit = (S[id] || []).find(t=>got[t]); if(hit) out[id] = got[hit]; }); }catch(err){}
   }
+  ids.forEach(id=>{ if(!out[id] && T[id]){ const l = LAND[T[id].en] || LAND[T[id].it]; if(l) out[id] = 'L:' + l; } });   // niente locandina: il logo, intero
   return out;
 }
+const isL = u => typeof u === 'string' && u.startsWith('L:'), unL = u => isL(u) ? u.slice(2) : u;
+const landHTML = u => `<span class="tl-bg" style="background-image:url('${esc(unL(u))}')"></span><img class="tl" src="${esc(unL(u))}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-l'); this.remove()">`;
 function paintPoster(id){
   const u = WPOST.get(id);
   document.querySelectorAll(`[data-pid="${id}"]`).forEach(el=>{ el.removeAttribute('data-pid'); if(!u) return;
-    if(el.classList.contains('tile')){ el.insertAdjacentHTML('afterbegin', `<img class="tp" src="${esc(u)}" alt="" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-p'); this.remove()">`); el.classList.add('has-p'); }
+    if(isL(u) && (el.classList.contains('tile') || el.classList.contains('poster'))){ if(!el.querySelector('img')){ el.insertAdjacentHTML('afterbegin', landHTML(u)); el.classList.add('has-l'); } }
+    else if(isL(u)){ const th = el.querySelector('.th'); if(th) th.outerHTML = `<img class="th thl" src="${esc(unL(u))}" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">`; }
+    else if(el.classList.contains('tile')){ el.insertAdjacentHTML('afterbegin', `<img class="tp" src="${esc(u)}" alt="" referrerpolicy="no-referrer" onerror="this.parentElement.classList.remove('has-p'); this.remove()">`); el.classList.add('has-p'); }
     else if(el.classList.contains('poster')){ if(!el.querySelector('img')) el.insertAdjacentHTML('afterbegin', `<img src="${esc(u)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">`); }
     else { const th = el.querySelector('.th'); if(th) th.outerHTML = `<img class="th" src="${esc(u)}" alt="" referrerpolicy="no-referrer" onerror="this.style.visibility='hidden'">`; } });
 }
@@ -626,6 +638,42 @@ function renderPersonOnline(name, d){
   if(d.wiki) $('pbio').innerHTML = `<div class="box"><h3>Biografia</h3><div class="in"><p class="plot">${esc(d.wiki.text)}</p><p class="note">${d.wiki.url ? `<a href="${esc(d.wiki.url)}" target="_blank" rel="noopener" style="color:var(--chart)">Continua su Wikipedia ↗</a>, ` : ''}testo con licenza CC BY-SA.</p></div></div>`;
 }
 
+/* ---------- 🆕 Novità: date di uscita da Wikidata (in Italia quando c'è) ---------- */
+const NOVITA_TITLE = '🆕 Le ultime uscite', NEW_SEASONS = false;
+let NOVITA = null, SEASONS_NEW = [], SEASON_BY = new Map();
+const today = () => new Date().toISOString().slice(0, 10);
+function novitaBase(){ const y = new Date().getFullYear(); return BY_V.filter(e=>(parseInt(e.y, 10) || 0) >= y - 1 && e.v >= 1500); }
+function novitaList(){
+  const base = novitaBase(), t = today(), d = e => (NOVITA && NOVITA.get(e.id)) || '';
+  return base.slice().sort((a, b)=>{ const da = d(a), db = d(b), ra = da && da <= t, rb = db && db <= t;
+    if(ra !== rb) return ra ? -1 : 1; if(ra && rb && da !== db) return da < db ? 1 : -1;
+    return (parseInt(b.y, 10) - parseInt(a.y, 10)) || b.v - a.v; });
+}
+async function fetchNovita(){
+  const c = await dget('novita2');
+  if(c && Date.now() - c.at < 864e5){ NOVITA = new Map(c.dates); SEASONS_NEW = (c.seasons || []).map(x=>Object.assign({}, x, { e: imdbEntry(x.id) })).filter(x=>x.e); SEASON_BY = new Map(SEASONS_NEW.map(x=>[x.id, x])); return; }
+  if(navigator.onLine === false) return;
+  const cand = novitaBase().slice(0, 150).map(e=>e.id), dates = new Map();
+  if(cand.length){ try{
+    const q = `SELECT ?imdb ?d ?pl WHERE { VALUES ?imdb { ${cand.map(i=>'"' + i + '"').join(' ')} } ?f wdt:P345 ?imdb . { ?f p:P577 ?st . ?st ps:P577 ?d . OPTIONAL { ?st pq:P291 ?pl } } UNION { ?f wdt:P580 ?d } }`;
+    const j = await jget('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q)), it = new Map(), any = new Map();
+    ((j.results && j.results.bindings) || []).forEach(b=>{ const id = b.imdb.value, dd = (b.d.value || '').slice(0, 10); if(!/^\d{4}-\d\d-\d\d$/.test(dd)) return;
+      const isIt = b.pl && /Q38$/.test(b.pl.value); const m = isIt ? it : any; if(!m.has(id) || dd < m.get(id)) m.set(id, dd); });
+    cand.forEach(id=>{ const dd = it.get(id) || any.get(id); if(dd) dates.set(id, dd); });   // la data italiana se c'è, altrimenti la prima uscita
+  }catch(e){} }
+  let seasons = [];
+  if(NEW_SEASONS){ try{
+    const since = new Date(Date.now() - 120 * 864e5).toISOString().slice(0, 10);
+    const qs = `SELECT ?imdb ?ord ?d WHERE { ?season p:P179 ?st . ?st ps:P179 ?s ; pq:P1545 ?ord . ?season wdt:P580 ?d . FILTER(?d >= "${since}T00:00:00Z"^^xsd:dateTime && ?d <= NOW()) ?s wdt:P345 ?imdb . }`;
+    const js = await jget('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(qs)), best = new Map();
+    ((js.results && js.results.bindings) || []).forEach(b=>{ const id = b.imdb.value, dd = (b.d.value || '').slice(0, 10), o = parseInt(b.ord.value, 10) || 0; if(!imdbEntry(id)) return;
+      const cur = best.get(id); if(!cur || dd > cur.d) best.set(id, { id, ord: o, d: dd }); });
+    seasons = [...best.values()].sort((a, b)=>a.d < b.d ? 1 : -1);
+  }catch(e){} }
+  NOVITA = dates; SEASONS_NEW = seasons.map(x=>Object.assign({}, x, { e: imdbEntry(x.id) })); SEASON_BY = new Map(SEASONS_NEW.map(x=>[x.id, x]));
+  dset('novita2', { at: Date.now(), dates: [...dates.entries()], seasons });
+}
+
 /* ---------- Le tue liste ---------- */
 const LKEY = 'atlante-liste';
 let LISTE = (()=>{ try{ return JSON.parse(localStorage.getItem(LKEY) || '{}') || {}; }catch(e){ return {}; } })();
@@ -646,11 +694,13 @@ function badges(e){
   return `<span class="badges">${b.join('')}</span>`;
 }
 function row(e){
-  enrich(e); const p = posterUrl(e, 'w92') || WPOST.get(e.id) || '';
-  return `<a class="fr" href="#film/${e.id}"${p || WPOST.has(e.id) ? '' : ` data-pid="${e.id}"`}><span class="sc ${e._mp ? 'mp' : ''}">${fmtR(e._R)}<small>${fmtV(e.v)}</small></span>${p ? `<img class="th" src="${esc(p)}" alt="" loading="lazy"${chk(p, e.id)} onerror="this.style.visibility='hidden'">` : '<span class="th"></span>'}<span style="min-width:0"><b>${esc(title(e))}</b>${e.en && e.en !== e.it ? ` <em>${esc(e.en)}</em>` : ''}`
-    + `<span class="sub">${[e.y ? esc(e.y) : '', dirs(e).map(n=>goDir(n)).join(', '), genres(e).slice(0, 3).map(goGen).join(', '), e.r ? esc(e.r + ' min') : ''].filter(Boolean).join(', ')}</span></span>${badges(e)}</a>`;
+  enrich(e); const p0 = posterUrl(e, 'w92') || WPOST.get(e.id) || '', p = isL(p0) ? '' : p0, pl = isL(p0) ? unL(p0) : '';
+  return `<a class="fr" href="#film/${e.id}"${p || WPOST.has(e.id) ? '' : ` data-pid="${e.id}"`}><span class="sc ${e._mp ? 'mp' : ''}">${fmtR(e._R)}<small>${fmtV(e.v)}</small></span>${p ? `<img class="th" src="${esc(p)}" alt="" loading="lazy"${chk(p, e.id)} onerror="this.style.visibility='hidden'">` : pl ? `<img class="th thl" src="${esc(pl)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : '<span class="th"></span>'}<span style="min-width:0"><b>${esc(title(e))}</b>${e.en && e.en !== e.it ? ` <em>${esc(e.en)}</em>` : ''}`
+    + `<span class="sub">${SEASON_BY.get(e.id) ? `<b class="nv">Stagione ${SEASON_BY.get(e.id).ord} dal ${esc(fmtD(SEASON_BY.get(e.id).d))}</b>, ` : NOVITA && NOVITA.get(e.id) && (parseInt(e.y, 10) || 0) >= new Date().getFullYear() - 1 ? `<b class="nv">uscita: ${esc(fmtD(NOVITA.get(e.id)))}</b>, ` : ''}${[e.y ? esc(e.y) : '', dirs(e).map(n=>goDir(n)).join(', '), genres(e).slice(0, 3).map(goGen).join(', '), e.r ? esc(e.r + ' min') : ''].filter(Boolean).join(', ')}</span></span>${badges(e)}</a>`;
 }
-function tile(e){ enrich(e); const p = posterUrl(e, 'w342') || WPOST.get(e.id) || ''; return `<a class="tile${p ? ' has-p' : ''}" href="#film/${e.id}"${p || WPOST.has(e.id) ? '' : ` data-pid="${e.id}"`} style="--tilebg:${tileBg(e)}" aria-label="${esc(title(e) + (e.y ? ', ' + e.y : ''))}">${p ? `<img class="tp" src="${esc(p)}" alt="" loading="lazy"${chk(p, e.id)} onerror="this.parentElement.classList.remove('has-p'); this.remove()">` : ''}<span><span class="tt">${esc(title(e))}</span><span class="ty">${[e.y ? esc(e.y) : '', dirs(e).map(n=>goDir(n)).join(', ')].filter(Boolean).join(', ')}</span></span><span class="tb"><span class="${e._mp ? 'mp' : ''}">${e._mp ? '✦ ' : ''}${fmtR(e._R)}</span><span>${OWN.has(e.id) ? '✓' : ''}</span></span></a>`; }
+function tile(e){ enrich(e); const p0 = posterUrl(e, 'w342') || WPOST.get(e.id) || '';
+  if(isL(p0)) return `<a class="tile has-l" href="#film/${e.id}" style="--tilebg:${tileBg(e)}" aria-label="${esc(title(e) + (e.y ? ', ' + e.y : ''))}">${landHTML(p0)}<span><span class="tt">${esc(title(e))}</span></span><span class="tb"><span class="${e._mp ? 'mp' : ''}">${e._mp ? '✦ ' : ''}${fmtR(e._R)}</span><span>${OWN.has(e.id) ? '✓' : ''}</span></span></a>`;
+  const p = p0; return `<a class="tile${p ? ' has-p' : ''}" href="#film/${e.id}"${p || WPOST.has(e.id) ? '' : ` data-pid="${e.id}"`} style="--tilebg:${tileBg(e)}" aria-label="${esc(title(e) + (e.y ? ', ' + e.y : ''))}">${p ? `<img class="tp" src="${esc(p)}" alt="" loading="lazy"${chk(p, e.id)} onerror="this.parentElement.classList.remove('has-p'); this.remove()">` : ''}<span><span class="tt">${esc(title(e))}</span><span class="ty">${[e.y ? esc(e.y) : '', dirs(e).map(n=>goDir(n)).join(', ')].filter(Boolean).join(', ')}</span></span><span class="tb"><span class="${e._mp ? 'mp' : ''}">${e._mp ? '✦ ' : ''}${fmtR(e._R)}</span><span>${OWN.has(e.id) ? '✓' : ''}</span></span></a>`; }
 function paged(id, items, render, size){   // elenchi lunghi a pagine
   size = size || 60; let n = size;
   const draw = () => { const el = $(id); if(!el) return; el.innerHTML = items.slice(0, n).map(render).join('') || '<p class="note">Nessun film.</p>';
@@ -679,6 +729,8 @@ function viewHome(){
   V().innerHTML = `<h1 class="pg">Atlante del Cinema</h1><p class="lead">${ALL.length.toLocaleString('it-IT')} film da esplorare per decennio, genere, regista e attore${CRITICA ? ', con i voti della critica' : ''}${CRIT ? ' e i giudizi di Frusciante e dei Criticoni' : ''}.</p>`
     + `<div class="ruler" aria-label="Film per decennio">${ds.map(([d, l])=>`<a href="#decennio/${d}" aria-label="Anni ${d}: ${l.length} film"><span class="ct">${l.length >= 1000 ? Math.round(l.length / 100) / 10 + 'k' : l.length}</span><span class="bar" style="height:${Math.max(3, l.length / max * 100)}%"></span><span class="yr">${String(d).slice(2)}</span></a>`).join('')}</div>`
     + `<div style="display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 4px"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button></div>`
+    + (()=>{ const l = novitaList().slice(0, 14); return l.length ? `<h2 class="sec">${esc(NOVITA_TITLE)} <a class="more" href="#lista/novita">Vedi tutte</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; })()
+    + (NEW_SEASONS && SEASONS_NEW.length ? `<h2 class="sec">📡 Nuove stagioni <a class="more" href="#lista/nuove">Vedi tutte</a></h2><div class="strip">${SEASONS_NEW.slice(0, 14).map(x=>tile(x.e)).join('')}</div>` : '')
     + `<h2 class="sec">✦ Capolavori assoluti <a class="more" href="#lista/capolavori">Tutti i ${MASTER.length.toLocaleString('it-IT')}</a></h2><div class="strip">${MASTER.slice(0, 14).map(tile).join('')}</div>`
     + `<h2 class="sec">I più famosi <a class="more" href="#lista/famosi">Vedi tutti</a></h2><div class="strip">${BY_V.slice(0, 14).map(tile).join('')}</div>`
     + CLS.filter(c=>c.pin && c.items.length).map(c=>{ const fs = c.items.map(imdbEntry).filter(Boolean), seen = fs.filter(e=>has(e.id, 'v')).length;
@@ -695,6 +747,7 @@ function surprise(){
   for(const e of pool){ r -= Math.log10(e.v); if(r <= 0){ location.hash = '#film/' + e.id; return; } } location.hash = '#film/' + pool[0].id;
 }
 const LISTS = {
+  novita: [NOVITA_TITLE, () => novitaList(), 'nessuno', 'Le uscite dell\'anno in corso e del precedente, dalla più recente: la data è quella di uscita in Italia quando Wikidata la conosce.'],
   capolavori: ['✦ Capolavori assoluti', () => MASTER, 'punteggio', 'Film amati da pubblico e critica, con la spinta dei giudizi di Frusciante e dei Criticoni. Sotto ogni titolo, nella sua scheda, trovi il perché.'],
   famosi: ['I più famosi', () => BY_V, 'fama', 'I film con più voti su IMDb: quelli che quasi tutti hanno visto.'],
   votati: ['I più apprezzati', () => BY_BR, 'voto', 'Voto alto e tanti voti insieme: un film con pochi voti, anche se tutti da 10, non scavalca i grandi classici.'],
@@ -802,11 +855,11 @@ const WDP = { P161: 'interpreti', P57: 'regia', P58: 'sceneggiatura', P86: 'musi
 const WDP_PEOPLE = ['P58', 'P86', 'P344', 'P1040', 'P2554', 'P2515', 'P162'];
 const CUR = { Q4917: '$', Q4916: '€', Q25224: '£', Q8146: '¥', Q123213: 'lire' };
 async function fetchDetails(id){
-  const c = await dget('v3:' + id); if(c && Date.now() - c.at < 30 * 864e5) return c;
+  const c = await dget('v4:' + id); if(c && Date.now() - c.at < 30 * 864e5) return c;
   if(navigator.onLine === false) return c;
   const out = { at: Date.now() };
   const s = await jget(`https://www.wikidata.org/w/api.php?action=query&list=search&srsearch=haswbstatement:P345=${id}&srlimit=1&format=json&origin=*`);
-  const qid = s && s.query && s.query.search && s.query.search[0] && s.query.search[0].title; if(!qid){ await dset('v3:' + id, out); return out; }
+  const qid = s && s.query && s.query.search && s.query.search[0] && s.query.search[0].title; if(!qid){ await dset('v4:' + id, out); return out; }
   out.qid = qid;
   const ej = await jget(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${qid}&props=claims|sitelinks&format=json&origin=*`), e = ej.entities[qid] || {};
   const vals = p => ((e.claims || {})[p] || []).map(c=>c.mainsnak && c.mainsnak.datavalue && c.mainsnak.datavalue.value).filter(Boolean);
@@ -830,8 +883,8 @@ async function fetchDetails(id){
   const dur = vals('P2047')[0]; if(dur && dur.amount) out.min = Math.round(Math.abs(parseFloat(dur.amount)) * (/Q7727$/.test(dur.unit) ? 1 : /Q11574$/.test(dur.unit) ? 1 / 60 : 1));
   for(const k of ['itwiki', 'enwiki']){ const sl = e.sitelinks && e.sitelinks[k]; if(!sl) continue;
     try{ const w = await jget(`https://${k.slice(0, 2)}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(sl.title.replace(/ /g, '_'))}`);
-      if(w && w.extract){ out.wiki = { lang: k.slice(0, 2), text: w.extract, url: (w.content_urls && w.content_urls.desktop && w.content_urls.desktop.page) || '' }; out.img = (w.originalimage && w.originalimage.source) || (w.thumbnail && w.thumbnail.source) || ''; break; } }catch(err){} }
-  await dset('v3:' + id, out); return out;
+      if(w && w.extract){ out.wiki = { lang: k.slice(0, 2), text: w.extract, url: (w.content_urls && w.content_urls.desktop && w.content_urls.desktop.page) || '' }; out.img = (w.originalimage && w.originalimage.source) || (w.thumbnail && w.thumbnail.source) || ''; { const oi = w.originalimage || w.thumbnail || {}; out.imgL = !!(oi.width && oi.height && oi.height < oi.width * 1.2); } break; } }catch(err){} }
+  await dset('v4:' + id, out); return out;
 }
 function critBoxHTML(e){
   if(!CRIT) return '';
@@ -849,7 +902,7 @@ function viewFilm(id){
   const cast = CAST_INDEX ? castOfFilm(id) : [], my = (LISTE[id] && LISTE[id].r) || 0;
   const q = encodeURIComponent(`${title(e)} ${e.y || ''} trailer italiano`);
   V().innerHTML = `<p class="crumbs"><a href="javascript:history.back()">← Indietro</a></p>`
-    + `<div class="film-head"><div class="poster" id="poster" style="--tilebg:${tileBg(e)}">${(posterUrl(e, 'w500') || WPOST.get(e.id)) ? `<img src="${esc(posterUrl(e, 'w500') || WPOST.get(e.id))}" alt="Locandina di ${esc(title(e))}" referrerpolicy="no-referrer"${chk(posterUrl(e, 'w500'), e.id)} onerror="this.remove()">` : ''}<span class="tt">${esc(title(e))}</span></div><div style="min-width:0">`
+    + `<div class="film-head"><div class="poster${isL(WPOST.get(e.id)) && !posterUrl(e, 'w500') ? ' has-l' : ''}" id="poster" style="--tilebg:${tileBg(e)}">${isL(WPOST.get(e.id)) && !posterUrl(e, 'w500') ? landHTML(WPOST.get(e.id)) : ''}${(posterUrl(e, 'w500') || (WPOST.get(e.id) && !isL(WPOST.get(e.id)))) ? `<img src="${esc(posterUrl(e, 'w500') || WPOST.get(e.id))}" alt="Locandina di ${esc(title(e))}" referrerpolicy="no-referrer"${chk(posterUrl(e, 'w500'), e.id)} onerror="this.remove()">` : ''}<span class="tt">${esc(title(e))}</span></div><div style="min-width:0">`
     + `<h1 class="pg">${esc(title(e))}</h1>${e.en && e.en !== e.it ? `<p class="orig">${esc(e.en)}</p>` : ''}`
     + `<div class="facts">${e.y ? `<a href="#decennio/${decade(e)}">${esc(e.y)}</a>` : ''}${String(e.dir || '').split(/\s*,\s*/).filter(Boolean).map(n=>`<a href="#regista/${encodeURIComponent(n)}">${esc(n)}</a>`).join(', ')}${genres(e).map(g=>`<a href="#genere/${encodeURIComponent(g)}">${esc(g)}</a>`).join('')}<span id="dur"></span></div>`
     + `<div class="scores"><div class="score"><b>${fmtR(e._R)}</b><span>IMDb, ${fmtV(e.v)} voti</span></div>${e._rt != null ? `<div class="score"><b>${e._rt}%</b><span>Rotten Tomatoes</span></div>` : ''}${e._mc != null ? `<div class="score"><b>${e._mc}</b><span>Metacritic</span></div>` : ''}`
@@ -868,7 +921,8 @@ function viewFilm(id){
 }
 function renderOnline(e, d){
   if(!d || !d.qid){ $('online').innerHTML = '<p class="note">Su Wikidata non ci sono altre notizie su questo film.</p>'; return; }
-  if(d.img && !$('poster').querySelector('img')) $('poster').insertAdjacentHTML('afterbegin', `<img src="${esc(d.img)}" alt="Locandina di ${esc(title(e))}" referrerpolicy="no-referrer" onerror="this.remove()">`);
+  if(d.img && d.imgL && !$('poster').querySelector('img')){ $('poster').insertAdjacentHTML('afterbegin', landHTML('L:' + d.img)); $('poster').classList.add('has-l'); }
+  else if(d.img && !$('poster').querySelector('img')) $('poster').insertAdjacentHTML('afterbegin', `<img src="${esc(d.img)}" alt="Locandina di ${esc(title(e))}" referrerpolicy="no-referrer" onerror="this.remove()">`);
   if(d.min) $('dur').textContent = d.min + ' minuti';
 const link = (x, p) => x.tt && imdbEntry(x.tt) ? `<a href="#film/${x.tt}">${esc(x.l)}</a>` : WDP_PEOPLE.includes(p) ? goPerson(x.l) : esc(x.l);
   const kv = Object.entries(WDP).filter(([p])=>p !== 'P57' && p !== 'P161' && d.f[p] && d.f[p].length).map(([p, l])=>{ const list = d.f[p], tot = p === 'P166' ? d.nAw : p === 'P1411' ? d.nNom : list.length;
@@ -1095,6 +1149,7 @@ async function boot(){
   if(!IMDB_INDEX){ BOOT_ERR = 'index'; V().innerHTML = '<div class="status"><h1>Indice non leggibile</h1><p>Il browser non riesce a leggere l\'indice: aggiorna Edge, Chrome o Safari all\'ultima versione.</p></div>'; return; }
   await Promise.all([ensureCritIndex(), loadCritica(), ensureCastIndex()]);
   readOwn(); computeAll(); route(); tvLanding();
+  fetchNovita().then(()=>{ if(!location.hash || location.hash === '#') viewHome(); else if(/^#lista\/(novita|nuove)/.test(location.hash)) route(); }).catch(()=>{});
   if('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
   window.__ready = true;
 }
