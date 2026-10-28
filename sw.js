@@ -4,7 +4,7 @@
    - Librerie (cdnjs), font e icone: prima la copia salvata, poi la rete.
    - Locandine: copia salvata (massimo 400, le più vecchie si eliminano).
    - Wikidata / Wikipedia / proxy: sempre rete (i dati li gestisce l'app). */
-const VERSION = 'mpml-2026-10-27d';
+const VERSION = 'mpml-2026-10-27e';
 const SHELL = VERSION + '-shell', IMG = 'mpml-locandine';
 const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
 const IMG_MAX = 400;
@@ -25,7 +25,7 @@ self.addEventListener('fetch', e => {
   const req = e.request;
   if(req.method !== 'GET') return;
   const url = new URL(req.url);
-  if(url.origin === self.location.origin && url.pathname.includes('/atlante/')) return;   // l'Atlante ha il suo service worker: la Videoteca non tocca le sue pagine
+  if(url.origin === self.location.origin && (url.pathname.includes('/atlante/') || url.pathname.includes('/serie/'))) return;   // Atlante e Atlante Serie TV hanno i loro service worker   // l'Atlante ha il suo service worker: la Videoteca non tocca le sue pagine
   if(/(^|\.)wikidata\.org$|(^|\.)wikipedia\.org$|allorigins|codetabs|corsproxy|youtube|ytimg/.test(url.hostname)) return;
   // L'app: rete prima, copia salvata se offline
   if(req.mode === 'navigate' || (url.origin === self.location.origin && /\/(index\.html)?$/.test(url.pathname))){

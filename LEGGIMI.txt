@@ -207,3 +207,14 @@ ATLANTE SUL TELEVISORE (Android TV, per esempio Sony XE9005)
   Comandi: frecce = spostarsi, OK = aprire, Indietro = pagina precedente. Nella ricerca, OK apre la tastiera.
   Se l'Atlante dice "Indice non leggibile": aggiorna dal Play Store "Android System WebView" e riprova.
   La modalità TV si spegne dagli Strumenti dell'Atlante, oppure aprendo l'indirizzo con ?tv=0.
+
+ATLANTE SERIE TV (nuova app, nella cartella serie/)
+===================================================
+La gemella dell'Atlante del Cinema, per le serie: capolavori, le più famose e le più apprezzate, in corso,
+concluse, miniserie, da maratona, lunga serialità, classici della TV, recenti, animazione, gemme nascoste,
+critica contro pubblico, generi e decenni; schede con anni, stagioni, episodi (anche per stagione), ideatori,
+rete originale, interpreti; attori, liste, il tuo voto, classifiche e modalità TV. Niente Frusciante e Criticoni.
+  1. Carica nel repository anche la cartella "serie" del pacchetto.
+  2. Apri:  https://TUONOME.github.io/NOME-REPOSITORY/serie/   (sul telefono: "Installa" → terza icona).
+  3. Legge gli indici che hai già (serie TV e cast della Videoteca, critica dell'Atlante): niente automazioni nuove.
+  Liste, voti e classifiche delle serie sono separati da quelli dei film.

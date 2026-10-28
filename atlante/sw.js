@@ -2,9 +2,9 @@
    - L'app: prima la rete, copia salvata se offline.
    - Gli indici della Videoteca (../index.html, ../data/*.gz): copia salvata subito, aggiornata in sottofondo.
    - Locandine: copia salvata (massimo 300). Wikidata, Wikipedia, YouTube: sempre rete. */
-const VERSION = 'atlante-1.1';
+const VERSION = 'atlante-1.2';
 const SHELL = VERSION + '-shell', DATA = 'atlante-dati', IMG = 'atlante-locandine';
-const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png'];
+const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './fonts/inter-var.woff2'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(SHELL).then(c => c.addAll(SHELL_FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== SHELL && k !== DATA && k !== IMG).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
