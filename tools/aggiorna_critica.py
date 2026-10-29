@@ -5,6 +5,7 @@ Indice della critica per l'Atlante del Cinema.
 Una volta al mese raccoglie da Wikidata (gratis, senza chiavi) i voti di Rotten Tomatoes (Tomatometer, in
 percentuale) e di Metacritic per i film con un codice IMDb, e li salva in data/critica.json.gz. L'Atlante li
 usa, con i voti IMDb e i giudizi di Frusciante e dei Criticoni, per i "capolavori assoluti".
+Raccoglie anche, per le classifiche: incassi al botteghino (in dollari), numero di premi, Oscar ed Emmy vinti.
 
 Due richieste leggere (una per Rotten Tomatoes, una per Metacritic) che partono dai voti, non da tutti i film.
 Prima su QLever (motore veloce sui dati di Wikidata), poi, se non risponde, sul servizio ufficiale di Wikidata.
@@ -26,6 +27,8 @@ PREFIX wdt: <http://www.wikidata.org/prop/direct/>
 PREFIX p: <http://www.wikidata.org/prop/>
 PREFIX ps: <http://www.wikidata.org/prop/statement/>
 PREFIX pq: <http://www.wikidata.org/prop/qualifier/>
+PREFIX psv: <http://www.wikidata.org/prop/statement/value/>
+PREFIX wikibase: <http://wikiba.se/ontology#>
 SELECT ?imdb ?score ?date WHERE {
   ?st pq:P447 wd:%s .
   ?film p:P444 ?st .
@@ -33,6 +36,15 @@ SELECT ?imdb ?score ?date WHERE {
   ?film wdt:P345 ?imdb .
   OPTIONAL { ?st pq:P585 ?date }
 }"""
+
+
+PFX = QUERY.split('SELECT')[0]
+EXTRA = {   # classifiche: se una richiesta non riesce, le altre (e la critica) restano
+  'box': ('incassi', PFX + 'SELECT ?imdb (MAX(?amt) AS ?n) WHERE { ?film wdt:P345 ?imdb ; p:P2142 ?st . ?st psv:P2142 ?v . ?v wikibase:quantityAmount ?amt ; wikibase:quantityUnit wd:Q4917 . FILTER(STRSTARTS(?imdb, "tt")) } GROUP BY ?imdb'),
+  'aw': ('premi', PFX + 'SELECT ?imdb (COUNT(DISTINCT ?aw) AS ?n) WHERE { ?film wdt:P345 ?imdb ; wdt:P166 ?aw . FILTER(STRSTARTS(?imdb, "tt")) } GROUP BY ?imdb HAVING(COUNT(DISTINCT ?aw) >= 2)'),
+  'osc': ('Oscar', PFX + 'SELECT ?imdb (COUNT(DISTINCT ?aw) AS ?n) WHERE { ?film wdt:P345 ?imdb ; wdt:P166 ?aw . ?aw (wdt:P31|wdt:P279|wdt:P361) wd:Q19020 . FILTER(STRSTARTS(?imdb, "tt")) } GROUP BY ?imdb'),
+  'emmy': ('Emmy', PFX + 'SELECT ?imdb (COUNT(DISTINCT ?aw) AS ?n) WHERE { ?film wdt:P345 ?imdb ; wdt:P166 ?aw . ?aw (wdt:P31|wdt:P279|wdt:P361) wd:Q1044427 . FILTER(STRSTARTS(?imdb, "tt")) } GROUP BY ?imdb'),
+}
 
 
 def ask(key, local=None):
@@ -44,7 +56,8 @@ def ask(key, local=None):
     for name, url in ENDPOINTS:
         for k in range(3):
             try:
-                req = urllib.request.Request(url + '?' + urllib.parse.urlencode({'query': QUERY % SOURCES[key][1]}),
+                q = EXTRA[key][1] if key in EXTRA else QUERY % SOURCES[key][1]
+                req = urllib.request.Request(url + '?' + urllib.parse.urlencode({'query': q}),
                                              headers={'User-Agent': UA, 'Accept': 'application/sparql-results+json'})
                 with urllib.request.urlopen(req, timeout=180) as r:
                     j = json.loads(r.read().decode('utf-8'))
@@ -87,9 +100,22 @@ def main():
         print(f'  {SOURCES[key][0]}: {len(res[key])} film (da {via})')
     if len(res['rt']) < min_rt:
         print(f'ATTENZIONE: solo {len(res["rt"])} voti di Rotten Tomatoes (attesi almeno {min_rt}). {keep}'); sys.exit(0 if keep else 1)
+    out = {'v': 1, 'built': built, 'rt': res['rt'], 'mc': res['mc']}
+    for key, (label, _) in EXTRA.items():
+        try:
+            j, via = ask(key, local); m = {}
+            for b in j.get('results', {}).get('bindings', []):
+                imdb, n = b.get('imdb', {}).get('value', ''), b.get('n', {}).get('value', '')
+                try: v = int(float(n))
+                except ValueError: continue
+                if re.match(r'^tt\d+$', imdb) and v > 0: m[imdb] = v
+            if key in ('osc', 'emmy') and len(m) < 30: print(f'  {label}: solo {len(m)} titoli, classifica non credibile: la salto'); continue
+            out[key] = m; print(f'  {label}: {len(m)} titoli (da {via})')
+        except Exception as e:
+            print(f'  {label}: non disponibile stanotte ({str(e)[:80]}), si riprova la prossima')
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with open(out_path, 'wb') as f:
-        f.write(gzip.compress(json.dumps({'v': 1, 'built': built, 'rt': res['rt'], 'mc': res['mc']}, separators=(',', ':')).encode('utf-8'), 9))
+        f.write(gzip.compress(json.dumps(out, separators=(',', ':')).encode('utf-8'), 9))
     print(f'Fatto: {len(res["rt"])} film con Rotten Tomatoes e {len(res["mc"])} con Metacritic, data {built}.')
 
 

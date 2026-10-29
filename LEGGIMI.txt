@@ -218,3 +218,13 @@ rete originale, interpreti; attori, liste, il tuo voto, classifiche e modalità 
   2. Apri:  https://TUONOME.github.io/NOME-REPOSITORY/serie/   (sul telefono: "Installa" → terza icona).
   3. Legge gli indici che hai già (serie TV e cast della Videoteca, critica dell'Atlante): niente automazioni nuove.
   Liste, voti e classifiche delle serie sono separati da quelli dei film.
+
+AGGIORNAMENTO NOTTURNO (vale più delle date mensili scritte sopra)
+=================================================================
+Ogni notte alle 2 (ora di Roma, estate e inverno) l'automazione "Aggiornamento notturno" aggiorna, uno dopo
+l'altro: indice IMDb (film, serie, attori), Frusciante e i Criticoni, critica dell'Atlante. Salva una volta sola.
+  - Per non far crescere il repository, ogni notte sostituisce il salvataggio della notte prima (mai i tuoi).
+  - Se un lavoro non riesce, gli altri vanno avanti; il giorno dopo si riprova da solo.
+  - GitHub a volte ritarda le automazioni programmate: l'avvio reale può essere tra le 2 e le 2 e mezza.
+  - Le tre automazioni singole ("Aggiorna indice IMDb", "Aggiorna Frusciante e Criticoni",
+    "Aggiorna la critica") restano per avviarle a mano quando vuoi, ma non hanno più un calendario.
