@@ -1,0 +1,66 @@
+# Aggiornamento notturno: ogni notte alle 2 (ora di Roma) aggiorna, uno dopo l'altro, l'indice IMDb (film, serie,
+# attori), Frusciante e i Criticoni, e la critica dell'Atlante. Salva una volta sola e, per non far crescere il
+# repository, sostituisce il salvataggio della notte prima (mai i tuoi).
+# Si può anche avviare a mano: scheda "Actions" → "Aggiornamento notturno" → "Run workflow".
+name: Aggiornamento notturno
+on:
+  schedule:
+    - cron: '0 0 * * *'    # le 2 a Roma con l'ora legale (estate)
+    - cron: '0 1 * * *'    # le 2 a Roma con l'ora solare (inverno)
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: aggiornamenti
+  cancel-in-progress: false
+jobs:
+  aggiorna:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - name: Sono le 2 a Roma?
+        id: ora
+        run: |
+          OFF=$(TZ=Europe/Rome date +%z)
+          if [ "${{ github.event_name }}" != "schedule" ]; then echo "via=1" >> "$GITHUB_OUTPUT"; exit 0; fi
+          if { [ "$OFF" = "+0200" ] && [ "${{ github.event.schedule }}" = "0 0 * * *" ]; } || { [ "$OFF" = "+0100" ] && [ "${{ github.event.schedule }}" = "0 1 * * *" ]; }; then
+            echo "via=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "A Roma non sono le 2 (ora legale o solare): questo turno si salta."; echo "via=0" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.ora.outputs.via == '1'
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        if: steps.ora.outputs.via == '1'
+        with:
+          python-version: '3.12'
+      - name: Indice IMDb (film, serie, attori)
+        if: steps.ora.outputs.via == '1'
+        continue-on-error: true
+        run: python tools/aggiorna_indice.py index.html
+      - name: Frusciante e i Criticoni
+        if: steps.ora.outputs.via == '1'
+        continue-on-error: true
+        run: python tools/aggiorna_criticoni.py index.html
+      - name: Critica (Rotten Tomatoes e Metacritic)
+        if: steps.ora.outputs.via == '1'
+        continue-on-error: true
+        run: python tools/aggiorna_critica.py data/critica.json.gz
+      - name: Pubblica, sostituendo l'aggiornamento della notte prima
+        if: steps.ora.outputs.via == '1'
+        run: |
+          git config user.name "aggiornamento-notturno"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -N data 2>/dev/null || true
+          if git diff --quiet -- index.html data; then echo "Nessuna novità"; exit 0; fi
+          git add index.html data
+          MSG="Aggiornamento notturno del $(TZ=Europe/Rome date +%Y-%m-%d)"
+          if [ "$(git log -1 --format=%an)" = "aggiornamento-notturno" ]; then
+            git commit --amend -m "$MSG"     # si sostituisce quello della notte prima: il repository non cresce
+            git push --force-with-lease
+          else
+            git commit -m "$MSG"             # l'ultimo salvataggio è tuo: se ne aggiunge uno nuovo
+            git push
+          fi
