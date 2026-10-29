@@ -43,7 +43,7 @@ jobs:
       - name: Frusciante e i Criticoni
         if: steps.ora.outputs.via == '1'
         continue-on-error: true
-        run: python tools/aggiorna_criticoni.py index.html
+        run: python tools/aggiorna_criticonis.py index.html
       - name: Critica (Rotten Tomatoes e Metacritic)
         if: steps.ora.outputs.via == '1'
         continue-on-error: true
