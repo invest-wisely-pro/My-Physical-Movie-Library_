@@ -159,7 +159,7 @@ html.tv .tl-bg{filter:brightness(.42); inset:0;}
 .fr .sub{display:block; color:var(--paper2); font-size:13px;}
 .badges{display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
 .bd{display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border-radius:10px; font-size:11.5px; font-weight:700; background:var(--s3); color:var(--paper2); white-space:nowrap;}
-.bd.mp{background:rgba(233,162,59,.18); color:var(--amber2);} .bd.gf{background:rgba(143,184,201,.16); color:var(--chart);} .score.gf{border-color:var(--chart2);} .score.gf b{color:var(--chart);} .bd.own{background:rgba(143,184,201,.16); color:var(--chart);}
+.bd.mp{background:rgba(233,162,59,.18); color:var(--amber2);} .bd.own{background:rgba(143,184,201,.16); color:var(--chart);}
 .bd.pos{background:rgba(108,196,143,.16); color:var(--pos);} .bd.neg{background:rgba(240,122,110,.16); color:var(--neg);} .bd.mix{background:rgba(226,192,74,.16); color:var(--mix);}
 .ctrl{display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin:6px 0 14px;}
 .ctrl label{display:flex; flex-direction:column; gap:3px; font-size:12px; font-weight:600; color:var(--paper2);}
@@ -449,25 +449,23 @@ function enrich(e){
   e._rt = CRITICA && CRITICA.rt[e.id] != null ? CRITICA.rt[e.id] : null; e._mc = CRITICA && CRITICA.mc[e.id] != null ? CRITICA.mc[e.id] : null;
   const q = { titolo: e.it || e.en, titoloOriginale: e.en, anno: e.y, regista: e.dir };
   e._f = CRIT ? critMatch('f', q) : null; e._c = CRIT ? critMatch('c', q) : null;
-  const xN = (e._br - 5.5) / 4.0, imdbN = clamp(xN <= 0.9 ? xN : 0.9 + (xN - 0.9) * 0.4)   /* 80 = gran serie, 85 = capolavoro, 90 = assoluto; sopra 90 la scala si comprime e i grandi restano distinti */, cr = [e._rt, e._mc].filter(x=>x != null), critN = cr.length ? cr.reduce((a, b)=>a + b, 0) / cr.length / 100 : null;
+  const imdbN = clamp((e._br - 6.6) / 2.9), cr = [e._rt, e._mc].filter(x=>x != null), critN = cr.length ? cr.reduce((a, b)=>a + b, 0) / cr.length / 100 : null;
   const fs = e._f && e._f.s != null ? e._f.s : null, cs = e._c && e._c.s != null ? e._c.s : null;
-  let w = 0.5, sum = 0.5 * imdbN; if(critN != null){ sum += 0.35 * critN; w += 0.35; }
-  const adj = (fs || 0) * 4 + (cs || 0) * 3;   // Frusciante ±4, Criticoni ±3 punti, simmetrici; "misto" non cambia nulla
-  e._base = Math.round(100 * sum / w); e._adj = adj; e._s = Math.max(0, Math.min(100, e._base + adj));
+  const ccN = fs == null && cs == null ? null : clamp(0.5 + (fs || 0) * 0.3 + (cs || 0) * 0.2);
+  let w = 0.5, sum = 0.5 * imdbN; if(critN != null){ sum += 0.35 * critN; w += 0.35; } if(ccN != null){ sum += 0.15 * ccN; w += 0.15; }
+  e._s = Math.round(100 * sum / w);
   e._crit = critN; e._min = parseInt(e.r, 10) || 0;
   const boost = (critN != null && critN >= 0.9) || fs === 1 || cs === 1, panned = fs === -1 && !(critN != null && critN >= 0.9);
   const recent = (parseInt(e.y, 10) || 0) >= new Date().getFullYear() - 4, confirmed = (critN != null && critN >= 0.85) || fs === 1 || cs === 1;   // il banco di prova del tempo
-  const MIN_V = 30000, okT = v >= MIN_V && !panned && (!recent || confirmed), crOK = t => critN == null || critN >= t;   // le protezioni di sempre
-  e._tier = !okT ? 0 : e._s >= 90 && crOK(0.8) ? 3 : e._s >= 85 && crOK(0.8) ? 2 : e._s >= 80 && crOK(0.7) ? 1 : 0;   // 1 gran serie, 2 capolavoro, 3 capolavoro assoluto
-  e._mp = e._tier >= 2; e._gran = e._tier === 1;
-  e._abs = e._tier === 3;
+  e._mp = v >= 30000 && (critN == null || critN >= 0.8) && (e._br >= 8.5 || (e._br >= 8.3 && critN != null && critN >= 0.9)) && (!recent || (critN != null && critN >= 0.85));   // regola delle serie, spiegata in Strumenti
+  e._abs = e._mp && e._s >= 90;   // capolavoro assoluto: la regola, più un punteggio da 90 in su
   return e;
 }
 function why(e){
   enrich(e); const p = [`IMDb ${fmtR(e._R)} su ${fmtV(e.v)} voti`];
   if(e._rt != null) p.push(`Rotten Tomatoes ${e._rt}%`); if(e._mc != null) p.push(`Metacritic ${e._mc}`);
   const vd = x => x === 1 ? 'positivo' : x === -1 ? 'negativo' : x === 0 ? 'misto' : '';
-  if(e._f && e._f.s != null) p.push('Frusciante: ' + vd(e._f.s) + (e._f.s ? ` (${e._f.s > 0 ? '+4' : '−4'})` : '')); if(e._c && e._c.s != null) p.push('Criticoni: ' + vd(e._c.s) + (e._c.s ? ` (${e._c.s > 0 ? '+3' : '−3'})` : ''));
+  if(e._f && e._f.s != null) p.push('Frusciante: ' + vd(e._f.s)); if(e._c && e._c.s != null) p.push('Criticoni: ' + vd(e._c.s));
   return p.join(', ');
 }
 let ALL = [], BY_V = [], BY_BR = [], MASTER = [], BY_DIR = new Map(), GENRES = new Map(), DECADES = new Map();
@@ -661,7 +659,7 @@ function toggle(id, k){ const r = LISTE[id] || {}; if(r[k]) delete r[k]; else r[
 /* ---------- Pezzi di interfaccia ---------- */
 function badges(e){
   enrich(e); const b = [];
-  if(e._abs) b.push('<span class="bd mp">✦✦ Capolavoro assoluto</span>'); else if(e._mp) b.push('<span class="bd mp">✦ Capolavoro</span>'); else if(e._gran) b.push('<span class="bd gf">◆ Grande serie</span>');
+  if(e._abs) b.push('<span class="bd mp">✦✦ Capolavoro assoluto</span>'); else if(e._mp) b.push('<span class="bd mp">✦ Capolavoro</span>');
   if(OWN.has(e.id)) b.push('<span class="bd own">✓ Videoteca</span>');
   const vd = (x, who) => x && x.s != null ? `<span class="bd ${x.s === 1 ? 'pos' : x.s === -1 ? 'neg' : 'mix'}" title="${who}: ${x.s === 1 ? 'positivo' : x.s === -1 ? 'negativo' : 'misto'}">🎙 ${who === 'Frusciante' ? 'F' : 'C'}</span>` : '';
   b.push(vd(e._f, 'Frusciante'), vd(e._c, 'Criticoni'));
@@ -675,8 +673,8 @@ function row(e){
     + `<span class="sub">${ROW_EXTRA && ROW_EXTRA(e) ? `<b class="nv">${esc(ROW_EXTRA(e))}</b>, ` : ''}${SEASON_BY.get(e.id) ? `<b class="nv">Stagione ${SEASON_BY.get(e.id).ord} dal ${esc(fmtD(SEASON_BY.get(e.id).d))}</b>, ` : NOVITA && NOVITA.get(e.id) && (parseInt(e.y, 10) || 0) >= new Date().getFullYear() - 1 ? `<b class="nv">uscita: ${esc(fmtD(NOVITA.get(e.id)))}</b>, ` : ''}${[esc(yrs(e)), esc(stag(e)), genres(e).slice(0, 3).map(goGen).join(', ')].filter(Boolean).join(', ')}</span></span>${badges(e)}</a>`;
 }
 function tile(e){ enrich(e); const p0 = posterUrl(e, 'w342') || WPOST.get(e.id) || '';
-  if(isL(p0)) return `<a class="tile has-l" href="#film/${e.id}" style="--tilebg:${tileBg(e)}" aria-label="${esc(title(e) + (e.y ? ', ' + e.y : ''))}">${landHTML(p0)}<span><span class="tt">${esc(title(e))}</span></span><span class="tb"><span class="${e._mp ? 'mp' : ''}">${e._abs ? '✦✦ ' : e._mp ? '✦ ' : e._gran ? '◆ ' : ''}${fmtR(e._R)}</span><span>${OWN.has(e.id) ? '✓' : ''}</span></span></a>`;
-  const p = p0; return `<a class="tile${p ? ' has-p' : ''}" href="#film/${e.id}"${p || WPOST.has(e.id) ? '' : ` data-pid="${e.id}"`} style="--tilebg:${tileBg(e)}" aria-label="${esc(title(e) + (e.y ? ', ' + e.y : ''))}">${p ? `<img class="tp" src="${esc(p)}" alt="" loading="lazy"${chk(p, e.id)} onerror="this.parentElement.classList.remove('has-p'); this.remove()">` : ''}<span><span class="tt">${esc(title(e))}</span><span class="ty">${esc([yrs(e), stag(e)].filter(Boolean).join(', '))}</span></span><span class="tb"><span class="${e._mp ? 'mp' : ''}">${e._abs ? '✦✦ ' : e._mp ? '✦ ' : e._gran ? '◆ ' : ''}${fmtR(e._R)}</span><span>${OWN.has(e.id) ? '✓' : ''}</span></span></a>`; }
+  if(isL(p0)) return `<a class="tile has-l" href="#film/${e.id}" style="--tilebg:${tileBg(e)}" aria-label="${esc(title(e) + (e.y ? ', ' + e.y : ''))}">${landHTML(p0)}<span><span class="tt">${esc(title(e))}</span></span><span class="tb"><span class="${e._mp ? 'mp' : ''}">${e._abs ? '✦✦ ' : e._mp ? '✦ ' : ''}${fmtR(e._R)}</span><span>${OWN.has(e.id) ? '✓' : ''}</span></span></a>`;
+  const p = p0; return `<a class="tile${p ? ' has-p' : ''}" href="#film/${e.id}"${p || WPOST.has(e.id) ? '' : ` data-pid="${e.id}"`} style="--tilebg:${tileBg(e)}" aria-label="${esc(title(e) + (e.y ? ', ' + e.y : ''))}">${p ? `<img class="tp" src="${esc(p)}" alt="" loading="lazy"${chk(p, e.id)} onerror="this.parentElement.classList.remove('has-p'); this.remove()">` : ''}<span><span class="tt">${esc(title(e))}</span><span class="ty">${esc([yrs(e), stag(e)].filter(Boolean).join(', '))}</span></span><span class="tb"><span class="${e._mp ? 'mp' : ''}">${e._abs ? '✦✦ ' : e._mp ? '✦ ' : ''}${fmtR(e._R)}</span><span>${OWN.has(e.id) ? '✓' : ''}</span></span></a>`; }
 function paged(id, items, render, size){   // elenchi lunghi a pagine
   size = size || 60; let n = size;
   const draw = () => { const el = $(id); if(!el) return; el.innerHTML = items.slice(0, n).map(render).join('') || '<p class="note">Nessuna serie.</p>';
@@ -713,7 +711,7 @@ function viewHome(){
         return `<h2 class="sec">${esc(c.name)} <span class="note" style="font-family:var(--ui)">ne hai viste ${seen} su ${fs.length}</span><a class="more" href="#classifica/${esc(c.id)}">Vedi tutta</a></h2><div class="strip">${fs.slice(0, 14).map(tile).join('')}</div>`; }).join('')
     + `<h2 class="sec">Le più apprezzate <a class="more" href="#lista/votati">Vedi tutti</a></h2><div class="strip">${BY_BR.slice(0, 14).map(tile).join('')}</div>`
     + (fr.length ? `<h2 class="sec">🎙 Promossi da Frusciante <a class="more" href="#lista/frusciante-si">Vedi tutti</a></h2><div class="strip">${fr.map(tile).join('')}</div>` : '')
-    + `<h2 class="sec">Scopri</h2><div class="genres">${['granfilm', 'incorso', 'concluse', 'miniserie', 'maratona', 'lunghe', 'premiate', 'emmy', 'classici', 'recenti', 'gemme', 'critica-si', 'pubblico-si', 'animazione'].map(k=>{ const n = LISTS[k][1]().length; return n ? `<a class="genre" href="#lista/${k}" style="--tilebg:var(--s2)">${esc(LISTS[k][0])}<span>${n.toLocaleString('it-IT')}</span></a>` : ''; }).join('')}</div>`
+    + `<h2 class="sec">Scopri</h2><div class="genres">${['incorso', 'concluse', 'miniserie', 'maratona', 'lunghe', 'premiate', 'emmy', 'classici', 'recenti', 'gemme', 'critica-si', 'pubblico-si', 'animazione'].map(k=>{ const n = LISTS[k][1]().length; return n ? `<a class="genre" href="#lista/${k}" style="--tilebg:var(--s2)">${esc(LISTS[k][0])}<span>${n.toLocaleString('it-IT')}</span></a>` : ''; }).join('')}</div>`
     + `<h2 class="sec">Per genere</h2><div class="genres">${[...GENRES.entries()].filter(([, l])=>l.length >= 40).sort((a, b)=>b[1].length - a[1].length).map(([g, l])=>`<a class="genre" href="#genere/${encodeURIComponent(g)}" style="--tilebg:hsl(${GCOL[g] != null ? GCOL[g] : 200} 28% 24%)">${esc(g)}<span>${l.length.toLocaleString('it-IT')}</span></a>`).join('')}</div>`;
   $('surprise').onclick = surprise;
 }
@@ -729,8 +727,7 @@ const critN = (k, f) => e => { const n = CRITICA && CRITICA[k] && CRITICA[k][e.i
 const LISTS = {
   novita: [NOVITA_TITLE, () => novitaList(), 'nessuno', 'Le serie iniziate quest\'anno e lo scorso, dalla più recente: la data è quella della prima puntata (in Italia quando Wikidata la conosce).'],
   nuove: ['📡 Nuove stagioni', () => SEASONS_NEW.map(x=>x.e), 'nessuno', 'Le serie con una stagione iniziata negli ultimi quattro mesi, dalla più recente.'],
-  granfilm: ['◆ Grandi serie', () => BY_V.filter(e=>e._gran).sort((a, b)=>b._s - a._s || b.v - a.v), 'punteggio', 'Punteggio dell\'Atlante da 80 a 84: serie eccellenti, un gradino sotto i capolavori.'],
-  capolavori: ['✦ Capolavori', () => MASTER, 'punteggio', 'Le serie amate da pubblico e critica, punteggio da 85 a 89; quelle con ✦✦ sono capolavori assoluti, da 90 in su. Nella scheda di ognuna trovi il perché.'],
+  capolavori: ['✦ Capolavori', () => MASTER, 'punteggio', 'Le serie amate da pubblico e critica. Quelle con ✦✦ sono capolavori assoluti: punteggio da 90 in su. Nella scheda di ognuna trovi il perché.'],
   assoluti: ['✦✦ Capolavori assoluti', () => MASTER.filter(e=>e._abs), 'punteggio', 'Le serie con punteggio da 90 in su: pubblico e critica entrambi altissimi.'],
   famosi: ['Le più famose', () => BY_V, 'fama', 'Le serie con più voti su IMDb: quelle che quasi tutti hanno visto.'],
   votati: ['Le più apprezzate', () => BY_BR, 'voto', 'Voto alto e tanti voti insieme: una serie con pochi voti, anche se tutti da 10, non scavalca i grandi classici.'],
@@ -983,7 +980,7 @@ function viewFilm(id){
     + `<h1 class="pg">${esc(title(e))}</h1>${e.en && e.en !== e.it ? `<p class="orig">${esc(e.en)}</p>` : ''}`
     + `<div class="facts">${e.y ? `<a href="#decennio/${decade(e)}">${esc(yrs(e))}</a>` : ''}${e.y && !e.y2 ? '<span class="bd own">📡 in corso</span>' : ''}${e.s ? `<span>${esc(stag(e))}${e.ep ? ', ' + e.ep + ' episodi' : ''}</span>` : ''}${genres(e).map(g=>`<a href="#genere/${encodeURIComponent(g)}">${esc(g)}</a>`).join('')}<span id="dur"></span></div>`
     + `<div class="scores"><div class="score"><b>${fmtR(e._R)}</b><span>IMDb, ${fmtV(e.v)} voti</span></div>${e._rt != null ? `<div class="score"><b>${e._rt}%</b><span>Rotten Tomatoes</span></div>` : ''}${e._mc != null ? `<div class="score"><b>${e._mc}</b><span>Metacritic</span></div>` : ''}`
-    + `<div class="score ${e._mp ? 'mp' : e._gran ? 'gf' : ''}"><b>${e._abs ? '✦✦ ' : e._mp ? '✦ ' : e._gran ? '◆ ' : ''}${e._s}</b><span>${e._abs ? 'Capolavoro assoluto' : e._mp ? 'Capolavoro' : e._gran ? 'Grande serie' : 'Punteggio dell\'Atlante'}</span></div></div><p class="why">${esc(why(e))}</p>`
+    + `<div class="score ${e._mp ? 'mp' : ''}"><b>${e._abs ? '✦✦ ' : e._mp ? '✦ ' : ''}${e._s}</b><span>${e._abs ? 'Capolavoro assoluto' : e._mp ? 'Capolavoro' : 'Punteggio dell\'Atlante'}</span></div></div><p class="why">${esc(why(e))}</p>`
     + `<div class="marks">${[['v', '✓ Vista'], ['d', '＋ Da vedere'], ['p', '♥ Preferita']].map(([k, l])=>`<button class="btn" type="button" data-mark="${k}" aria-pressed="${has(id, k)}">${l}</button>`).join('')}${OWN.has(id) ? '<span class="bd own" style="align-self:center">✓ Nella tua Videoteca</span>' : ''}</div>`
     + `<div class="rate-wrap"><span class="note">Il tuo voto</span><div class="rate" role="group" aria-label="Il tuo voto">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=>`<button type="button" data-rate="${n}" aria-pressed="${n === my}" aria-label="${n} su 10">${n}</button>`).join('')}</div></div>`
     + `<div class="marks"><a class="btn" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">▶ Cerca il trailer su YouTube</a>${CLS.length ? `<select id="addRk" aria-label="Aggiungi a una classifica" style="height:38px; border-radius:19px; border:1px solid var(--line); background:var(--s2); padding:0 12px"><option value="">🏆 Aggiungi a una classifica…</option>${CLS.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select>` : '<a class="btn" href="#classifiche">🏆 Crea una classifica</a>'}</div></div></div>`
@@ -1244,7 +1241,7 @@ function viewTools(){
     + `<p class="note">MyMemory è il traduttore gratuito usato su telefono e televisore. Con un indirizzo email il suo limite passa da circa 5.000 a circa 50.000 caratteri al giorno (circa 200 trame). L'indirizzo resta su questo dispositivo e viene inviato solo a MyMemory, insieme ai testi da tradurre.</p></div></div>`
     + `<div class="box"><h3>📺 Modalità TV</h3><div class="in"><p>Testi grandi, margini di sicurezza e navigazione con le frecce del telecomando: OK apre, Indietro torna alla pagina precedente. Si attiva da sola sui televisori; per salvarla nei preferiti del browser del televisore usa l'indirizzo che finisce con <b>?tv=1</b>.</p><div class="marks"><button class="btn${TV ? ' amber' : ''}" type="button" id="tvBtn" aria-pressed="${TV}">${TV ? '📺 Modalità TV attiva: disattiva' : '📺 Attiva la modalità TV'}</button></div></div></div>`
     + `<div class="box"><h3>Le tue liste</h3><div class="in"><p>Viste, da vedere, preferite, i tuoi voti e le classifiche restano su questo dispositivo. Fai una copia per non perderli.</p><div class="marks"><button class="btn" type="button" id="bk">💾 Scarica le liste</button><button class="btn" type="button" id="rs">📥 Ripristina le liste</button><input type="file" id="rsIn" accept=".json,application/json" class="hidden"></div></div></div>`
-    + `<div class="box"><h3>Come si calcolano i capolavori</h3><div class="in"><p>Ogni serie riceve un punteggio da 0 a 100: per il 60% circa dal voto IMDb (pesato sul numero di voti, così pochi voti contano poco) e per il resto dalla critica (Rotten Tomatoes e Metacritic). Se la critica manca, conta solo il voto. Il punteggio serve a ordinare.</p><p>La scala ha tre gradini: <b>◆ grande serie</b> da 80 a 84, <b>✦ capolavoro</b> da 85 a 89, <b>✦✦ capolavoro assoluto</b> da 90 in su. Servono anche almeno 30.000 voti e la critica, quando c'è, almeno al 70% per le grandi serie e all'80% per i capolavori. Le serie iniziate negli ultimi 4 anni servono anche la conferma della critica (almeno 85%), perché i voti delle novità possono essere gonfiati.</p></div></div>`;
+    + `<div class="box"><h3>Come si calcolano i capolavori</h3><div class="in"><p>Ogni serie riceve un punteggio da 0 a 100: per il 60% circa dal voto IMDb (pesato sul numero di voti, così pochi voti contano poco) e per il resto dalla critica (Rotten Tomatoes e Metacritic). Se la critica manca, conta solo il voto. Il punteggio serve a ordinare.</p><p>È un <b>capolavoro</b> una serie con: almeno 30.000 voti; voto pesato da 8,5 in su, oppure da 8,3 in su se la critica supera il 90%; la critica, quando c'è, almeno all'80%. Le serie iniziate negli ultimi 4 anni servono anche la conferma della critica (almeno 85%), perché i voti delle novità possono essere gonfiati. Un capolavoro diventa <b>capolavoro assoluto</b> (✦✦) quando il suo punteggio arriva a 90.</p></div></div>`;
   V().querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(CRITICA_SCRIPT_TEXT); toast('📋 Script copiato: ora premi "Crea il file" e incollalo'); }catch(err){ const t = $('copyArea'); t.value = CRITICA_SCRIPT_TEXT; t.classList.remove('hidden'); t.select(); } }));
   $('trSave').onclick = () => { const v = $('trEmail').value.trim(); if(v && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)){ toast('Controlla l\'indirizzo email'); return; } try{ localStorage.setItem('tr-email', v); }catch(e){} toast(v ? 'Salvata: limite di MyMemory 10 volte più alto' : 'Email tolta'); };
   chromeTr().then(st=>{ const el = $('trState'); if(!el) return;
