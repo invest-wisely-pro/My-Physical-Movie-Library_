@@ -10,7 +10,6 @@ android {
     namespace 'it.atlante.app'
     compileSdk 34
     defaultConfig {
-        applicationId 'it.atlante.app'
         minSdk 21            // Android 5: anche il Sony del 2017 (Android 8) e i telefoni più vecchi
         targetSdk 34
         versionCode vcode
@@ -18,6 +17,12 @@ android {
         buildConfigField 'String', 'BASE_URL', '"' + baseUrl + '"'
     }
     buildFeatures { buildConfig true }
+    // Due app separate: ognuna con il proprio nome di pacchetto, quindi icona, file e dati distinti.
+    flavorDimensions 'atlante'
+    productFlavors {
+        cinema { dimension 'atlante'; applicationId 'it.atlante.cinema'; buildConfigField 'String', 'APP_PATH', '"atlante/"' }
+        serie  { dimension 'atlante'; applicationId 'it.atlante.serie';  buildConfigField 'String', 'APP_PATH', '"serie/"' }
+    }
     // Firma fissa e NON segreta: serve solo a far installare gli aggiornamenti sopra la versione precedente.
     // Va bene per un'app personale installata a mano; non per il Play Store.
     signingConfigs {

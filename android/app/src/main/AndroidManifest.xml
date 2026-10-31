@@ -6,21 +6,9 @@
     <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
-    <application android:label="@string/app_name" android:icon="@mipmap/ic_cinema" android:banner="@drawable/banner_cinema"
+    <application android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:banner="@drawable/banner"
         android:theme="@style/AppTheme" android:allowBackup="false" android:usesCleartextTraffic="false" android:supportsRtl="true">
-
-        <activity android:name=".CinemaActivity" android:exported="true" android:label="@string/label_cinema"
-            android:icon="@mipmap/ic_cinema" android:banner="@drawable/banner_cinema" android:taskAffinity="it.atlante.app.cinema"
-            android:configChanges="orientation|screenSize|keyboardHidden|keyboard|screenLayout|smallestScreenSize|uiMode">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <activity android:name=".SerieActivity" android:exported="true" android:label="@string/label_serie"
-            android:icon="@mipmap/ic_serie" android:banner="@drawable/banner_serie" android:taskAffinity="it.atlante.app.serie"
+        <activity android:name=".MainActivity" android:exported="true" android:label="@string/app_name"
             android:configChanges="orientation|screenSize|keyboardHidden|keyboard|screenLayout|smallestScreenSize|uiMode">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

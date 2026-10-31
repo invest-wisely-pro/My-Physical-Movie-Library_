@@ -1,14 +1,15 @@
 ATLANTE — APP ANDROID (telefono e televisore Sony)
 ===================================================
-Due icone nella stessa app: "Atlante del Cinema" e "Atlante Serie TV". Aprono i tuoi siti su GitHub Pages
+Due app separate (due file): "Atlante del Cinema" e "Atlante Serie TV". Aprono i tuoi siti su GitHub Pages
 a schermo intero; sul televisore si accende da sola la modalità TV (?tv=1). I dati restano nel dispositivo.
 
 1) COSTRUIRLA (una volta, poi si rifà da sola a ogni modifica della cartella android)
    - Carica nel repository la cartella  android  e il file  .github/workflows/apk.yml  (se la cartella .github
      non si carica: Add file → Create new file → nome  .github/workflows/apk.yml  → incolla → Commit).
    - Scheda Actions → "Costruisci l'APK degli Atlanti" → Run workflow. Servono circa 5-10 minuti.
-   - Alla fine, nella pagina principale del repository, a destra: Releases → "Atlante (APK)" → file  Atlante.apk
-     Indirizzo diretto:  https://github.com/invest-wisely-pro/My-Physical-Movie-Library_/releases/download/apk-latest/Atlante.apk
+   - Alla fine, nella pagina principale del repository, a destra: Releases → "Atlante (APK)" → file  Atlante-Cinema.apk  e  Atlante-Serie.apk
+     Cinema: https://github.com/invest-wisely-pro/My-Physical-Movie-Library_/releases/download/apk-latest/Atlante-Cinema.apk
+     Serie:  https://github.com/invest-wisely-pro/My-Physical-Movie-Library_/releases/download/apk-latest/Atlante-Serie.apk
 
 2) INSTALLARLA SUL TELEFONO
    Apri l'indirizzo diretto dal telefono, scarica Atlante.apk e aprilo. Android chiede di consentire l'installazione
