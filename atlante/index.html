@@ -332,9 +332,11 @@ function actorFilmography(name){
   if(!CAST_INDEX || !IMDB_INDEX) return [];
   return (CAST_INDEX.byActor.get(normKey(name)) || []).map(id=>imdbEntry(id)).filter(Boolean);
 }
-function offlineCoStars(name, limit){
+function offlineCoStars(name, limit, minYear){
   const me = normKey(name), cnt = new Map(), disp = new Map();
-  (CAST_INDEX && CAST_INDEX.byActor.get(me) || []).forEach(id=>castOfFilm(id).forEach(n=>{ const k = normKey(n); if(!k || k === me) return; cnt.set(k, (cnt.get(k) || 0) + 1); if(!disp.has(k)) disp.set(k, n); }));
+  (CAST_INDEX && CAST_INDEX.byActor.get(me) || [])
+    .filter(id=>{ if(!minYear) return true; const e = imdbEntry(id), y = e ? parseInt(e.y, 10) : 0; return !y || y >= minYear; })   // niente film di omonimi nati prima
+    .forEach(id=>castOfFilm(id).forEach(n=>{ const k = normKey(n); if(!k || k === me) return; cnt.set(k, (cnt.get(k) || 0) + 1); if(!disp.has(k)) disp.set(k, n); }));
   return [...cnt.entries()].filter(([, n])=>n >= 2).sort((a, b)=>b[1] - a[1]).slice(0, limit || 8).map(([k, n])=>({ name: disp.get(k), n }));
 }
 function castBuilt(){ const el = document.getElementById('imdbCastData'); return el && el.textContent.trim() ? ((el.dataset && el.dataset.built) || '') : ''; }
@@ -829,8 +831,11 @@ function viewActors(){ setNav('attori');
   const list = actorRanking();
   V().innerHTML = `<h1 class="pg">Attori</h1><p class="lead">Gli attori con almeno tre film noti, in ordine di importanza.</p><div class="ctrl"><label>Cerca un attore<input id="pq" type="search" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--s1); padding:0 10px"></label></div><div id="pl">${peopleView('attore', list)}</div>`;
   $('pq').addEventListener('input', ()=>{ $('pl').innerHTML = peopleView('attore', list, $('pq').value); }); }
-function personPage(kind, name, films, roles, qid0){
-  const seen = new Set(), fs = films.filter(e=>e && !seen.has(e.id) && seen.add(e.id)).map(enrich), known = fs.filter(e=>e.v >= 1000);
+/* Omonimi: l'indice del cast lavora per NOME, quindi "Tom Holland" (nato nel 1996) si ritrovava i film
+   di un altro Tom Holland degli anni '60. Con l'anno di nascita (Wikidata) 'by' si scartano i film
+   usciti prima che la persona nascesse. */
+function personPage(kind, name, films, roles, qid0, by){
+  const seen = new Set(), fs = films.filter(e=>{ if(!e) return false; if(by){ const y = parseInt(e.y, 10); if(y && y < by) return false; } return !seen.has(e.id) && seen.add(e.id); }).map(enrich), known = fs.filter(e=>e.v >= 1000);
   const years = fs.map(e=>parseInt(e.y, 10)).filter(Boolean), mp = fs.filter(e=>e._mp).length, rated = fs.filter(e=>e.v >= 5000);
   const avgR = rated.length ? rated.reduce((t, e)=>t + e._R, 0) / rated.length : 0;
   const famous = fs.slice().sort((a, b)=>b.v - a.v).slice(0, 12), best = known.slice().sort((a, b)=>b._s - a._s || b.v - a.v).slice(0, 12), recent = fs.slice().sort((a, b)=>(b.y || '').localeCompare(a.y || '')).slice(0, 12);
@@ -841,7 +846,7 @@ function personPage(kind, name, films, roles, qid0){
     const top = [...m.entries()].filter(x=>x[1] >= 2).sort((a, b)=>b[1] - a[1]).slice(0, 14);
     if(top.length) collab = `<h2 class="sec">Gli attori con cui ha lavorato di più</h2><div class="cast">${top.map(([n, c])=>`<a href="#attore/${encodeURIComponent(n)}">${esc(n)} (${c})</a>`).join('')}</div>`; }
   if(kind === 'attore' || kind === 'persona'){ const m = new Map(); fs.forEach(e=>dirs(e).forEach(n=>{ if(normKey(n) !== normKey(name)) m.set(n, (m.get(n) || 0) + 1); }));
-    const top = [...m.entries()].filter(x=>x[1] >= 2).sort((a, b)=>b[1] - a[1]).slice(0, 10), co = CAST_INDEX && kind === 'attore' ? offlineCoStars(name, 12) : [];
+    const top = [...m.entries()].filter(x=>x[1] >= 2).sort((a, b)=>b[1] - a[1]).slice(0, 10), co = CAST_INDEX && kind === 'attore' ? offlineCoStars(name, 12, by) : [];
     if(top.length) collab += `<h2 class="sec">I registi con cui ha lavorato di più</h2><div class="cast">${top.map(([n, c])=>`<a href="#regista/${encodeURIComponent(n)}">${esc(n)} (${c})</a>`).join('')}</div>`;
     if(co.length) collab += `<h2 class="sec">Ha recitato spesso con</h2><div class="cast">${co.map(c=>`<a href="#attore/${encodeURIComponent(c.name)}">${esc(c.name)} (${c.n})</a>`).join('')}</div>`; }
   const rc = new Map(); if(roles) Object.entries(roles).forEach(([id, ps])=>{ if(seen.has(id)) ps.forEach(p=>rc.set(p, (rc.get(p) || 0) + 1)); });
@@ -864,19 +869,41 @@ function personPage(kind, name, films, roles, qid0){
   const redo = () => { $('pfwrap').innerHTML = paged('pf', applyFilters(fs, { o: $('pfo').value, g: $('pfg').value }), row, 100); };
   if($('pfo')){ $('pfo').onchange = redo; $('pfg').onchange = redo; }
   fetchPerson(name, fs, qid0).then(d=>{ if(!decodeURIComponent(location.hash).includes('/' + name)) return;
+    const by2 = by || (d && d.born ? parseInt(d.born, 10) : 0), byOk = by2 > 1800 ? by2 : 0;
+    if(byOk && !by && fs.some(e=>{ const y = parseInt(e.y, 10); return y && y < byOk; })){ personPage(kind, name, fs, roles, qid0, byOk); return; }   // c'erano film di omonimi: si ridisegna senza
     if(!roles && d && d.films && Object.keys(d.films).length){   // i film trovati su Wikidata completano la pagina (una volta sola)
       const more = Object.keys(d.films).map(imdbEntry).filter(Boolean);
-      if(more.some(e=>!seen.has(e.id)) || kind === 'persona'){ personPage(kind, name, fs.concat(more), d.films, qid0); return; } }
+      if(more.some(e=>!seen.has(e.id)) || kind === 'persona'){ personPage(kind, name, fs.concat(more), d.films, qid0, byOk); return; } }
     renderPersonOnline(name, d); }).catch(()=>{ if($('pfacts')) $('pfacts').innerHTML = '<p class="note">Wikidata non risponde ora.</p>'; });
 }
 function viewDirector(name){ setNav('registi'); personPage('regista', name, BY_DIR.get(name) || []); }
 function viewActor(name){ setNav('attori'); if(!CAST_INDEX) return viewPersona(name); personPage('attore', name, actorFilmography(name)); }
 function viewPersona(name, qid){ setNav(''); personPage('persona', name, qid ? [] : (BY_DIR.get(name) || []).concat(CAST_INDEX ? actorFilmography(name) : []), null, qid); }   // con il codice, i film arrivano da Wikidata: niente omonimi
+/* Ricerca delle persone: TUTTI i nomi dell'indice (non solo le 600 classifiche), con le parole in qualsiasi
+   ordine e anche solo l'inizio ("holl" trova Tom Holland). Ordine: i più noti (voti dei loro film). */
+let _castDisp = null, _dirKeys = null;
+function nameHas(key, toks){ const p = ' ' + key; for(const t of toks){ if(p.indexOf(' ' + t) === -1) return false; } return true; }
+function searchPeople(k, limit){
+  const toks = k.split(' ').filter(Boolean), res = { dirs: [], acts: [] };
+  if(k.length < 3 || !toks.length) return res;
+  if(!_dirKeys) _dirKeys = [...BY_DIR.entries()].map(([name, fs])=>({ name, fs, key: normKey(name) }));
+  _dirKeys.forEach(d=>{ if(nameHas(d.key, toks)) res.dirs.push({ name: d.name, n: d.fs.length, s: d.fs.reduce((t, e)=>t + (e.v || 0), 0) }); });
+  if(CAST_INDEX){
+    if(!_castDisp){ _castDisp = new Map(); CAST_INDEX.names.forEach(n=>{ const kk = normKey(n); if(kk && !_castDisp.has(kk)) _castDisp.set(kk, n); }); }
+    for(const [key, ids] of CAST_INDEX.byActor){
+      if(!nameHas(key, toks)) continue;
+      let n = 0, s = 0; ids.forEach(id=>{ const e = imdbEntry(id); if(e){ n++; s += e.v || 0; } });
+      if(n) res.acts.push({ name: _castDisp.get(key) || key, n, s });
+    }
+  }
+  const by = (a, b)=>b.s - a.s;
+  res.dirs = res.dirs.sort(by).slice(0, limit); res.acts = res.acts.sort(by).slice(0, limit);
+  return res;
+}
 function viewSearch(q){
   setNav(''); const k = normKey(q), words = k.split(' ').filter(Boolean);
   const films = words.length ? ALL.filter(e=>words.every(w=>e._n.includes(w))).sort((a, b)=>b.v - a.v).slice(0, 120) : [];
-  const dirs = k.length >= 3 ? dirRanking().filter(d=>normKey(d.name).includes(k)).slice(0, 8) : [];
-  const acts = k.length >= 3 && CAST_INDEX ? actorRanking().filter(a=>normKey(a.name).includes(k)).slice(0, 8) : [];
+  const { dirs, acts } = searchPeople(k, 16);
   V().innerHTML = `<h1 class="pg">Risultati per «${esc(q)}»</h1>`
     + (dirs.length ? `<h2 class="sec">Registi</h2>${peopleView('regista', dirs)}` : '') + (acts.length ? `<h2 class="sec">Attori</h2>${peopleView('attore', acts)}` : '')
     + `<h2 class="sec">Film</h2>${films.length ? paged('sr', films, row) : '<p class="note">Nessun film trovato: prova con il titolo originale o con meno parole.</p>'}`;
