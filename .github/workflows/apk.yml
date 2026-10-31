@@ -23,11 +23,12 @@ jobs:
         with: { gradle-version: '8.9' }
       - name: Costruisci l'APK
         working-directory: android
-        run: gradle --no-daemon assembleRelease -PbaseUrl="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/" -Pvc=${{ github.run_number }}
+        run: gradle --no-daemon assembleCinemaRelease assembleSerieRelease -PbaseUrl="https://${GITHUB_REPOSITORY_OWNER}.github.io/${GITHUB_REPOSITORY#*/}/" -Pvc=${{ github.run_number }}
       - name: Pubblica il file da scaricare
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk Atlante.apk
+          cp android/app/build/outputs/apk/cinema/release/app-cinema-release.apk Atlante-Cinema.apk
+          cp android/app/build/outputs/apk/serie/release/app-serie-release.apk Atlante-Serie.apk
           gh release delete apk-latest --cleanup-tag -y || true
-          gh release create apk-latest Atlante.apk --title "Atlante (APK)" --notes "Costruito il $(date -u +%F). Contiene Atlante del Cinema e Atlante Serie TV."
+          gh release create apk-latest Atlante-Cinema.apk Atlante-Serie.apk --title "Atlante (APK)" --notes "Costruito il $(date -u +%F). Due app separate: Atlante-Cinema.apk e Atlante-Serie.apk."
