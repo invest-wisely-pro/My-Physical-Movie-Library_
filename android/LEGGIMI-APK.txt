@@ -1,0 +1,26 @@
+ATLANTE — APP ANDROID (telefono e televisore Sony)
+===================================================
+Due icone nella stessa app: "Atlante del Cinema" e "Atlante Serie TV". Aprono i tuoi siti su GitHub Pages
+a schermo intero; sul televisore si accende da sola la modalità TV (?tv=1). I dati restano nel dispositivo.
+
+1) COSTRUIRLA (una volta, poi si rifà da sola a ogni modifica della cartella android)
+   - Carica nel repository la cartella  android  e il file  .github/workflows/apk.yml  (se la cartella .github
+     non si carica: Add file → Create new file → nome  .github/workflows/apk.yml  → incolla → Commit).
+   - Scheda Actions → "Costruisci l'APK degli Atlanti" → Run workflow. Servono circa 5-10 minuti.
+   - Alla fine, nella pagina principale del repository, a destra: Releases → "Atlante (APK)" → file  Atlante.apk
+     Indirizzo diretto:  https://github.com/invest-wisely-pro/My-Physical-Movie-Library_/releases/download/apk-latest/Atlante.apk
+
+2) INSTALLARLA SUL TELEFONO
+   Apri l'indirizzo diretto dal telefono, scarica Atlante.apk e aprilo. Android chiede di consentire l'installazione
+   da questa fonte (Chrome o File): consenti. Le versioni successive si installano sopra, senza perdere i dati.
+
+3) INSTALLARLA SUL SONY (Android TV / Google TV)
+   - Installa dal Play Store l'app "Downloader" (AFTVnews).
+   - Impostazioni del televisore → Privacy/Sicurezza → "Origini sconosciute" → consenti a Downloader.
+   - Apri Downloader, scrivi l'indirizzo diretto qui sopra (oppure il codice breve) → Scarica → Installa.
+   - Le due icone compaiono nell'elenco delle app, con il banner dedicato.
+
+4) NOTE
+   - La firma è fissa e non segreta: serve solo per aggiornare sopra la versione precedente. Non adatta al Play Store.
+   - I backup: il pulsante di salvataggio dell'Atlante scrive il file in Download (Android 10+) o nella cartella dell'app (Android 9 e precedenti).
+   - Se cambi nome del repository o dell'utente, ricostruisci l'APK: l'indirizzo degli Atlanti è scritto al momento della costruzione.

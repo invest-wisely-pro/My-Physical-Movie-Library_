@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Atlante</string>
+    <string name="label_cinema">Atlante del Cinema</string>
+    <string name="label_serie">Atlante Serie TV</string>
+</resources>
