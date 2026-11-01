@@ -297,6 +297,16 @@ function imdbEntry(id){
   if(!IMDB_BY_ID){ IMDB_BY_ID = new Map(); IMDB_INDEX.forEach(x=>IMDB_BY_ID.set(x.id, x)); }
   return IMDB_BY_ID.get(id) || null;
 }
+/* Omonimi: l'indice tiene separata ogni persona (una riga per persona), ma la ricerca per nome le fondeva.
+   Qui, per ogni nome portato da più persone, la scheda mostra quella più nota (più voti sui suoi film) e gli altri restano a parte. */
+function resolveHomonyms(names, kc, byActor, byIdx){
+  const homon = new Map();
+  kc.forEach((rs, k)=>{ if(rs.length < 2) return;
+    const cand = rs.map(r=>{ const ids = [...new Set(byIdx.get(r) || [])]; return { name: names[r], films: ids, s: ids.reduce((t, id)=>{ const e = imdbEntry(id); return t + (e ? Math.log10(1 + (e.v || 0)) : 0); }, 0) }; }).filter(c=>c.films.length).sort((a, b)=>b.s - a.s);
+    if(cand.length < 2) return;
+    byActor.set(k, cand[0].films); homon.set(k, cand.slice(1)); });
+  return homon;
+}
 function ensureCastIndex(){
   if(CAST_STATE === 'ready' || CAST_STATE === 'none') return Promise.resolve(CAST_INDEX);
   if(_castPromise) return _castPromise;
@@ -308,7 +318,9 @@ function ensureCastIndex(){
       const sep = txt.indexOf('\n#\n');
       const names = txt.slice(0, sep).split('\n');
       const keys = names.map(normKey);   // una normalizzazione per attore, non per ogni comparsa
-      const byFilm = new Map(), byActor = new Map();
+      const byFilm = new Map(), byActor = new Map(), byIdx = new Map(), kc = new Map();
+      keys.forEach((k, r)=>{ if(k){ const a = kc.get(k); if(a) a.push(r); else kc.set(k, [r]); } });
+      const hom = new Set(); kc.forEach(rs=>{ if(rs.length > 1) rs.forEach(r=>hom.add(r)); });   // indici di persone con nome non unico
       const lines = txt.slice(sep + 3).split('\n');
       for(const l of lines){
         if(!l) continue;
@@ -316,12 +328,14 @@ function ensureCastIndex(){
         for(const x of parts){
           const r = parseInt(x, 36); if(!(r >= 0 && r < names.length)) continue;
           refs.push(r);
+          if(hom.has(r)){ const q = byIdx.get(r); if(q) q.push(id); else byIdx.set(r, [id]); }
           const k = keys[r]; if(!k) continue;
           const a = byActor.get(k); if(a) a.push(id); else byActor.set(k, [id]);
         }
         byFilm.set(id, refs);
       }
-      CAST_INDEX = { names, byFilm, byActor }; CAST_STATE = 'ready';
+      const homon = resolveHomonyms(names, kc, byActor, byIdx);
+      CAST_INDEX = { names, byFilm, byActor, homon }; CAST_STATE = 'ready';
     }catch(e){ console.error('cast offline non caricato:', e); CAST_INDEX = null; CAST_STATE = 'none'; }
     return CAST_INDEX;
   })();
@@ -332,11 +346,9 @@ function actorFilmography(name){
   if(!CAST_INDEX || !IMDB_INDEX) return [];
   return (CAST_INDEX.byActor.get(normKey(name)) || []).map(id=>imdbEntry(id)).filter(Boolean);
 }
-function offlineCoStars(name, limit, minYear){
+function offlineCoStars(name, limit){
   const me = normKey(name), cnt = new Map(), disp = new Map();
-  (CAST_INDEX && CAST_INDEX.byActor.get(me) || [])
-    .filter(id=>{ if(!minYear) return true; const e = imdbEntry(id), y = e ? parseInt(e.y, 10) : 0; return !y || y >= minYear; })   // niente film di omonimi nati prima
-    .forEach(id=>castOfFilm(id).forEach(n=>{ const k = normKey(n); if(!k || k === me) return; cnt.set(k, (cnt.get(k) || 0) + 1); if(!disp.has(k)) disp.set(k, n); }));
+  (CAST_INDEX && CAST_INDEX.byActor.get(me) || []).forEach(id=>castOfFilm(id).forEach(n=>{ const k = normKey(n); if(!k || k === me) return; cnt.set(k, (cnt.get(k) || 0) + 1); if(!disp.has(k)) disp.set(k, n); }));
   return [...cnt.entries()].filter(([, n])=>n >= 2).sort((a, b)=>b[1] - a[1]).slice(0, limit || 8).map(([k, n])=>({ name: disp.get(k), n }));
 }
 function castBuilt(){ const el = document.getElementById('imdbCastData'); return el && el.textContent.trim() ? ((el.dataset && el.dataset.built) || '') : ''; }
@@ -767,7 +779,7 @@ function viewHome(){
         return `<h2 class="sec">${esc(c.name)} <span class="note" style="font-family:var(--ui)">ne hai visti ${seen} su ${fs.length}</span><a class="more" href="#classifica/${esc(c.id)}">Vedi tutta</a></h2><div class="strip">${fs.slice(0, 14).map(tile).join('')}</div>`; }).join('')
     + `<h2 class="sec">I più apprezzati <a class="more" href="#lista/votati">Vedi tutti</a></h2><div class="strip">${BY_BR.slice(0, 14).map(tile).join('')}</div>`
     + (fr.length ? `<h2 class="sec">🎙 Promossi da Frusciante <a class="more" href="#lista/frusciante-si">Vedi tutti</a></h2><div class="strip">${fr.map(tile).join('')}</div>` : '')
-    + `<h2 class="sec">Scopri</h2><div class="genres">${['granfilm', 'incassi', 'premiati', 'oscar', 'gemme', 'classici', 'recenti', 'critica-si', 'pubblico-si', 'controcorrente', 'brevi', 'kolossal', 'animazione'].map(k=>{ const n = LISTS[k][1]().length; return n ? `<a class="genre" href="#lista/${k}" style="--tilebg:var(--s2)">${esc(LISTS[k][0])}<span>${n.toLocaleString('it-IT')}</span></a>` : ''; }).join('')}</div>`
+    + `<h2 class="sec">Scopri</h2><div class="genres">${['granfilm', 'incassi', 'premiati', 'oscar', 'gemme', 'classici', 'recenti', 'critica-si', 'pubblico-si', 'controcorrente', 'brevi', 'kolossal', 'cinecomic', 'animazione'].map(k=>{ const n = LISTS[k][1]().length; return n ? `<a class="genre" href="#lista/${k}" style="--tilebg:var(--s2)">${esc(LISTS[k][0])}<span>${n.toLocaleString('it-IT')}</span></a>` : ''; }).join('')}${sagheTile()}</div>`
     + `<h2 class="sec">Per genere</h2><div class="genres">${[...GENRES.entries()].filter(([, l])=>l.length >= 40).sort((a, b)=>b[1].length - a[1].length).map(([g, l])=>`<a class="genre" href="#genere/${encodeURIComponent(g)}" style="--tilebg:hsl(${GCOL[g] != null ? GCOL[g] : 200} 28% 24%)">${esc(g)}<span>${l.length.toLocaleString('it-IT')}</span></a>`).join('')}</div>`;
   $('surprise').onclick = surprise;
 }
@@ -791,7 +803,8 @@ const LISTS = {
   classici: ['🎞 I grandi classici', () => BY_V.filter(e=>parseInt(e.y, 10) < 1970 && e._br >= 7.8 && e.v >= 20000), 'punteggio', 'Il cinema prima del 1970 che ha resistito al tempo.'],
   recenti: ['🆕 Recenti da non perdere', () => BY_V.filter(e=>parseInt(e.y, 10) >= new Date().getFullYear() - 5 && e._br >= 7.2 && e.v >= 20000 && (e._crit == null || e._crit >= 0.75)), 'fama', 'Gli ultimi cinque anni, solo il meglio: in ordine di fama, e con la critica almeno al 75% quando c\'è.'],
   'critica-si': ['🧐 Amati dalla critica, snobbati dal pubblico', () => BY_V.filter(e=>e._crit != null && e._crit >= 0.9 && e._R <= 6.8 && e.v >= 10000), 'punteggio', 'Critica sopra il 90%, ma voto IMDb sotto il 7.'],
-  'pubblico-si': ['🍿 Amati dal pubblico, stroncati dalla critica', () => BY_V.filter(e=>e._crit != null && e._crit <= 0.55 && e._R >= 7.5 && e.v >= 20000), 'fama', 'Voto IMDb da 7,5 in su, ma critica sotto il 55%.'],
+  'pubblico-si': ['🍿 Amati dal pubblico, stroncati dalla critica', () => BY_V.filter(e=>e._crit != null && e._crit <= 0.55 && e._R >= 7.3 && e.v >= 20000), 'fama', 'Voto IMDb da 7,3 in su, ma critica sotto il 55%.'],
+  'cinecomic': ['🦸 Cinecomic', () => CINECOMIC.map(imdbEntry).filter(Boolean), 'fama', 'Film tratti da fumetti: Marvel, DC e non solo.'],
   controcorrente: ['🎙 Frusciante controcorrente', () => BY_V.filter(e=>e._f && ((e._f.s === -1 && e._br >= 7.8) || (e._f.s === 1 && e._br > 0 && e._br <= 6.5))), 'fama', 'Film amati da tutti che Frusciante ha bocciato, e film poco amati che invece ha promosso.'],
   brevi: ['⏱ Brevi capolavori', () => BY_V.filter(e=>e._min && e._min <= 95 && e._br >= 7.6 && e.v >= 20000), 'punteggio', 'Grande cinema in meno di 95 minuti.'],
   kolossal: ['🏛 Kolossal oltre le 3 ore', () => BY_V.filter(e=>e._min >= 180 && e._br >= 7.3 && e.v >= 10000), 'punteggio', 'Per le serate lunghe: tre ore e più.'],
@@ -819,23 +832,30 @@ function viewNamedList(k){
 }
 function viewGenre(g){ setNav(''); const l = GENRES.get(g) || []; viewList('g', { o: 'fama' }, l, `<p class="crumbs"><a href="#">Esplora</a> › Genere</p><h1 class="pg">${esc(g)}</h1>`, `${l.length.toLocaleString('it-IT')} film, di cui ${l.filter(e=>e._mp).length} capolavori.`, { decade: true, mp: true }); }
 function viewDecade(d){ setNav(''); const l = DECADES.get(+d) || []; viewList('d', { o: 'fama' }, l, `<p class="crumbs"><a href="#">Esplora</a> › Decennio</p><h1 class="pg">Anni ${esc(d)}</h1>`, `${l.length.toLocaleString('it-IT')} film, di cui ${l.filter(e=>e._mp).length} capolavori.`, { genre: true, mp: true }); }
+function searchPeople(kind, words){   // TUTTI i registi e gli attori dell'indice, non solo i 600 più noti; i più noti in cima
+  const out = [], test = k => words.every(w=>k.includes(w)), pop = fs => fs.reduce((t, e)=>t + Math.log10(1 + ((e && e.v) || 0)), 0);
+  if(!words.length) return out;
+  if(kind === 'regista') BY_DIR.forEach((fs, name)=>{ if(test(normKey(name))) out.push({ name, n: fs.length, s: pop(fs) }); });
+  else if(CAST_INDEX){
+    if(!CAST_INDEX._disp){ const d = new Map(); CAST_INDEX.names.forEach(n=>{ const k = normKey(n); if(k && !d.has(k)) d.set(k, n); }); CAST_INDEX._disp = d; }
+    CAST_INDEX.byActor.forEach((ids, k)=>{ if(test(k)) out.push({ name: CAST_INDEX._disp.get(k) || k, n: ids.length, s: pop(ids.map(imdbEntry)) }); });
+  }
+  return out.sort((a, b)=>b.s - a.s).slice(0, 40);
+}
 function peopleView(kind, list, q){
   const f = q ? list.filter(p=>normKey(p.name).includes(normKey(q))) : list;
   return `<div class="people">${f.slice(0, 300).map(p=>`<a class="person" href="#${kind}/${encodeURIComponent(p.name)}"><b>${esc(p.name)}</b><span>${p.n} film</span></a>`).join('') || '<p class="note">Nessun nome trovato.</p>'}</div>`;
 }
 function viewDirectors(){ setNav('registi'); const list = dirRanking();
   V().innerHTML = `<h1 class="pg">Registi</h1><p class="lead">I registi con almeno tre film noti, in ordine di importanza: conta quanto sono amati i loro film, e da quante persone.</p><div class="ctrl"><label>Cerca un regista<input id="pq" type="search" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--s1); padding:0 10px"></label></div><div id="pl">${peopleView('regista', list)}</div>`;
-  $('pq').addEventListener('input', ()=>{ $('pl').innerHTML = peopleView('regista', list, $('pq').value); }); }
+  $('pq').addEventListener('input', ()=>{ $('pl').innerHTML = peopleView('regista', normKey($('pq').value).length >= 2 ? searchPeople('regista', normKey($('pq').value).split(' ').filter(Boolean)) : list); }); }
 function viewActors(){ setNav('attori');
   if(!CAST_INDEX){ V().innerHTML = `<h1 class="pg">Attori</h1><div class="box"><div class="in">L'indice degli attori non c'è ancora: lo crea l'automazione <b>"Aggiorna indice IMDb"</b> della Videoteca. Lanciala su GitHub (Actions → Run workflow) e poi riapri l'Atlante.</div></div>`; return; }
   const list = actorRanking();
   V().innerHTML = `<h1 class="pg">Attori</h1><p class="lead">Gli attori con almeno tre film noti, in ordine di importanza.</p><div class="ctrl"><label>Cerca un attore<input id="pq" type="search" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--s1); padding:0 10px"></label></div><div id="pl">${peopleView('attore', list)}</div>`;
-  $('pq').addEventListener('input', ()=>{ $('pl').innerHTML = peopleView('attore', list, $('pq').value); }); }
-/* Omonimi: l'indice del cast lavora per NOME, quindi "Tom Holland" (nato nel 1996) si ritrovava i film
-   di un altro Tom Holland degli anni '60. Con l'anno di nascita (Wikidata) 'by' si scartano i film
-   usciti prima che la persona nascesse. */
-function personPage(kind, name, films, roles, qid0, by){
-  const seen = new Set(), fs = films.filter(e=>{ if(!e) return false; if(by){ const y = parseInt(e.y, 10); if(y && y < by) return false; } return !seen.has(e.id) && seen.add(e.id); }).map(enrich), known = fs.filter(e=>e.v >= 1000);
+  $('pq').addEventListener('input', ()=>{ $('pl').innerHTML = peopleView('attore', normKey($('pq').value).length >= 2 ? searchPeople('attore', normKey($('pq').value).split(' ').filter(Boolean)) : list); }); }
+function personPage(kind, name, films, roles, qid0){
+  const seen = new Set(), fs = films.filter(e=>e && !seen.has(e.id) && seen.add(e.id)).map(enrich), known = fs.filter(e=>e.v >= 1000);
   const years = fs.map(e=>parseInt(e.y, 10)).filter(Boolean), mp = fs.filter(e=>e._mp).length, rated = fs.filter(e=>e.v >= 5000);
   const avgR = rated.length ? rated.reduce((t, e)=>t + e._R, 0) / rated.length : 0;
   const famous = fs.slice().sort((a, b)=>b.v - a.v).slice(0, 12), best = known.slice().sort((a, b)=>b._s - a._s || b.v - a.v).slice(0, 12), recent = fs.slice().sort((a, b)=>(b.y || '').localeCompare(a.y || '')).slice(0, 12);
@@ -846,20 +866,22 @@ function personPage(kind, name, films, roles, qid0, by){
     const top = [...m.entries()].filter(x=>x[1] >= 2).sort((a, b)=>b[1] - a[1]).slice(0, 14);
     if(top.length) collab = `<h2 class="sec">Gli attori con cui ha lavorato di più</h2><div class="cast">${top.map(([n, c])=>`<a href="#attore/${encodeURIComponent(n)}">${esc(n)} (${c})</a>`).join('')}</div>`; }
   if(kind === 'attore' || kind === 'persona'){ const m = new Map(); fs.forEach(e=>dirs(e).forEach(n=>{ if(normKey(n) !== normKey(name)) m.set(n, (m.get(n) || 0) + 1); }));
-    const top = [...m.entries()].filter(x=>x[1] >= 2).sort((a, b)=>b[1] - a[1]).slice(0, 10), co = CAST_INDEX && kind === 'attore' ? offlineCoStars(name, 12, by) : [];
+    const top = [...m.entries()].filter(x=>x[1] >= 2).sort((a, b)=>b[1] - a[1]).slice(0, 10), co = CAST_INDEX && kind === 'attore' ? offlineCoStars(name, 12) : [];
     if(top.length) collab += `<h2 class="sec">I registi con cui ha lavorato di più</h2><div class="cast">${top.map(([n, c])=>`<a href="#regista/${encodeURIComponent(n)}">${esc(n)} (${c})</a>`).join('')}</div>`;
     if(co.length) collab += `<h2 class="sec">Ha recitato spesso con</h2><div class="cast">${co.map(c=>`<a href="#attore/${encodeURIComponent(c.name)}">${esc(c.name)} (${c.n})</a>`).join('')}</div>`; }
   const rc = new Map(); if(roles) Object.entries(roles).forEach(([id, ps])=>{ if(seen.has(id)) ps.forEach(p=>rc.set(p, (rc.get(p) || 0) + 1)); });
   const roleTxt = rc.size ? [...rc.entries()].sort((a, b)=>b[1] - a[1]).map(([p, n])=>`${ROLE_P[p]} in ${n} ${n === 1 ? 'film' : 'film'}`).join(', ') : '';
   const roleName = { regista: 'Regista', attore: 'Interprete', persona: 'Cinema' }[kind] || '';
   const back = kind === 'regista' ? '<a href="#registi">Registi</a>' : kind === 'attore' ? '<a href="#attori">Attori</a>' : '<a href="#">Esplora</a>';
+  const hm = kind === 'attore' && CAST_INDEX && CAST_INDEX.homon && CAST_INDEX.homon.get(normKey(name));
+  const homNote = hm && hm.length ? `<details class="box" style="margin-top:14px"><summary><b>⚠️ Altre persone con questo nome (${hm.length})</b></summary><div class="in"><p class="note">Nell'indice ci sono omonimi: sono tenuti separati e i loro film non compaiono qui sopra.</p>${hm.map(h=>{ const ys = h.films.map(id=>imdbEntry(id)).filter(Boolean).map(e=>parseInt(e.y, 10)).filter(Boolean); return `<p><b>${h.films.length} ${h.films.length === 1 ? 'film' : 'film'}</b>${ys.length ? `, dal ${Math.min(...ys)} al ${Math.max(...ys)}` : ''}: ${h.films.slice(0, 6).map(id=>imdbEntry(id)).filter(Boolean).map(e=>`<a href="#film/${e.id}">${esc(title(e))}${e.y ? ' (' + esc(e.y) + ')' : ''}</a>`).join(', ')}</p>`; }).join('')}</div></details>` : '';
   const ini = name.split(/\s+/).map(x=>x[0]).join('').slice(0, 2).toUpperCase();
   V().innerHTML = `<p class="crumbs">${back}</p><div class="film-head person-head"><div class="poster pphoto" id="pphoto"><span class="tt">${esc(ini)}</span></div><div style="min-width:0">`
     + `<h1 class="pg">${esc(name)}</h1><p class="lead">${roleTxt ? esc(roleTxt) : roleName + (fs.length ? `: ${fs.length} film nell'indice` : '')}${years.length ? `, dal ${Math.min(...years)} al ${Math.max(...years)}` : ''}.</p>`
     + `<div class="scores"><div class="score"><b>${fs.length}</b><span>film</span></div>${mp ? `<div class="score mp"><b>✦ ${mp}</b><span>capolavori</span></div>` : ''}${avgR ? `<div class="score"><b>${fmtR(avgR)}</b><span>voto medio IMDb</span></div>` : ''}${fs.length ? `<div class="score"><b>${fmtV(fs.reduce((t, e)=>t + (e.v || 0), 0))}</b><span>voti in tutto</span></div>` : ''}</div>`
     + `<div id="pfacts"><p class="note">${navigator.onLine === false ? 'Sei offline: biografia e foto arriveranno con la rete.' : 'Carico biografia e foto…'}</p></div>`
     + (gcount.size ? `<div class="cast" style="margin-top:10px">${[...gcount.entries()].sort((a, b)=>b[1] - a[1]).slice(0, 8).map(([g, c])=>`<a href="#genere/${encodeURIComponent(g)}">${esc(g)} (${c})</a>`).join('')}</div>` : '') + `</div></div>`
-    + `<div id="pbio"></div>`
+    + `<div id="pbio"></div>` + homNote
     + (famous.length ? `<h2 class="sec">I più famosi</h2><div class="strip">${famous.map(tile).join('')}</div>` : '')
     + (best.length >= 3 ? `<h2 class="sec">I migliori</h2><div class="strip">${best.map(tile).join('')}</div>` : '')
     + (recent.length >= 3 ? `<h2 class="sec">I più recenti</h2><div class="strip">${recent.map(tile).join('')}</div>` : '')
@@ -869,41 +891,19 @@ function personPage(kind, name, films, roles, qid0, by){
   const redo = () => { $('pfwrap').innerHTML = paged('pf', applyFilters(fs, { o: $('pfo').value, g: $('pfg').value }), row, 100); };
   if($('pfo')){ $('pfo').onchange = redo; $('pfg').onchange = redo; }
   fetchPerson(name, fs, qid0).then(d=>{ if(!decodeURIComponent(location.hash).includes('/' + name)) return;
-    const by2 = by || (d && d.born ? parseInt(d.born, 10) : 0), byOk = by2 > 1800 ? by2 : 0;
-    if(byOk && !by && fs.some(e=>{ const y = parseInt(e.y, 10); return y && y < byOk; })){ personPage(kind, name, fs, roles, qid0, byOk); return; }   // c'erano film di omonimi: si ridisegna senza
     if(!roles && d && d.films && Object.keys(d.films).length){   // i film trovati su Wikidata completano la pagina (una volta sola)
       const more = Object.keys(d.films).map(imdbEntry).filter(Boolean);
-      if(more.some(e=>!seen.has(e.id)) || kind === 'persona'){ personPage(kind, name, fs.concat(more), d.films, qid0, byOk); return; } }
+      if(more.some(e=>!seen.has(e.id)) || kind === 'persona'){ personPage(kind, name, fs.concat(more), d.films, qid0); return; } }
     renderPersonOnline(name, d); }).catch(()=>{ if($('pfacts')) $('pfacts').innerHTML = '<p class="note">Wikidata non risponde ora.</p>'; });
 }
 function viewDirector(name){ setNav('registi'); personPage('regista', name, BY_DIR.get(name) || []); }
 function viewActor(name){ setNav('attori'); if(!CAST_INDEX) return viewPersona(name); personPage('attore', name, actorFilmography(name)); }
 function viewPersona(name, qid){ setNav(''); personPage('persona', name, qid ? [] : (BY_DIR.get(name) || []).concat(CAST_INDEX ? actorFilmography(name) : []), null, qid); }   // con il codice, i film arrivano da Wikidata: niente omonimi
-/* Ricerca delle persone: TUTTI i nomi dell'indice (non solo le 600 classifiche), con le parole in qualsiasi
-   ordine e anche solo l'inizio ("holl" trova Tom Holland). Ordine: i più noti (voti dei loro film). */
-let _castDisp = null, _dirKeys = null;
-function nameHas(key, toks){ const p = ' ' + key; for(const t of toks){ if(p.indexOf(' ' + t) === -1) return false; } return true; }
-function searchPeople(k, limit){
-  const toks = k.split(' ').filter(Boolean), res = { dirs: [], acts: [] };
-  if(k.length < 3 || !toks.length) return res;
-  if(!_dirKeys) _dirKeys = [...BY_DIR.entries()].map(([name, fs])=>({ name, fs, key: normKey(name) }));
-  _dirKeys.forEach(d=>{ if(nameHas(d.key, toks)) res.dirs.push({ name: d.name, n: d.fs.length, s: d.fs.reduce((t, e)=>t + (e.v || 0), 0) }); });
-  if(CAST_INDEX){
-    if(!_castDisp){ _castDisp = new Map(); CAST_INDEX.names.forEach(n=>{ const kk = normKey(n); if(kk && !_castDisp.has(kk)) _castDisp.set(kk, n); }); }
-    for(const [key, ids] of CAST_INDEX.byActor){
-      if(!nameHas(key, toks)) continue;
-      let n = 0, s = 0; ids.forEach(id=>{ const e = imdbEntry(id); if(e){ n++; s += e.v || 0; } });
-      if(n) res.acts.push({ name: _castDisp.get(key) || key, n, s });
-    }
-  }
-  const by = (a, b)=>b.s - a.s;
-  res.dirs = res.dirs.sort(by).slice(0, limit); res.acts = res.acts.sort(by).slice(0, limit);
-  return res;
-}
 function viewSearch(q){
   setNav(''); const k = normKey(q), words = k.split(' ').filter(Boolean);
   const films = words.length ? ALL.filter(e=>words.every(w=>e._n.includes(w))).sort((a, b)=>b.v - a.v).slice(0, 120) : [];
-  const { dirs, acts } = searchPeople(k, 16);
+  const dirs = k.length >= 2 ? searchPeople('regista', words) : [];
+  const acts = k.length >= 2 && CAST_INDEX ? searchPeople('attore', words) : [];
   V().innerHTML = `<h1 class="pg">Risultati per «${esc(q)}»</h1>`
     + (dirs.length ? `<h2 class="sec">Registi</h2>${peopleView('regista', dirs)}` : '') + (acts.length ? `<h2 class="sec">Attori</h2>${peopleView('attore', acts)}` : '')
     + `<h2 class="sec">Film</h2>${films.length ? paged('sr', films, row) : '<p class="note">Nessun film trovato: prova con il titolo originale o con meno parole.</p>'}`;
@@ -1341,12 +1341,28 @@ function viewTools(){
 }
 
 /* ---------- Navigazione ---------- */
+/* ---------- 🎞 Saghe più famose: elenco curato, film in ordine di uscita ---------- */
+const SAGHE_CAT = [["Star Wars",["tt0076759","tt0080684","tt0086190","tt0120915","tt0121765","tt0121766","tt2488496","tt3748528","tt2527336","tt3778644","tt2527338"]],["Il Signore degli Anelli",["tt0120737","tt0167261","tt0167260"]],["Lo Hobbit",["tt0903624","tt1170358","tt2310332"]],["Harry Potter",["tt0241527","tt0295297","tt0304141","tt0330373","tt0373889","tt0417741","tt0926084","tt1201607"]],["Marvel Cinematic Universe (MCU)",["tt0371746","tt0800080","tt1228705","tt0800369","tt0458339","tt0848228","tt1300854","tt1981115","tt1843866","tt2015381","tt2395427","tt0478970","tt3498820","tt1211837","tt3896198","tt2250912","tt3501632","tt1825683","tt4154756","tt5095030","tt4154664","tt4154796","tt6320628","tt3480822","tt9376612","tt9032400","tt10872600","tt9419884","tt10648342","tt9114286","tt10954600","tt6791350","tt10676048","tt6263850","tt14513804","tt20969586"]],["Spider-Man (fuori dal MCU)",["tt0145487","tt0316654","tt0413300","tt0948470","tt1872181","tt4633694","tt9362722"]],["Jurassic Park",["tt0107290","tt0119567","tt0163025","tt0369610","tt4881806","tt8041270","tt31036941"]],["Ritorno al futuro",["tt0088763","tt0096874","tt0099088"]],["Indiana Jones",["tt0082971","tt0087469","tt0097576","tt0367882","tt1462764"]],["Batman",["tt0096895","tt0103776","tt0112462","tt0118688","tt0372784","tt0468569","tt1345836","tt1877830"]],["Mad Max",["tt0079501","tt0082694","tt0089530","tt1392190","tt12037194"]],["Pirati dei Caraibi",["tt0325980","tt0383574","tt0449088","tt1298650","tt1790809"]],["Matrix",["tt0133093","tt0234215","tt0242653","tt10838180"]],["Il Padrino",["tt0068646","tt0071562","tt0099674"]],["Alien",["tt0078748","tt0090605","tt0103644","tt0118583","tt1446714","tt2316204","tt18412256"]],["Terminator",["tt0088247","tt0103064","tt0181852","tt0438488","tt1340138","tt6450804"]],["Rocky",["tt0075148","tt0079817","tt0084602","tt0089927","tt0100507","tt0479143"]],["Mission: Impossible",["tt0117060","tt0120755","tt0317919","tt1229238","tt2381249","tt4912910","tt9603212","tt9603208"]],["Die Hard",["tt0095016","tt0099423","tt0112864","tt0337978","tt1606378"]],["Toy Story",["tt0114709","tt0120363","tt0435761","tt1979376"]],["Lo Squalo",["tt0073195","tt0077766","tt0085750","tt0093300"]],["Trilogia del dollaro",["tt0058461","tt0059578","tt0060196"]]];
+const CINECOMIC = ["tt0371746","tt0800080","tt1228705","tt0800369","tt0458339","tt0848228","tt1300854","tt1981115","tt1843866","tt2015381","tt2395427","tt0478970","tt3498820","tt1211837","tt3896198","tt2250912","tt3501632","tt1825683","tt4154756","tt5095030","tt4154664","tt4154796","tt6320628","tt3480822","tt9376612","tt9032400","tt10872600","tt9419884","tt10648342","tt9114286","tt10954600","tt6791350","tt10676048","tt6263850","tt14513804","tt20969586","tt0078346","tt0081573","tt0086393","tt0094074","tt0348150","tt0770828","tt2975590","tt1386697","tt0451279","tt0974015","tt1477834","tt0448115","tt7286456","tt7713068","tt7126948","tt6334354","tt6443346","tt10151854","tt0439572","tt9362930","tt9663764","tt11315808","tt5950044","tt0409459","tt0434409","tt0360486","tt0327554","tt1133985","tt0120903","tt0290334","tt0376994","tt0458525","tt1270798","tt1430132","tt1877832","tt3385516","tt3315342","tt1431045","tt5463162","tt4682266","tt6565702","tt0145487","tt0316654","tt0413300","tt0948470","tt1872181","tt4633694","tt9362722","tt1270797","tt7097896","tt16366836","tt5108870","tt0120667","tt0486576","tt1502712","tt0120611","tt0187738","tt0359013","tt0287978","tt0357277","tt0259324","tt0167190","tt0411477","tt0401792","tt0458481","tt1250777","tt1650554","tt0446029","tt0416449","tt1253863","tt0257044","tt0399146","tt0119654","tt0120912","tt1409024","tt0110475","tt0109506","tt0099422","tt0102803","tt0115624","tt0162346","tt0808417","tt1706620","tt0983193","tt9381682","tt15307230","tt0100758","tt1291150"];
+function sagheCat(){ return SAGHE_CAT.map(([name, ids])=>({ name, films: ids.map(imdbEntry).filter(Boolean) })).filter(x=>x.films.length >= 2); }
+function sagheTile(){ const n = sagheCat().length; return n ? `<a class="genre" href="#saghe" style="--tilebg:var(--s2)">🎞 Saghe più famose<span>${n}</span></a>` : ''; }
+function viewSaghe(){
+  setNav('home');
+  const L = sagheCat().map(x=>({ name: x.name, films: x.films, seen: x.films.filter(e=>has(e.id, 'v')).length }));
+  V().innerHTML = `<p class="crumbs"><a href="#">Esplora</a> › Saghe</p><h1 class="pg">🎞 Saghe più famose</h1>`
+    + `<p class="lead">${L.length} saghe, con i film in ordine di uscita. Sotto ogni titolo vedi a che punto sei.</p>`
+    + `<div id="sgjump" style="display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 6px">${L.map((x, i)=>`<button class="btn" type="button" data-sg="${i}">${esc(x.name)}</button>`).join('')}</div>`
+    + L.map((x, i)=>`<section id="sg${i}"><h2 class="sec">${esc(x.name)} <span class="note">${x.films.length} film${x.seen ? ` · visti ${x.seen} su ${x.films.length}` : ''}</span></h2><div class="strip">${x.films.map(tile).join('')}</div></section>`).join('');
+  $('sgjump').addEventListener('click', ev=>{ const b = ev.target.closest('[data-sg]'); const el = b && document.getElementById('sg' + b.dataset.sg); if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+}
+
 function route(){
   if(BOOT_ERR) return;
   const h = decodeURIComponent(location.hash.replace(/^#/, '')), [k, ...rest] = h.split('/'), arg = rest.join('/');
   ROW_EXTRA = null;
   window.scrollTo && window.scrollTo(0, 0);
   if(k === 'film') return viewFilm(arg);
+  if(k === 'saghe') return viewSaghe();
   if(k === 'lista') return viewNamedList(arg);
   if(k === 'genere') return viewGenre(arg);
   if(k === 'decennio') return viewDecade(arg);
