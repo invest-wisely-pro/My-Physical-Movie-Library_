@@ -472,8 +472,8 @@ function enrich(e){
   e._crit = critN; e._min = parseInt(e.r, 10) || 0;
   const boost = (critN != null && critN >= 0.9) || fs === 1 || cs === 1, panned = fs === -1 && !(critN != null && critN >= 0.9);
   const recent = (parseInt(e.y, 10) || 0) >= new Date().getFullYear() - 4, confirmed = (critN != null && critN >= 0.85) || fs === 1 || cs === 1;   // il banco di prova del tempo
-  const MIN_V = 30000, okT = v >= MIN_V && !panned && (!recent || confirmed), crOK = t => critN == null || critN >= t;   // le protezioni di sempre
-  e._tier = !okT ? 0 : e._s >= 90 && crOK(0.8) ? 3 : e._s >= 85 && crOK(0.8) ? 2 : e._s >= 80 && crOK(0.7) ? 1 : 0;   // 1 gran serie, 2 capolavoro, 3 capolavoro assoluto
+  const MIN_V = 30000, okT = v >= MIN_V && !panned && (!recent || confirmed), okG = v >= 20000 && !panned, crOK = t => critN == null || critN >= t;   // le protezioni di sempre
+  e._tier = okT ? (e._s >= 90 && crOK(0.8) ? 3 : e._s >= 85 && crOK(0.8) ? 2 : e._s >= 76 && crOK(0.7) ? 1 : 0) : (okG && e._s >= 76 && crOK(0.7) ? 1 : 0);   // 1 gran serie, 2 capolavoro, 3 capolavoro assoluto
   e._mp = e._tier >= 2; e._gran = e._tier === 1;
   e._abs = e._tier === 3;
   return e;
@@ -643,6 +643,31 @@ function novitaList(){
     if(ra !== rb) return ra ? -1 : 1; if(ra && rb && da !== db) return da < db ? 1 : -1;
     return (parseInt(b.y, 10) - parseInt(a.y, 10)) || b.v - a.v; });
 }
+/* ---------- 🆕 Uscite dell'ultimo mese: finestra mobile degli ultimi 30 giorni, da Wikidata, si aggiorna da sola ogni giorno ---------- */
+let MONTH = null;
+const MONTH_DAYS = 30, monthSince = () => new Date(Date.now() - MONTH_DAYS * 864e5).toISOString().slice(0, 10);
+const dayShort = iso => { try{ return new Date(iso + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }); }catch(e){ return iso || ''; } };
+async function fetchMonth(){
+  const since = monthSince(), t = today(), c = await dget('mese1');
+  if(c && c.since === since && Date.now() - c.at < 432e5){ MONTH = new Map(c.dates); return; }   // dati di 12 ore fa o meno
+  if(navigator.onLine === false) return;
+  try{
+    const rng = `FILTER(?d >= "${since}T00:00:00Z"^^xsd:dateTime && ?d <= "${t}T23:59:59Z"^^xsd:dateTime)`;
+    const q = NEW_SEASONS ? `SELECT ?imdb ?d WHERE { ?f wdt:P580 ?d . ${rng} ?f wdt:P345 ?imdb . }`          // serie: data della prima puntata
+      : `SELECT ?imdb ?d ?pl WHERE { ?f p:P577 ?st . ?st ps:P577 ?d . ${rng} ?f wdt:P345 ?imdb . OPTIONAL { ?st pq:P291 ?pl } }`;   // film: data di uscita (Italia se c'è)
+    const j = await jget('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q)), it = new Map(), any = new Map();
+    ((j && j.results && j.results.bindings) || []).forEach(b=>{ const id = b.imdb.value, dd = (b.d.value || '').slice(0, 10);
+      if(!/^\d{4}-\d\d-\d\d$/.test(dd) || dd > t || dd < since) return;
+      const m = b.pl && /Q38$/.test(b.pl.value) ? it : any; if(!m.has(id) || dd < m.get(id)) m.set(id, dd); });
+    const dates = new Map(); new Set([...it.keys(), ...any.keys()]).forEach(id=>{ if(imdbEntry(id)) dates.set(id, it.get(id) || any.get(id)); });
+    MONTH = dates; dset('mese1', { at: Date.now(), since, dates: [...dates.entries()] });
+  }catch(e){}
+}
+function monthList(){ if(!MONTH) return []; const d = e => MONTH.get(e.id) || ''; return [...MONTH.keys()].map(imdbEntry).filter(Boolean).sort((a, b)=>d(a) < d(b) ? 1 : d(a) > d(b) ? -1 : b.v - a.v); }
+function monthStrip(){ const m = monthList(); if(m.length < 3) return null;
+  const top = m.slice().sort((a, b)=>b.v - a.v).slice(0, 14).sort((a, b)=>(MONTH.get(a.id) < MONTH.get(b.id) ? 1 : -1));
+  return `<h2 class="sec">🆕 Uscite dell'ultimo mese <span class="note" style="font-family:var(--ui)">dal ${dayShort(monthSince())} al ${dayShort(today())}</span><a class="more" href="#lista/mese">Vedi tutte (${m.length})</a></h2><div class="strip">${top.map(tile).join('')}</div>`; }
+
 async function fetchNovita(){
   const c = await dget('novita2');
   if(c && Date.now() - c.at < 864e5){ NOVITA = new Map(c.dates); SEASONS_NEW = (c.seasons || []).map(x=>Object.assign({}, x, { e: imdbEntry(x.id) })).filter(x=>x.e); SEASON_BY = new Map(SEASONS_NEW.map(x=>[x.id, x])); return; }
@@ -723,7 +748,7 @@ function viewHome(){
   V().innerHTML = `<h1 class="pg">Atlante Serie TV</h1><p class="lead">${ALL.length.toLocaleString('it-IT')} serie da esplorare per decennio, genere e attore${CRITICA ? ', con i voti della critica' : ''}${CRIT ? ' e i giudizi di Frusciante e dei Criticoni' : ''}.</p>`
     + `<div class="ruler" aria-label="Film per decennio">${ds.map(([d, l])=>`<a href="#decennio/${d}" aria-label="Anni ${d}: ${l.length} film"><span class="ct">${l.length >= 1000 ? Math.round(l.length / 100) / 10 + 'k' : l.length}</span><span class="bar" style="height:${Math.max(3, l.length / max * 100)}%"></span><span class="yr">${String(d).slice(2)}</span></a>`).join('')}</div>`
     + `<div style="display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 4px"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button></div>`
-    + (()=>{ const l = novitaList().slice(0, 14); return l.length ? `<h2 class="sec">${esc(NOVITA_TITLE)} <a class="more" href="#lista/novita">Vedi tutte</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; })()
+    + (()=>{ const ms = monthStrip(); if(ms) return ms; const l = novitaList().slice(0, 14); return l.length ? `<h2 class="sec">${esc(NOVITA_TITLE)} <a class="more" href="#lista/novita">Vedi tutte</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; })()
     + (NEW_SEASONS && SEASONS_NEW.length ? `<h2 class="sec">📡 Nuove stagioni <a class="more" href="#lista/nuove">Vedi tutte</a></h2><div class="strip">${SEASONS_NEW.slice(0, 14).map(x=>tile(x.e)).join('')}</div>` : '')
     + `<h2 class="sec">✦✦ Capolavori assoluti <a class="more" href="#lista/capolavori">Tutti i capolavori (${MASTER.length.toLocaleString('it-IT')})</a></h2><div class="strip">${(MASTER.filter(e=>e._abs).length >= 6 ? MASTER.filter(e=>e._abs) : MASTER).slice(0, 14).map(tile).join('')}</div>`
     + `<h2 class="sec">Le più famose <a class="more" href="#lista/famosi">Vedi tutti</a></h2><div class="strip">${BY_V.slice(0, 14).map(tile).join('')}</div>`
@@ -745,9 +770,10 @@ const fmtMoney = n => n >= 1e9 ? (n / 1e9).toFixed(2).replace('.', ',') + ' mld 
 const byCrit = (k, min) => () => { const m = CRITICA && CRITICA[k]; if(!m) return []; return BY_V.filter(e=>m[e.id] >= (min || 1)).sort((a, b)=>(m[b.id] - m[a.id]) || (b.v - a.v)); };
 const critN = (k, f) => e => { const n = CRITICA && CRITICA[k] && CRITICA[k][e.id]; return n ? f(n) : ''; };
 const LISTS = {
+  mese: ['🆕 Uscite dell\'ultimo mese', () => monthList(), 'nessuno', 'Le serie partite negli ultimi 30 giorni, dalla più recente. La data è quella della prima puntata su Wikidata; l\'elenco si aggiorna da solo ogni giorno.', e => dayShort(MONTH && MONTH.get(e.id))],
   novita: [NOVITA_TITLE, () => novitaList(), 'nessuno', 'Le serie iniziate quest\'anno e lo scorso, dalla più recente: la data è quella della prima puntata (in Italia quando Wikidata la conosce).'],
   nuove: ['📡 Nuove stagioni', () => SEASONS_NEW.map(x=>x.e), 'nessuno', 'Le serie con una stagione iniziata negli ultimi quattro mesi, dalla più recente.'],
-  granfilm: ['◆ Grandi serie', () => BY_V.filter(e=>e._gran).sort((a, b)=>b._s - a._s || b.v - a.v), 'punteggio', 'Punteggio dell\'Atlante da 80 a 84: serie eccellenti, un gradino sotto i capolavori.'],
+  granfilm: ['◆ Grandi serie', () => BY_V.filter(e=>e._gran).sort((a, b)=>b._s - a._s || b.v - a.v), 'punteggio', 'Serie eccellenti, un gradino sotto i capolavori: punteggio dell\'Atlante da 76, con almeno 20.000 voti.'],
   capolavori: ['✦ Capolavori', () => MASTER, 'punteggio', 'Le serie amate da pubblico e critica, punteggio da 85 a 89; quelle con ✦✦ sono capolavori assoluti, da 90 in su. Nella scheda di ognuna trovi il perché.'],
   assoluti: ['✦✦ Capolavori assoluti', () => MASTER.filter(e=>e._abs), 'punteggio', 'Le serie con punteggio da 90 in su: pubblico e critica entrambi altissimi.'],
   famosi: ['Le più famose', () => BY_V, 'fama', 'Le serie con più voti su IMDb: quelle che quasi tutti hanno visto.'],
@@ -759,8 +785,8 @@ const LISTS = {
   lunghe: ['📚 Lunga serialità', () => BY_V.filter(e=>e.s >= 8 && e._br >= 7.6 && e.v >= 10000), 'punteggio', 'Otto stagioni o più, e il voto è rimasto alto.'],
   classici: ['📺 I classici della TV', () => BY_V.filter(e=>parseInt(e.y, 10) < 2000 && e._br >= 7.9 && e.v >= 10000), 'punteggio', 'La televisione prima del 2000 che ha fatto la storia.'],
   recenti: ['🆕 Recenti da non perdere', () => BY_V.filter(e=>parseInt(e.y, 10) >= new Date().getFullYear() - 4 && e._br >= 7.6 && e.v >= 15000 && (e._crit == null || e._crit >= 0.75)), 'fama', 'Gli ultimi anni, solo il meglio: in ordine di fama, e con la critica almeno al 75% quando c\'è.'],
-  gemme: ['💎 Gemme nascoste', () => BY_V.filter(e=>e.v >= 3000 && e.v < 30000 && e._R >= 8.3 && !e._mp && e._crit != null && e._crit >= 0.85), 'punteggio', 'Serie poco conosciute ma amate da chi le ha viste, e confermate dalla critica.'],
-  'critica-si': ['🧐 Amate dalla critica, snobbate dal pubblico', () => BY_V.filter(e=>e._crit != null && e._crit >= 0.9 && e._R <= 7.2 && e.v >= 5000), 'punteggio', 'Critica sopra il 90%, ma voto IMDb sotto il 7,3.'],
+  gemme: ['💎 Gemme nascoste', () => BY_V.filter(e=>e.v >= 5000 && e.v < 50000 && e._R >= 8.4 && e.ep >= 8 && !e._mp && !e._gran && (e._crit == null || e._crit >= 0.7)), 'punteggio', 'Serie poco conosciute (da 5.000 a 50.000 voti) ma amate da chi le ha viste: voto IMDb da 8,4 in su. Se c\'è la critica, deve confermarle.'],
+  'critica-si': ['🧐 Amate dalla critica, snobbate dal pubblico', () => BY_V.filter(e=>e.v >= 3000 && e._R <= 7.8 && ((e._crit != null && e._crit >= 0.75) || ((CRITICA && CRITICA.emmy && CRITICA.emmy[e.id]) || 0) >= 2)), 'punteggio', 'Critica sopra il 75% oppure almeno 2 Emmy, ma voto IMDb sotto l\'8. I dati della critica per le serie sono pochi.'],
   'pubblico-si': ['🛋 Amate dal pubblico, stroncate dalla critica', () => BY_V.filter(e=>e._crit != null && e._crit <= 0.55 && e._R >= 8.0 && e.v >= 10000), 'fama', 'Voto IMDb da 8 in su, ma critica sotto il 55%.'],
   premiate: ['🏆 Le più premiate', byCrit('aw', 3), 'nessuno', 'Le serie che hanno ricevuto più premi diversi, secondo Wikidata.', critN('aw', n=>`🏆 ${n} premi`)],
   emmy: ['🏆 Più Emmy vinti', byCrit('emmy'), 'nessuno', 'Le serie con più Emmy, categoria per categoria, secondo Wikidata.', critN('emmy', n=>`🏆 ${n} Emmy`)],
@@ -1000,6 +1026,10 @@ function critBoxHTML(e){
     return `<div class="crit-row"><b>${who}</b>${s ? `<span class="bd ${s[0]}">${s[1]}</span>` : ''}<span class="note">${x.v} video, ${x.mn} ${x.mn === 1 ? 'menzione' : 'menzioni'}</span><a href="${esc(CRIT.site + path + x.slug)}" target="_blank" rel="noopener">Guarda i video ↗</a></div>`; }).join('');
   return `<div class="box"><h3>🎙 Frusciante e i Criticoni</h3>${rows || '<div class="in note">Né Frusciante né i Criticoni ne parlano nei video indicizzati da filmcriticoni.it.</div>'}</div>`;
 }
+function linksHTML(e, wiki){   // IMDb, Wikipedia, Rotten Tomatoes, JustWatch: sempre subito sotto il trailer
+  const a = (u, t) => `<a href="${esc(u)}" target="_blank" rel="noopener">${t} ↗</a>`;
+  return `<div class="box"><h3>Link</h3><div class="in cast">${[a('https://www.imdb.com/title/' + e.id + '/', 'IMDb'), wiki ? a(wiki, 'Wikipedia') : '', '', a('https://www.rottentomatoes.com/search?search=' + encodeURIComponent(e.en || title(e)), 'Rotten Tomatoes'), a('https://www.justwatch.com/it/cerca?q=' + encodeURIComponent(title(e)), 'Dove vederlo (JustWatch)')].filter(Boolean).join('')}</div></div>`;
+}
 function viewFilm(id){
   setNav(''); const e = imdbEntry(id);
   if(!e){ V().innerHTML = `<div class="status"><h1>Serie non trovata</h1><p>Questo codice non è nell'indice. <a href="#" style="color:var(--chart)">Torna a Esplora</a></p></div>`; return; }
@@ -1016,7 +1046,7 @@ function viewFilm(id){
     + `<div class="score ${e._mp ? 'mp' : e._gran ? 'gf' : ''}"><b>${e._abs ? '✦✦ ' : e._mp ? '✦ ' : e._gran ? '◆ ' : ''}${e._s}</b><span>${e._abs ? 'Capolavoro assoluto' : e._mp ? 'Capolavoro' : e._gran ? 'Grande serie' : 'Punteggio dell\'Atlante'}</span></div></div><p class="why">${esc(why(e))}</p>`
     + `<div class="marks">${[['v', '✓ Vista'], ['d', '＋ Da vedere'], ['p', '♥ Preferita']].map(([k, l])=>`<button class="btn" type="button" data-mark="${k}" aria-pressed="${has(id, k)}">${l}</button>`).join('')}${OWN.has(id) ? '<span class="bd own" style="align-self:center">✓ Nella tua Videoteca</span>' : ''}</div>`
     + `<div class="rate-wrap"><span class="note">Il tuo voto</span><div class="rate" role="group" aria-label="Il tuo voto">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=>`<button type="button" data-rate="${n}" aria-pressed="${n === my}" aria-label="${n} su 10">${n}</button>`).join('')}</div></div>`
-    + `<div class="marks"><a class="btn" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">▶ Cerca il trailer su YouTube</a>${CLS.length ? `<select id="addRk" aria-label="Aggiungi a una classifica" style="height:38px; border-radius:19px; border:1px solid var(--line); background:var(--s2); padding:0 12px"><option value="">🏆 Aggiungi a una classifica…</option>${CLS.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select>` : '<a class="btn" href="#classifiche">🏆 Crea una classifica</a>'}</div></div></div>`
+    + `<div class="marks"><a class="btn" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">▶ Cerca il trailer su YouTube</a>${CLS.length ? `<select id="addRk" aria-label="Aggiungi a una classifica" style="height:38px; border-radius:19px; border:1px solid var(--line); background:var(--s2); padding:0 12px"><option value="">🏆 Aggiungi a una classifica…</option>${CLS.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select>` : '<a class="btn" href="#classifiche">🏆 Crea una classifica</a>'}</div></div></div>` + `<div id="linksBox">${linksHTML(e, null)}</div>`
     + (e.sc && e.sc.length > 1 ? `<div class="box"><h3>Episodi per stagione</h3><div class="in"><div class="bars">${e.sc.map((n, i)=>`<a class="barrow" href="#stagione/${e.id}/${i + 1}"><span>Stagione ${i + 1}</span><i style="width:${Math.max(3, n / Math.max(...e.sc) * 100)}%"></i><span class="v">${n}</span></a>`).join('')}</div></div></div>` : '')
     + `<div id="online"><p class="note">${navigator.onLine === false ? 'Sei offline: trama, curiosità e locandina arriveranno con la rete.' : 'Carico trama e curiosità…'}</p></div>`
     + `<div class="box${cast.length ? '' : ' hidden'}" id="castBox"><h3>Interpreti</h3><div class="in castgrid" id="castList">${cast.map(n=>castCard(n, 'attore')).join('')}</div></div>`
@@ -1046,7 +1076,8 @@ const link = (x, p) => x.tt && imdbEntry(x.tt) ? `<a href="#film/${x.tt}">${esc(
     `<a href="https://www.justwatch.com/it/cerca?q=${encodeURIComponent(title(e))}" target="_blank" rel="noopener">Dove vederlo (JustWatch) ↗</a>`].filter(Boolean).join('');
   $('online').innerHTML = (d.wiki ? `<div class="box"><h3>${EPISODES ? 'In breve' : 'In breve'}</h3><div class="in">${d.wiki.lang === 'en' ? trBlock('sumTr', d.wiki.text) : `<p class="plot">${esc(d.wiki.text)}</p>`}<p class="note">${d.wiki.url ? `<a href="${esc(d.wiki.url)}" target="_blank" rel="noopener" style="color:var(--chart)">Continua su Wikipedia ↗</a>, ` : ''}testo con licenza CC BY-SA.</p></div></div>` : '')
     + (kv ? `<div class="box"><h3>Curiosità e scheda tecnica</h3><div class="in"><dl class="kv">${kv}</dl></div></div>` : '')
-    + `<div class="box"><h3>Link</h3><div class="in cast">${ext}</div></div>`;
+    ;
+  { const lb = $('linksBox'); if(lb) lb.innerHTML = linksHTML(e, d.wiki && d.wiki.url); }
   if(d.wiki && d.wiki.lang === 'en') fillTr('sumTr', d.wiki.text);   // il riassunto inglese, tradotto
   loadPlot(e, d);
 }
@@ -1327,6 +1358,7 @@ async function boot(){
   if(CAST_INDEX && CAST_INDEX.byActor) CAST_INDEX.byActor.forEach((ids, k)=>CAST_INDEX.byActor.set(k, [...new Set(ids)]));   // ogni serie una volta sola per attore
   readOwn(); computeAll(); route(); tvLanding();
   fetchNovita().then(()=>{ if(!location.hash || location.hash === '#') viewHome(); else if(/^#lista\/(novita|nuove)/.test(location.hash)) route(); }).catch(()=>{});
+  fetchMonth().then(()=>{ if(!location.hash || location.hash === '#') viewHome(); else if(/^#lista\/mese/.test(location.hash)) route(); }).catch(()=>{});
   if('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
   window.__ready = true;
 }
