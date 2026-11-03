@@ -712,8 +712,8 @@ async function fetchMonth(){
   }catch(e){}
 }
 function monthList(){ if(!MONTH) return []; const d = e => MONTH.get(e.id) || ''; return [...MONTH.keys()].map(imdbEntry).filter(Boolean).sort((a, b)=>d(a) < d(b) ? 1 : d(a) > d(b) ? -1 : b.v - a.v); }
-function monthStrip(){ const m = monthList(); if(m.length < 3) return null;
-  const top = m.slice().sort((a, b)=>b.v - a.v).slice(0, 14).sort((a, b)=>(MONTH.get(a.id) < MONTH.get(b.id) ? 1 : -1));
+function monthStrip(){ const m = monthList(), mi = noIndia(m); if(mi.length < 3) return null;
+  const top = mi.slice().sort((a, b)=>b.v - a.v).slice(0, 14).sort((a, b)=>(MONTH.get(a.id) < MONTH.get(b.id) ? 1 : -1));
   return `<h2 class="sec">🆕 Uscite dell'ultimo mese <span class="note" style="font-family:var(--ui)">dal ${dayShort(monthSince())} al ${dayShort(today())}</span><a class="more" href="#lista/mese">Vedi tutte (${m.length})</a></h2><div class="strip">${top.map(tile).join('')}</div>`; }
 
 async function fetchNovita(){
@@ -798,9 +798,10 @@ function viewHome(){
     + `<div style="display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 4px"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button></div>`
     + (()=>{ const ms = monthStrip(); if(ms) return ms; const l = novitaList().slice(0, 14); return l.length ? `<h2 class="sec">${esc(NOVITA_TITLE)} <a class="more" href="#lista/novita">Vedi tutte</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; })()
     + (NEW_SEASONS && SEASONS_NEW.length ? `<h2 class="sec">📡 Nuove stagioni <a class="more" href="#lista/nuove">Vedi tutte</a></h2><div class="strip">${SEASONS_NEW.slice(0, 14).map(x=>tile(x.e)).join('')}</div>` : '')
-    + `<h2 class="sec">✦✦ Capolavori assoluti <a class="more" href="#lista/capolavori">Tutti i capolavori (${MASTER.length.toLocaleString('it-IT')})</a></h2><div class="strip">${(MASTER.filter(e=>e._abs).length >= 6 ? MASTER.filter(e=>e._abs) : MASTER).slice(0, 14).map(tile).join('')}</div>`
+    + bestStrip()
+    + `<h2 class="sec">✦✦ Capolavori assoluti <a class="more" href="#lista/capolavori">Tutti i capolavori (${MASTER.length.toLocaleString('it-IT')})</a></h2><div class="strip">${noIndia(MASTER.filter(e=>e._abs).length >= 6 ? MASTER.filter(e=>e._abs) : MASTER).slice(0, 14).map(tile).join('')}</div>`
     + annivStrip()
-    + `<h2 class="sec">I più famosi <a class="more" href="#lista/famosi">Vedi tutti</a></h2><div class="strip">${BY_V.slice(0, 14).map(tile).join('')}</div>`
+    + `<h2 class="sec">I più famosi <a class="more" href="#lista/famosi">Vedi tutti</a></h2><div class="strip">${noIndia(BY_V.slice(0, 40)).slice(0, 14).map(tile).join('')}</div>`
     + CLS.filter(c=>c.pin && c.items.length).map(c=>{ const fs = c.items.map(imdbEntry).filter(Boolean), seen = fs.filter(e=>has(e.id, 'v')).length;
         return `<h2 class="sec">${esc(c.name)} <span class="note" style="font-family:var(--ui)">ne hai visti ${seen} su ${fs.length}</span><a class="more" href="#classifica/${esc(c.id)}">Vedi tutta</a></h2><div class="strip">${fs.slice(0, 14).map(tile).join('')}</div>`; }).join('')
     + (fr.length ? `<h2 class="sec">🎙 Promossi da Frusciante <a class="more" href="#lista/frusciante-si">Vedi tutti</a></h2><div class="strip">${fr.map(tile).join('')}</div>` : '')
@@ -819,6 +820,7 @@ const byCrit = (k, min) => () => { const m = CRITICA && CRITICA[k]; if(!m) retur
 const critN = (k, f) => e => { const n = CRITICA && CRITICA[k] && CRITICA[k][e.id]; return n ? f(n) : ''; };
 const LISTS = {
   mese: ['🆕 Uscite dell\'ultimo mese', () => monthList(), 'nessuno', 'I film usciti negli ultimi 30 giorni, dal più recente. La data è quella di Wikidata, in Italia quando la conosce; l\'elenco si aggiorna da solo ogni giorno.', e => dayShort(MONTH && MONTH.get(e.id))],
+  'migliori-anno': ['⭐ I migliori dell\'anno', () => bestOfYear().l.slice(0, 200), 'nessuno', 'I film dell\'anno in corso con almeno 8.000 voti, dal più apprezzato. Cambia da solo con l\'anno.'],
   novita: [NOVITA_TITLE, () => novitaList(), 'nessuno', 'Le uscite dell\'anno in corso e del precedente, dalla più recente: la data è quella di uscita in Italia quando Wikidata la conosce.'],
   capolavori: ['✦ Capolavori', () => MASTER, 'punteggio', 'Film amati da pubblico e critica, con la spinta dei giudizi di Frusciante e dei Criticoni. Punteggio da 85 a 89; quelli con ✦✦ sono capolavori assoluti, da 90 in su. Nella scheda di ogni film trovi il perché.'],
   granfilm: ['◆ Gran film', () => BY_V.filter(e=>e._gran).sort((a, b)=>b._s - a._s || b.v - a.v), 'punteggio', 'Punteggio dell\'Atlante da 80 a 84: film eccellenti, un gradino sotto i capolavori.'],
@@ -1398,7 +1400,37 @@ function annivBy(n){   // per ogni ricorrenza, i migliori film di quell'anno (vo
   _anniv = { Y, n, l }; return l;
 }
 const annivYears = e => new Date().getFullYear() - (parseInt(e.y, 10) || 0);
-function annivStrip(){ const l = annivBy(2); return l.length >= 6 ? `<h2 class="sec">🎂 Compiono gli anni <span class="note" style="font-family:var(--ui)">usciti ${ANNIV.slice(0, 6).join(', ')} anni fa e oltre</span><a class="more" href="#lista/anniversari">Vedi tutti</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; }
+function annivStrip(){ const cnt = {}, l = noIndia(annivBy(5)).filter(e=>{ cnt[e.y] = (cnt[e.y] || 0) + 1; return cnt[e.y] <= 2; }); return l.length >= 6 ? `<h2 class="sec">🎂 Compiono gli anni <span class="note" style="font-family:var(--ui)">usciti ${ANNIV.slice(0, 6).join(', ')} anni fa e oltre</span><a class="more" href="#lista/anniversari">Vedi tutti</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; }
+
+/* ---------- 🌍 Cinema e serie indiani: restano ovunque come prima, ma non occupano le fasce della homepage ----------
+   Il paese si chiede a Wikidata solo per i titoli che finiscono in homepage e si ricorda nel dispositivo (non cambia mai). */
+let INDIA = new Set(), INDIA_CHECKED = new Set();
+const INDIA_LANGS = 'wd:Q1568 wd:Q5885 wd:Q8097 wd:Q36236 wd:Q33673 wd:Q1571 wd:Q5137';   // hindi, tamil, telugu, malayalam, kannada, marathi, gujarati
+async function loadIndia(){ try{ const c = await dget('india1'); if(c){ INDIA = new Set(c.i); INDIA_CHECKED = new Set(c.c); } }catch(e){} }
+async function checkIndia(ids){
+  const todo = [...new Set(ids)].filter(id=>!INDIA_CHECKED.has(id)); if(!todo.length || navigator.onLine === false) return false;
+  let changed = false;
+  for(let k = 0; k < todo.length; k += 60){ const part = todo.slice(k, k + 60);
+    try{ const q = `SELECT DISTINCT ?imdb WHERE { VALUES ?imdb { ${part.map(i=>'"' + i + '"').join(' ')} } ?f wdt:P345 ?imdb . { ?f wdt:P495 wd:Q668 } UNION { ?f wdt:P364 ?l . VALUES ?l { ${INDIA_LANGS} } } }`;
+      const j = await jget('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q));
+      ((j && j.results && j.results.bindings) || []).forEach(b=>INDIA.add(b.imdb.value));
+      part.forEach(i=>INDIA_CHECKED.add(i)); changed = true;
+    }catch(e){ break; } }
+  if(changed) dset('india1', { i: [...INDIA], c: [...INDIA_CHECKED] });
+  return changed;
+}
+const noIndia = l => l.filter(e=>!INDIA.has(e.id));
+
+/* ---------- ⭐ I migliori dell'anno in corso (a inizio anno, finché non ce ne sono abbastanza, quelli dell'anno prima) ---------- */
+function bestOfYear(){
+  const Y0 = new Date().getFullYear(), rank = e => (e.v / (e.v + 3000)) * e._R + (3000 / (e.v + 3000)) * 6.9;
+  for(const Y of [Y0, Y0 - 1]){ const l = BY_V.filter(e=>parseInt(e.y, 10) === Y && e.v >= 8000).sort((a, b)=>rank(b) - rank(a)); if(l.length >= 12 || Y < Y0) return { Y, l }; }
+}
+function bestStrip(){ const b = bestOfYear(), l = noIndia(b.l).slice(0, 14);
+  return l.length >= 6 ? `<h2 class="sec">⭐ I migliori del ${b.Y} <span class="note" style="font-family:var(--ui)">si aggiorna con l'anno</span><a class="more" href="#lista/migliori-anno">Vedi tutti</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; }
+function homeCandidates(){ const a = [], add = l => l.slice(0, 40).forEach(e=>e && a.push(e.id));
+  add(MASTER.filter(e=>e._abs).length >= 6 ? MASTER.filter(e=>e._abs) : MASTER); add(BY_V); add(bestOfYear().l); add(monthList().slice().sort((p, q)=>q.v - p.v));
+  return a; }
 
 function route(){
   if(BOOT_ERR) return;
@@ -1434,10 +1466,11 @@ async function boot(){
   catch(e){ BOOT_ERR = e.message; V().innerHTML = `<div class="status"><h1>Non trovo la Videoteca</h1><p>L'Atlante legge gli indici della Videoteca, quindi va messo nella cartella <b>atlante</b> del repository della Videoteca e aperto dal suo indirizzo GitHub Pages (per esempio tuonome.github.io/videoteca/atlante/).</p><p class="note">Dettaglio: ${esc(e.message)}${navigator.onLine === false ? ', e sei offline: la prima apertura richiede la rete' : ''}</p></div>`; return; }
   await ensureImdbIndex();
   if(!IMDB_INDEX){ BOOT_ERR = 'index'; V().innerHTML = '<div class="status"><h1>Indice non leggibile</h1><p>Il browser non riesce a leggere l\'indice: aggiorna Edge, Chrome o Safari all\'ultima versione.</p></div>'; return; }
-  await Promise.all([ensureCritIndex(), loadCritica(), ensureCastIndex()]);
+  await Promise.all([ensureCritIndex(), loadCritica(), ensureCastIndex(), loadIndia()]);
   if(CAST_INDEX && CAST_INDEX.byActor) CAST_INDEX.byActor.forEach((ids, k)=>CAST_INDEX.byActor.set(k, [...new Set(ids)]));   // ogni film una volta sola per attore
   readOwn(); computeAll(); route(); tvLanding();
   fetchNovita().then(()=>{ if(!location.hash || location.hash === '#') viewHome(); else if(/^#lista\/(novita|nuove)/.test(location.hash)) route(); }).catch(()=>{});
+  checkIndia(homeCandidates()).then(ch=>{ if(ch && (!location.hash || location.hash === '#')) viewHome(); }).catch(()=>{});
   fetchMonth().then(()=>{ if(!location.hash || location.hash === '#') viewHome(); else if(/^#lista\/mese/.test(location.hash)) route(); }).catch(()=>{});
   if('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
   window.__ready = true;
