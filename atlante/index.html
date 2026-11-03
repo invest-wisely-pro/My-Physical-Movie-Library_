@@ -87,6 +87,7 @@ h2.sec{font-weight:700; letter-spacing:-0.02em; font-size:22px;}
 .search input{width:100%; height:40px; padding:0 14px; border-radius:20px; border:1px solid var(--line); background:var(--s1);}
 .nav{display:flex; gap:4px; flex-wrap:wrap;}
 .nav a{padding:7px 11px; border-radius:16px; color:var(--paper2); font-size:14px; font-weight:600;}
+.nav a.hublink{border:1px solid var(--line); color:var(--chart);}
 .nav a[aria-current="page"]{background:var(--s3); color:var(--paper);}
 main{max-width:1180px; margin:0 auto; padding:20px 18px 70px;}
 
@@ -172,6 +173,7 @@ html.tv .tl-bg{filter:brightness(.42); inset:0;}
 .genres{display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:10px;}
 .genre{padding:14px; border-radius:8px; background:var(--tilebg, var(--s2)); display:flex; justify-content:space-between; align-items:baseline; font-family:var(--serif); font-weight:700; font-size:16px;}
 .genre span{font-family:var(--ui); font-size:12px; color:rgba(236,231,220,.75); font-weight:600;}
+details.more{margin-top:10px;} details.more>summary{cursor:pointer; color:var(--chart); font-weight:600; padding:6px 0;}
 .people{display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:8px;}
 .person{display:flex; justify-content:space-between; gap:10px; padding:10px 12px; border-radius:8px; background:var(--s1); border:1px solid var(--line);}
 .person b{font-family:var(--serif);} .person span{color:var(--paper3); font-size:12.5px; white-space:nowrap;}
@@ -225,6 +227,7 @@ textarea.copy{width:100%; min-height:120px; font-size:11px; background:var(--s1)
     <a class="brand" href="#"><span class="rose" aria-hidden="true"></span><b>Atlante del Cinema</b></a>
     <form class="search" id="searchForm" role="search"><input id="q" type="search" placeholder="Cerca un film, un regista, un attore…" aria-label="Cerca" autocomplete="off"></form>
     <nav class="nav" aria-label="Sezioni">
+      <a href="../hub/" class="hublink" title="Cambia Atlante o apri la Videoteca">⇄ Atlanti</a>
       <a href="#" data-nav="home">Esplora</a>
       <a href="#lista/capolavori" data-nav="lista">Capolavori</a>
       <a href="#registi" data-nav="registi">Registi</a>
@@ -547,11 +550,11 @@ let _actors = null;
 function actorRanking(){
   if(_actors || !CAST_INDEX) return _actors || [];
   const disp = new Map(); CAST_INDEX.names.forEach(n=>{ const k = normKey(n); if(k && !disp.has(k)) disp.set(k, n); });
-  _actors = [...CAST_INDEX.byActor.entries()].map(([k, ids])=>{ const fs = ids.map(imdbEntry).filter(x=>x && x.v >= 10000).map(enrich); return { name: disp.get(k) || k, n: fs.length, s: fs.reduce((t, e)=>t + Math.pow(e._s / 100, 2) * Math.log10(e.v), 0) }; })
+  _actors = [...CAST_INDEX.byActor.entries()].map(([k, ids])=>{ const fs = ids.map(imdbEntry).filter(x=>x && x.v >= 10000).map(enrich); return { name: disp.get(k) || k, n: fs.length, y0: Math.min(...fs.map(e=>parseInt(e.y, 10)).filter(Boolean)), s: fs.reduce((t, e)=>t + Math.pow(e._s / 100, 2) * Math.log10(e.v), 0) }; })
     .filter(a=>a.n >= 3).sort((a, b)=>b.s - a.s).slice(0, 600);
   return _actors;
 }
-const dirRanking = (() => { let c = null; return () => c || (c = [...BY_DIR.entries()].map(([name, fs])=>{ const k = fs.filter(e=>e.v >= 10000); return { name, n: k.length, all: fs.length, s: k.reduce((t, e)=>t + Math.pow(e._s / 100, 2) * Math.log10(e.v), 0) }; })
+const dirRanking = (() => { let c = null; return () => c || (c = [...BY_DIR.entries()].map(([name, fs])=>{ const k = fs.filter(e=>e.v >= 10000); return { name, n: k.length, all: fs.length, y0: Math.min(...k.map(e=>parseInt(e.y, 10)).filter(Boolean)), s: k.reduce((t, e)=>t + Math.pow(e._s / 100, 2) * Math.log10(e.v), 0) }; })
   .filter(d=>d.n >= 3).sort((a, b)=>b.s - a.s).slice(0, 600)); })();
 
 /* ---------- Locandine per i film che il sito non ha: Wikidata → Wikipedia ----------
@@ -871,18 +874,42 @@ function searchPeople(kind, words){   // TUTTI i registi e gli attori dell'indic
   }
   return out.sort((a, b)=>b.s - a.s).slice(0, 40);
 }
+/* ---------- Registi e attori per epoca: classici · New Hollywood e anni '70 · contemporanei ----------
+   L'epoca si ricava dall'anno del primo film noto (fino al 1964 · 1965-1979 · dal 1980);
+   ERA_OVERRIDE corregge i casi in cui l'anno inganna: 'c' classici, 'n' New Hollywood, 'o' contemporanei.
+   IN_MEZZO: nomi che vuoi vedere a metà del loro gruppo, né in alto né in fondo. Aggiungi o togli nomi qui, scrivendoli come in IMDb. */
+const ERA_OVERRIDE = {
+  'Francis Ford Coppola':'n', 'Roman Polanski':'n', 'Sam Peckinpah':'n', 'Sidney Lumet':'n',
+  'Ridley Scott':'o', 'Alan Parker':'o', 'George Miller':'o', 'Ivan Reitman':'o', 'John Landis':'o', 'Richard Donner':'o', 'Hayao Miyazaki':'o', 'Peter Hyams':'o', 'Joe Dante':'o',
+  'Jack Nicholson':'n', 'Robert Redford':'n', 'Robert Duvall':'n', 'Jane Fonda':'n', 'Michael Caine':'n', 'Donald Sutherland':'n',
+  'Jodie Foster':'o', 'Arnold Schwarzenegger':'o'
+};
+const IN_MEZZO = new Set(['Woody Allen']);
+const ERA_TXT = { c:"Debutto fino al 1964", n:"Debutto tra il 1965 e il 1979", o:"Debutto dal 1980" };
+function eraOf(p){ if(ERA_OVERRIDE[p.name]) return ERA_OVERRIDE[p.name]; const y = p.y0; if(!isFinite(y)) return 'o'; return y < 1965 ? 'c' : y < 1980 ? 'n' : 'o'; }
+function groupedPeople(kind, list){
+  const T = kind === 'regista' ? { c:'Registi classici', n:"Registi della New Hollywood e anni '70", o:'Registi contemporanei' }
+                               : { c:'Interpreti classici', n:"Interpreti della New Hollywood e anni '70", o:'Interpreti contemporanei' };
+  const g = { c:[], n:[], o:[] }; list.forEach(p=>g[eraOf(p)].push(p));
+  return ['c', 'n', 'o'].map(k=>{
+    const a = g[k].filter(p=>!IN_MEZZO.has(p.name)); g[k].filter(p=>IN_MEZZO.has(p.name)).forEach(p=>a.splice(Math.floor(a.length / 2), 0, p));
+    const top = a.slice(0, 30), rest = a.slice(30);
+    return `<h2 class="sec">${T[k]}</h2><p class="note">${ERA_TXT[k]} · ${a.length} nomi</p>${peopleView(kind, top)}`
+      + (rest.length ? `<details class="more"><summary>Mostra altri ${rest.length}</summary>${peopleView(kind, rest)}</details>` : '');
+  }).join('');
+}
 function peopleView(kind, list, q){
   const f = q ? list.filter(p=>normKey(p.name).includes(normKey(q))) : list;
   return `<div class="people">${f.slice(0, 300).map(p=>`<a class="person" href="#${kind}/${encodeURIComponent(p.name)}"><b>${esc(p.name)}</b><span>${p.n} film</span></a>`).join('') || '<p class="note">Nessun nome trovato.</p>'}</div>`;
 }
 function viewDirectors(){ setNav('registi'); const list = dirRanking();
-  V().innerHTML = `<h1 class="pg">Registi</h1><p class="lead">I registi con almeno tre film noti, in ordine di importanza: conta quanto sono amati i loro film, e da quante persone.</p><div class="ctrl"><label>Cerca un regista<input id="pq" type="search" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--s1); padding:0 10px"></label></div><div id="pl">${peopleView('regista', list)}</div>`;
-  $('pq').addEventListener('input', ()=>{ $('pl').innerHTML = peopleView('regista', normKey($('pq').value).length >= 2 ? searchPeople('regista', normKey($('pq').value).split(' ').filter(Boolean)) : list); }); }
+  V().innerHTML = `<h1 class="pg">Registi</h1><p class="lead">I registi con almeno tre film noti, divisi per epoca e in ordine di importanza: conta quanto sono amati i loro film, e da quante persone.</p><div class="ctrl"><label>Cerca un regista<input id="pq" type="search" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--s1); padding:0 10px"></label></div><div id="pl">${groupedPeople('regista', list)}</div>`;
+  $('pq').addEventListener('input', ()=>{ const w = normKey($('pq').value).split(' ').filter(Boolean); $('pl').innerHTML = normKey($('pq').value).length >= 2 ? peopleView('regista', searchPeople('regista', w)) : groupedPeople('regista', list); }); }
 function viewActors(){ setNav('attori');
   if(!CAST_INDEX){ V().innerHTML = `<h1 class="pg">Attori</h1><div class="box"><div class="in">L'indice degli attori non c'è ancora: lo crea l'automazione <b>"Aggiorna indice IMDb"</b> della Videoteca. Lanciala su GitHub (Actions → Run workflow) e poi riapri l'Atlante.</div></div>`; return; }
   const list = actorRanking();
-  V().innerHTML = `<h1 class="pg">Attori</h1><p class="lead">Gli attori con almeno tre film noti, in ordine di importanza.</p><div class="ctrl"><label>Cerca un attore<input id="pq" type="search" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--s1); padding:0 10px"></label></div><div id="pl">${peopleView('attore', list)}</div>`;
-  $('pq').addEventListener('input', ()=>{ $('pl').innerHTML = peopleView('attore', normKey($('pq').value).length >= 2 ? searchPeople('attore', normKey($('pq').value).split(' ').filter(Boolean)) : list); }); }
+  V().innerHTML = `<h1 class="pg">Attori</h1><p class="lead">Gli attori e le attrici con almeno tre film noti, divisi per epoca e in ordine di importanza.</p><div class="ctrl"><label>Cerca un attore<input id="pq" type="search" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--s1); padding:0 10px"></label></div><div id="pl">${groupedPeople('attore', list)}</div>`;
+  $('pq').addEventListener('input', ()=>{ const w = normKey($('pq').value).split(' ').filter(Boolean); $('pl').innerHTML = normKey($('pq').value).length >= 2 ? peopleView('attore', searchPeople('attore', w)) : groupedPeople('attore', list); }); }
 function personPage(kind, name, films, roles, qid0){
   const seen = new Set(), fs = films.filter(e=>e && !seen.has(e.id) && seen.add(e.id)).map(enrich), known = fs.filter(e=>e.v >= 1000);
   const years = fs.map(e=>parseInt(e.y, 10)).filter(Boolean), mp = fs.filter(e=>e._mp).length, rated = fs.filter(e=>e.v >= 5000);
