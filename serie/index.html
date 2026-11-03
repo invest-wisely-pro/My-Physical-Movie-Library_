@@ -756,7 +756,7 @@ function viewHome(){
     + CLS.filter(c=>c.pin && c.items.length).map(c=>{ const fs = c.items.map(imdbEntry).filter(Boolean), seen = fs.filter(e=>has(e.id, 'v')).length;
         return `<h2 class="sec">${esc(c.name)} <span class="note" style="font-family:var(--ui)">ne hai viste ${seen} su ${fs.length}</span><a class="more" href="#classifica/${esc(c.id)}">Vedi tutta</a></h2><div class="strip">${fs.slice(0, 14).map(tile).join('')}</div>`; }).join('')
     + (fr.length ? `<h2 class="sec">🎙 Promossi da Frusciante <a class="more" href="#lista/frusciante-si">Vedi tutti</a></h2><div class="strip">${fr.map(tile).join('')}</div>` : '')
-    + `<h2 class="sec">Scopri</h2><div class="genres">${['granfilm', 'votati', 'incorso', 'concluse', 'miniserie', 'maratona', 'lunghe', 'premiate', 'emmy', 'classici', 'recenti', 'gemme', 'critica-si', 'pubblico-si', 'animazione'].map(k=>{ const n = LISTS[k][1]().length; return n ? `<a class="genre" href="#lista/${k}" style="--tilebg:var(--s2)">${esc(LISTS[k][0])}<span>${n.toLocaleString('it-IT')}</span></a>` : ''; }).join('')}</div>`
+    + `<h2 class="sec">Scopri</h2><div class="genres">${['granfilm', 'votati', 'incorso', 'concluse', 'miniserie', 'maratona', 'lunghe', 'premiate', 'emmy', 'classici', 'recenti', 'gemme', 'critica-si', 'pubblico-si', 'animazione'].map(k=>{ const n = LISTS[k][1]().length; return n ? `<a class="genre" href="#lista/${k}" style="--tilebg:var(--s2)">${esc(LISTS[k][0])}<span>${n.toLocaleString('it-IT')}</span></a>` : ''; }).join('')}${piattTile()}</div>`
     + `<h2 class="sec">Per genere</h2><div class="genres">${[...GENRES.entries()].filter(([, l])=>l.length >= 40).sort((a, b)=>b[1].length - a[1].length).map(([g, l])=>`<a class="genre" href="#genere/${encodeURIComponent(g)}" style="--tilebg:hsl(${GCOL[g] != null ? GCOL[g] : 200} 28% 24%)">${esc(g)}<span>${l.length.toLocaleString('it-IT')}</span></a>`).join('')}</div>`;
   $('surprise').onclick = surprise;
 }
@@ -1352,12 +1352,27 @@ function homeCandidates(){ const a = [], add = l => l.slice(0, 40).forEach(e=>e 
   add(MASTER.filter(e=>e._abs).length >= 6 ? MASTER.filter(e=>e._abs) : MASTER); add(BY_V); add(bestOfYear().l); add(monthList().slice().sort((p, q)=>q.v - p.v)); add((SEASONS_NEW || []).map(x=>x.e));
   return a; }
 
+/* ---------- 📺 Per piattaforma: elenco curato delle serie originali (piattaforma di origine; in Italia alcune sono su altri servizi) ---------- */
+const PIATT = [["HBO",["tt0118421","tt0159206","tt0141842","tt0264235","tt0185906","tt0248654","tt0306414","tt0319969","tt0348914","tt0387199","tt0384766","tt0472027","tt0844441","tt0374463","tt0979432","tt0944947","tt1723816","tt1759761","tt2699128","tt2356777","tt2575988","tt0475784","tt3920596","tt7660850","tt5348176","tt7278862","tt7366338","tt8772296","tt7049682","tt7671070","tt11815682","tt10155688","tt13406094","tt11198330","tt4406178","tt3581920","tt15435876","tt10466872","tt31938062","tt27497448"]],["Netflix",["tt1856010","tt2372162","tt3398228","tt3322312","tt2707408","tt2431438","tt4574334","tt4786824","tt5071412","tt5290382","tt5753856","tt6468322","tt7645192","tt8714904","tt6763664","tt7221388","tt9561862","tt5180504","tt8740790","tt10048342","tt10619486","tt10919420","tt11126994","tt13443470","tt14403178","tt11737520","tt13649112","tt11016042","tt13016388","tt31806037","tt2085059","tt7197684"]],["Prime Video",["tt3502262","tt3502248","tt5788792","tt5057054","tt1190634","tt1869454","tt7456722","tt6741278","tt7462410","tt9288030","tt9794044","tt12637874","tt13159924","tt7631058"]],["Apple TV+",["tt7772588","tt7203552","tt10986410","tt8879940","tt0804484","tt11280740","tt5875444","tt8888462","tt15469618","tt4301160","tt14688458","tt15677150","tt17677860","tt16294384","tt22202452"]],["Disney+",["tt8111088","tt9140560","tt9208876","tt9140554","tt10160804","tt12708542","tt10234724","tt8466564","tt9253284","tt10857160","tt13622776","tt15571732","tt18923754"]],["Hulu e FX",["tt2802850","tt1844624","tt5834204","tt4288182","tt7908628","tt11691774","tt14452776","tt2788316","tt13623580","tt9059760"]],["Serie italiane",["tt0086779","tt0920489","tt0117367","tt0178132","tt1020116","tt2259665","tt2983290","tt5057130","tt7806456","tt6864602","tt11876490","tt15614372","tt14691760","tt12822708","tt15441160","tt19386538","tt15198870","tt8332438","tt10101518","tt8360352","tt1242773","tt2049116"]]];
+function piattCat(){ return PIATT.map(([name, ids])=>({ name, films: ids.map(imdbEntry).filter(Boolean).map(e=>(enrich(e), e)).sort((a, b)=>(b._s || 0) - (a._s || 0)).slice(0, 30) })).filter(x=>x.films.length >= 3); }
+function piattTile(){ const n = piattCat().length; return n ? `<a class="genre" href="#piattaforme" style="--tilebg:var(--s2)">📺 Per piattaforma<span>${n}</span></a>` : ''; }
+function viewPiatt(){
+  setNav('home'); const L = piattCat().map(x=>({ name: x.name, films: x.films, seen: x.films.filter(e=>has(e.id, 'v')).length }));
+  V().innerHTML = `<p class="crumbs"><a href="#">Esplora</a> › Per piattaforma</p><h1 class="pg">📺 Le grandi serie per piattaforma</h1>`
+    + `<p class="lead">Le migliori serie originali di ogni piattaforma, dalle più apprezzate. Sotto ogni titolo vedi quante ne hai viste.</p>`
+    + `<div id="ptjump" style="display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 6px">${L.map((x, i)=>`<button class="btn" type="button" data-pt="${i}">${esc(x.name)}</button>`).join('')}</div>`
+    + L.map((x, i)=>`<section id="pt${i}"><h2 class="sec">${esc(x.name)} <span class="note" style="font-family:var(--ui)">${x.films.length} serie${x.seen ? ` · viste ${x.seen} su ${x.films.length}` : ''}</span></h2><div class="strip">${x.films.map(tile).join('')}</div></section>`).join('')
+    + '<p class="note">Elenco curato: conta la piattaforma che ha prodotto o lanciato la serie. In Italia alcune possono essere su un altro servizio.</p>';
+  $('ptjump').addEventListener('click', ev=>{ const b = ev.target.closest('[data-pt]'); const el = b && document.getElementById('pt' + b.dataset.pt); if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+}
+
 function route(){
   if(BOOT_ERR) return;
   const h = decodeURIComponent(location.hash.replace(/^#/, '')), [k, ...rest] = h.split('/'), arg = rest.join('/');
   ROW_EXTRA = null;
   window.scrollTo && window.scrollTo(0, 0);
   if(k === 'film') return viewFilm(arg);
+  if(k === 'piattaforme') return viewPiatt();
   if(k === 'lista') return viewNamedList(arg);
   if(k === 'genere') return viewGenre(arg);
   if(k === 'decennio') return viewDecade(arg);

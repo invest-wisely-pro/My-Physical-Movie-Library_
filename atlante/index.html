@@ -805,7 +805,7 @@ function viewHome(){
     + CLS.filter(c=>c.pin && c.items.length).map(c=>{ const fs = c.items.map(imdbEntry).filter(Boolean), seen = fs.filter(e=>has(e.id, 'v')).length;
         return `<h2 class="sec">${esc(c.name)} <span class="note" style="font-family:var(--ui)">ne hai visti ${seen} su ${fs.length}</span><a class="more" href="#classifica/${esc(c.id)}">Vedi tutta</a></h2><div class="strip">${fs.slice(0, 14).map(tile).join('')}</div>`; }).join('')
     + (fr.length ? `<h2 class="sec">🎙 Promossi da Frusciante <a class="more" href="#lista/frusciante-si">Vedi tutti</a></h2><div class="strip">${fr.map(tile).join('')}</div>` : '')
-    + `<h2 class="sec">Scopri</h2><div class="genres">${['granfilm', 'votati', 'incassi', 'premiati', 'oscar', 'gemme', 'classici', 'recenti', 'critica-si', 'pubblico-si', 'controcorrente', 'brevi', 'kolossal', 'cinecomic', 'animazione'].map(k=>{ const n = LISTS[k][1]().length; return n ? `<a class="genre" href="#lista/${k}" style="--tilebg:var(--s2)">${esc(LISTS[k][0])}<span>${n.toLocaleString('it-IT')}</span></a>` : ''; }).join('')}${sagheTile()}</div>`
+    + `<h2 class="sec">Scopri</h2><div class="genres">${['granfilm', 'votati', 'incassi', 'premiati', 'oscar', 'gemme', 'classici', 'recenti', 'critica-si', 'pubblico-si', 'controcorrente', 'brevi', 'kolossal', 'cinecomic', 'animazione'].map(k=>{ const n = LISTS[k][1]().length; return n ? `<a class="genre" href="#lista/${k}" style="--tilebg:var(--s2)">${esc(LISTS[k][0])}<span>${n.toLocaleString('it-IT')}</span></a>` : ''; }).join('')}${sagheTile()}${registiTile()}</div>`
     + `<h2 class="sec">Per genere</h2><div class="genres">${[...GENRES.entries()].filter(([, l])=>l.length >= 40).sort((a, b)=>b[1].length - a[1].length).map(([g, l])=>`<a class="genre" href="#genere/${encodeURIComponent(g)}" style="--tilebg:hsl(${GCOL[g] != null ? GCOL[g] : 200} 28% 24%)">${esc(g)}<span>${l.length.toLocaleString('it-IT')}</span></a>`).join('')}</div>`;
   $('surprise').onclick = surprise;
 }
@@ -1432,6 +1432,27 @@ function homeCandidates(){ const a = [], add = l => l.slice(0, 40).forEach(e=>e 
   add(MASTER.filter(e=>e._abs).length >= 6 ? MASTER.filter(e=>e._abs) : MASTER); add(BY_V); add(bestOfYear().l); add(monthList().slice().sort((p, q)=>q.v - p.v));
   return a; }
 
+/* ---------- 🎬 I grandi registi: nomi scelti a mano, film principali calcolati dall'app (i più apprezzati, in ordine di uscita) ---------- */
+const REGISTI = ["Steven Spielberg","Martin Scorsese","Alfred Hitchcock","Christopher Nolan","Stanley Kubrick","Quentin Tarantino","Francis Ford Coppola","David Fincher","Ridley Scott","James Cameron","Denis Villeneuve","Peter Jackson","Akira Kurosawa","Hayao Miyazaki","Billy Wilder","Ingmar Bergman","Federico Fellini","Sergio Leone","Michelangelo Antonioni","Luchino Visconti","Vittorio De Sica","Roberto Rossellini","Pier Paolo Pasolini","Bernardo Bertolucci","Dario Argento","Paolo Sorrentino","Giuseppe Tornatore","Nanni Moretti","Jean-Luc Godard","Wes Anderson","Joel Coen","Clint Eastwood","Woody Allen","Roman Polanski","Brian De Palma","David Lynch","Paul Thomas Anderson","Guillermo del Toro","Pedro Almodóvar","Park Chan-wook","Bong Joon Ho","Ang Lee","Terrence Malick","Spike Lee","Steven Soderbergh","Sidney Lumet","John Ford","Orson Welles","Charles Chaplin","Fritz Lang","Wim Wenders","Werner Herzog","Lars von Trier","Darren Aronofsky","Greta Gerwig","Robert Zemeckis","Tim Burton","George Lucas","Sam Raimi","Michael Mann","Kathryn Bigelow","Yorgos Lanthimos","Alejandro G. Iñárritu","Alfonso Cuarón","Jean-Pierre Jeunet","Luc Besson","Isao Takahata","Satoshi Kon","Robert Bresson","Luis Buñuel","Carl Theodor Dreyer","Yasujirō Ozu","Satyajit Ray","Gabriele Salvatores","Mario Monicelli","Ettore Scola","François Truffaut","Jean Renoir","Kenji Mizoguchi","Marco Bellocchio","Matteo Garrone","Roberto Benigni","Luca Guadagnino","Mario Bava"];
+const REGISTI_TOP = new Set(["Steven Spielberg","Martin Scorsese","Alfred Hitchcock","Stanley Kubrick","Francis Ford Coppola","Quentin Tarantino","Christopher Nolan","David Fincher","Ridley Scott","James Cameron","Denis Villeneuve","Akira Kurosawa","Hayao Miyazaki","Billy Wilder","Ingmar Bergman","Federico Fellini","Sergio Leone","Charles Chaplin","Orson Welles","John Ford","David Lynch","Pedro Almodóvar","Clint Eastwood","Woody Allen","Roman Polanski","Joel Coen","Paul Thomas Anderson","Wes Anderson","François Truffaut","Jean-Luc Godard","Bong Joon Ho","Michelangelo Antonioni","Luchino Visconti","Vittorio De Sica","Pier Paolo Pasolini","Bernardo Bertolucci","Paolo Sorrentino","Guillermo del Toro"]);   // i più grandi, in evidenza; gli altri maestri si mostrano a richiesta
+function grandiRegisti(){
+  return REGISTI.map(name=>{ const fs = (BY_DIR.get(name) || []).filter(e=>e.v >= 5000); if(fs.length < 3) return null;
+    const good = fs.filter(e=>(e._R || 0) >= 6.8), top = (good.length >= 3 ? good : fs).slice().sort((a, b)=>(b._s || 0) - (a._s || 0)).slice(0, 8).sort((a, b)=>(parseInt(a.y, 10) || 0) - (parseInt(b.y, 10) || 0));   // solo film davvero buoni, se ce ne sono almeno 3
+    return { name, n: fs.length, top, avg: fs.reduce((t, e)=>t + (e._R || 0), 0) / fs.length, s: fs.reduce((t, e)=>t + Math.pow((e._s || 0) / 100, 2) * Math.log10(e.v), 0), _n: normKey(name), core: REGISTI_TOP.has(name) };
+  }).filter(Boolean).sort((a, b)=>(b.core ? 1 : 0) - (a.core ? 1 : 0) || b.s - a.s);
+}
+function registiTile(){ const n = grandiRegisti().filter(d=>d.core).length; return n ? `<a class="genre" href="#grandi-registi" style="--tilebg:var(--s2)">🎬 I grandi registi<span>${n}</span></a>` : ''; }
+function regSection(d){ const u = '#regista/' + encodeURIComponent(d.name);
+  return `<section><h2 class="sec"><a href="${u}" style="color:inherit; text-decoration:none">${esc(d.name)}</a> <span class="note" style="font-family:var(--ui)">${d.n} film · voto medio ${fmtR(d.avg)}</span><a class="more" href="${u}">Tutti i film</a></h2><div class="strip">${d.top.map(tile).join('')}</div></section>`; }
+function viewGrandiRegisti(){
+  setNav('registi'); const L = grandiRegisti();
+  V().innerHTML = `<p class="crumbs"><a href="#registi">Registi</a> › I grandi registi</p><h1 class="pg">🎬 I grandi registi</h1><p class="lead">${L.filter(d=>d.core).length} grandi maestri del cinema, con i loro film principali in ordine di uscita: tocca il nome per vederli tutti. Altri ${L.filter(d=>!d.core).length} maestri si trovano scegliendo "Tutti i maestri" o cercandoli per nome.</p>`
+    + `<div class="ctrl"><label>Cerca un regista<input id="grq" type="search" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--s1); padding:0 10px"></label><label>Mostra<select id="grf"><option value="core">I più grandi (${L.filter(d=>d.core).length})</option><option value="all">Tutti i maestri (${L.length})</option></select></label></div><div id="grl"></div>`;
+  const draw = () => { const q = normKey($('grq').value).split(' ').filter(Boolean), all = $('grf').value === 'all', l = L.filter(d=>(all || q.length || d.core) && q.every(w=>d._n.includes(w)));
+    $('grl').innerHTML = l.length ? paged('grr', l, regSection, 10) : '<p class="note">Nessun regista trovato.</p>'; };
+  $('grq').oninput = draw; $('grf').onchange = draw; draw();
+}
+
 function route(){
   if(BOOT_ERR) return;
   const h = decodeURIComponent(location.hash.replace(/^#/, '')), [k, ...rest] = h.split('/'), arg = rest.join('/');
@@ -1439,6 +1460,7 @@ function route(){
   window.scrollTo && window.scrollTo(0, 0);
   if(k === 'film') return viewFilm(arg);
   if(k === 'saghe') return viewSaghe();
+  if(k === 'grandi-registi') return viewGrandiRegisti();
   if(k === 'lista') return viewNamedList(arg);
   if(k === 'genere') return viewGenre(arg);
   if(k === 'decennio') return viewDecade(arg);
