@@ -35,27 +35,28 @@ button, input, select{font:inherit; color:inherit;}
 .rk .rk-n{font-family:var(--serif); font-weight:700; font-size:22px; text-align:center; color:var(--amber2);} .rk .th{width:34px; height:51px; object-fit:cover; border-radius:3px; background:var(--s2); display:block;}
 .rk .sub{display:block; color:var(--paper2); font-size:13px;} .rk-a{display:flex; gap:6px;} .rk-a .btn{height:32px; padding:0 10px;} .rk-a .btn:disabled{opacity:.35; cursor:default;}
 /* ---------- 📺 Modalità TV: da leggere dal divano, con il telecomando ---------- */
-html.tv{font-size:20px;}
-html.tv body{font-size:20px;}
+html.tv{font-size:calc(20px * var(--k, 1));}
+html.tv body{font-size:calc(20px * var(--k, 1));}
 html.tv .top{backdrop-filter:none; background:var(--ink);}
 html.tv .top-in, html.tv main{max-width:none; padding-left:5vw; padding-right:5vw;}   /* margini di sicurezza ai bordi */
 html.tv main{padding-top:3vh; padding-bottom:6vh;}
-html.tv .nav a{font-size:19px; padding:10px 16px;}
-html.tv .search input{height:52px; font-size:20px;}
-html.tv h1.pg{font-size:46px;} html.tv h2.sec{font-size:28px; margin-top:34px;}
-html.tv .strip{grid-auto-columns:minmax(200px, 220px); gap:18px; padding:10px 8px 14px; scroll-snap-type:none;}
-html.tv .tiles{grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));}
-html.tv .tile .tt{font-size:22px;} html.tv .tile .ty, html.tv .tile .tb{font-size:16px;}
-html.tv .fr{grid-template-columns:70px 46px minmax(0, 1fr) auto; padding:14px 8px;} html.tv .fr .th{width:46px; height:69px;}
-html.tv .fr b{font-size:22px;} html.tv .fr .sub{font-size:17px;} html.tv .fr .sc{font-size:26px;}
-html.tv .btn{height:52px; padding:0 22px; font-size:19px; border-radius:26px;}
-html.tv .rate button{width:46px; height:46px; font-size:18px;}
-html.tv .genre{padding:20px; font-size:21px;} html.tv .person{padding:16px;}
-html.tv .kv{grid-template-columns:220px minmax(0, 1fr); font-size:18px;} html.tv .plot{font-size:21px;}
-html.tv .ruler{height:200px;} html.tv .ruler .yr{font-size:16px;}
+html.tv .nav a{font-size:calc(19px * var(--k, 1)); padding:calc(10px * var(--k, 1)) calc(16px * var(--k, 1));}
+html.tv .search input{height:calc(52px * var(--k, 1)); font-size:calc(20px * var(--k, 1));}
+html.tv h1.pg{font-size:calc(46px * var(--k, 1));} html.tv h2.sec{font-size:calc(28px * var(--k, 1)); margin-top:calc(34px * var(--k, 1));}
+html.tv .strip{grid-auto-columns:minmax(calc(200px * var(--k, 1)), calc(220px * var(--k, 1))); gap:calc(18px * var(--k, 1)); padding:calc(10px * var(--k, 1)) calc(8px * var(--k, 1)) calc(14px * var(--k, 1)); scroll-snap-type:none;}
+html.tv .tiles{grid-template-columns:repeat(auto-fill, minmax(calc(210px * var(--k, 1)), 1fr));}
+html.tv .tile .tt{font-size:calc(22px * var(--k, 1));} html.tv .tile .ty, html.tv .tile .tb{font-size:calc(16px * var(--k, 1));}
+html.tv .fr{grid-template-columns:calc(70px * var(--k, 1)) calc(46px * var(--k, 1)) minmax(0, 1fr) auto; padding:calc(14px * var(--k, 1)) calc(8px * var(--k, 1));} html.tv .fr .th{width:calc(46px * var(--k, 1)); height:calc(69px * var(--k, 1));}
+html.tv .fr b{font-size:calc(22px * var(--k, 1));} html.tv .fr .sub{font-size:calc(17px * var(--k, 1));} html.tv .fr .sc{font-size:calc(26px * var(--k, 1));}
+html.tv .btn{height:calc(52px * var(--k, 1)); padding:0 calc(22px * var(--k, 1)); font-size:calc(19px * var(--k, 1)); border-radius:calc(26px * var(--k, 1));}
+html.tv .rate button{width:calc(46px * var(--k, 1)); height:calc(46px * var(--k, 1)); font-size:calc(18px * var(--k, 1));}
+html.tv .genre{padding:calc(20px * var(--k, 1)); font-size:calc(21px * var(--k, 1));} html.tv .person{padding:calc(16px * var(--k, 1));}
+html.tv .kv{grid-template-columns:calc(220px * var(--k, 1)) minmax(0, 1fr); font-size:calc(18px * var(--k, 1));} html.tv .plot{font-size:calc(21px * var(--k, 1));}
+html.tv .ruler{height:calc(200px * var(--k, 1));} html.tv .ruler .yr{font-size:calc(16px * var(--k, 1));}
 html.tv :focus{outline:none;}
-html.tv a:focus, html.tv button:focus, html.tv input:focus, html.tv select:focus{outline:5px solid var(--amber); outline-offset:4px; border-radius:8px;}
-html.tv .tile:focus, html.tv .genre:focus, html.tv .person:focus{transform:scale(1.07); box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:2; position:relative;}
+html.tv a:focus, html.tv button:focus, html.tv input:focus, html.tv select:focus, html.tv summary:focus, html.tv [data-go]:focus{outline:calc(5px * var(--k, 1)) solid var(--amber); outline-offset:calc(4px * var(--k, 1)); border-radius:calc(8px * var(--k, 1));}
+html.tv .tile:focus, html.tv .genre:focus, html.tv .person:focus{transform:scale(1.07);  z-index:2; position:relative;}
+html.tv [data-go]:focus{background:rgba(233,162,59,.18);} html.tv .cm:focus{background:var(--s2);}
 html.tv .fr:focus, html.tv .rk a:focus{background:var(--s2);}
 html.tv .tile, html.tv .genre, html.tv .person{transition:transform .12s ease-out;}
 html.tv .tile .tp{will-change:auto;}
@@ -134,8 +135,8 @@ h2.sec a.more{font-family:var(--ui); font-size:13px; font-weight:600; color:var(
 .season:hover{border-color:var(--chart);}
 .fr.ep{grid-template-columns:40px 96px minmax(0, 1fr) auto;} .fr .th.epi{width:96px; height:54px; border-radius:5px;}
 .still{border-radius:12px; overflow:hidden; aspect-ratio:16/9; max-width:820px; background:var(--s2); margin-bottom:18px;} .still img{width:100%; height:100%; object-fit:cover; display:block;}
-html.tv .seasons{grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));} html.tv .fr.ep{grid-template-columns:50px 140px minmax(0, 1fr) auto;} html.tv .fr .th.epi{width:140px; height:79px;}
-html.tv .season:focus{transform:scale(1.06); box-shadow:0 10px 30px rgba(0,0,0,.6); z-index:2;}
+html.tv .seasons{grid-template-columns:repeat(auto-fill, minmax(calc(200px * var(--k, 1)), 1fr));} html.tv .fr.ep{grid-template-columns:calc(50px * var(--k, 1)) calc(140px * var(--k, 1)) minmax(0, 1fr) auto;} html.tv .fr .th.epi{width:calc(140px * var(--k, 1)); height:calc(79px * var(--k, 1));}
+html.tv .season:focus{transform:scale(1.06);  z-index:2;}
 html.tv .tl-bg{filter:brightness(.42); inset:0;}
 .tile.has-p > span:first-of-type{visibility:hidden;}   /* la locandina ha già il titolo */
 .tile.has-p::after{height:30%; background:linear-gradient(180deg, transparent, rgba(0,0,0,.75));}
@@ -213,7 +214,7 @@ html.tv .tl-bg{filter:brightness(.42); inset:0;}
 .cm-ph img ~ i{display:none;}
 .cm-t{min-width:0;} .cm-t b{display:block; font-weight:650; font-size:14.5px; letter-spacing:-0.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .cm-t small{display:block; color:var(--paper3); font-size:12.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-html.tv .castgrid{grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));} html.tv .cm-ph{width:60px; height:60px;} html.tv .cm-t b{font-size:19px;} html.tv .cm-t small{font-size:16px;}
+html.tv .castgrid{grid-template-columns:repeat(auto-fill, minmax(calc(260px * var(--k, 1)), 1fr));} html.tv .cm-ph{width:calc(60px * var(--k, 1)); height:calc(60px * var(--k, 1));} html.tv .cm-t b{font-size:calc(19px * var(--k, 1));} html.tv .cm-t small{font-size:calc(16px * var(--k, 1));}
 .bars{display:flex; flex-direction:column; gap:6px; max-width:560px;}
 .barrow{display:grid; grid-template-columns:110px minmax(0, 1fr) 40px; gap:10px; align-items:center; font-size:13.5px;}
 .barrow i{display:block; height:10px; border-radius:5px; background:var(--chart);} .barrow .v{text-align:right; color:var(--paper2);}
@@ -362,45 +363,119 @@ const TV = (()=>{
   return /Android ?TV|BRAVIA|AFT[A-Z]|SmartTV|SMART-TV|GoogleTV|Large Screen|CrKey|Tizen|WebOS|TV Bro/i.test(navigator.userAgent || '');
 })();
 if(TV) document.documentElement.classList.add('tv');
-function tvFocusables(){
-  return [...document.querySelectorAll('a[href], button:not([disabled]), input, select, textarea')].filter(el=>{
-    if(el.closest('.hidden') || el.closest('[aria-hidden="true"]')) return false;
-    const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; });
+/* --- Scala: il layout si adatta alla larghezza reale dello schermo (1500 = misura di riferimento), qualunque sia la risoluzione che il televisore dichiara --- */
+const TV_DEVICE = /AtlanteTV|Android ?TV|BRAVIA|AFT[A-Z]|SmartTV|SMART-TV|GoogleTV|Large Screen|CrKey|Tizen|WebOS|TV Bro/i.test(navigator.userAgent || '');
+function tvScale(){ document.documentElement.style.setProperty('--k', Math.min(2.2, Math.max(0.6, window.innerWidth / 1500)).toFixed(3)); }
+if(TV){
+  try{ if(TV_DEVICE){ const m = document.querySelector('meta[name=viewport]'); if(m) m.setAttribute('content', 'width=1500, viewport-fit=cover'); } }catch(e){}
+  tvScale(); window.addEventListener('resize', tvScale);
 }
-function tvMove(dir){   // la selezione va all'elemento più vicino nella direzione della freccia
+/* --- Elementi raggiungibili con le frecce: anche i link a regista e genere (span con data-go), che prima restavano irraggiungibili --- */
+const TV_SEL = 'a[href], button:not([disabled]), input:not([type=hidden]), select, textarea, summary, [data-go]';
+function tvFocusables(){
+  const out = [];
+  for(const el of document.querySelectorAll(TV_SEL)){
+    if(el.closest('.hidden, [aria-hidden="true"], [inert]')) continue;
+    if(el.matches('[data-go]:not(a):not(button)')){
+      if(el.parentElement && el.parentElement.closest('a[href], button, [data-go]')) continue;   // link dentro a un altro link: basta quello esterno
+      if(!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+    }
+    const r = el.getBoundingClientRect(); if(r.width > 0 && r.height > 0) out.push(el);
+  }
+  return out;
+}
+/* --- Scorrimento fluido: la selezione resta a circa metà schermo; nelle file orizzontali la card selezionata va al centro --- */
+function tvReveal(el, instant){
+  if(!el) return;
+  const beh = instant ? 'auto' : 'smooth';
+  for(let p = el.parentElement; p && p !== document.body && p !== document.documentElement; p = p.parentElement){
+    const cs = getComputedStyle(p);
+    if((cs.overflowX === 'auto' || cs.overflowX === 'scroll') && p.scrollWidth > p.clientWidth + 4){
+      const r = el.getBoundingClientRect(), pr = p.getBoundingClientRect(), d = (r.left + r.width / 2) - (pr.left + pr.width / 2);
+      if(Math.abs(d) > 4) p.scrollTo({ left: p.scrollLeft + d, behavior: beh });
+      break;
+    }
+  }
+  const r = el.getBoundingClientRect(), vh = window.innerHeight, hdr = (document.querySelector('.top') || {}).offsetHeight || 0;
+  const d = (r.top + r.height / 2) - (hdr + (vh - hdr) * 0.45);
+  if(Math.abs(d) > 10) window.scrollTo({ top: Math.max(0, window.scrollY + d), behavior: beh });
+}
+let tvX = null;   // colonna "ricordata": salendo e scendendo tra le file si torna sulla stessa colonna
+function tvMove(dir, fast){   // la selezione va all'elemento più vicino nella direzione della freccia
   const list = tvFocusables(), cur = list.includes(document.activeElement) ? document.activeElement : null;
-  if(!cur){ const f = list.find(el=>el.closest('#view')) || list[0]; if(f){ f.focus({ preventScroll: true }); f.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } return f || null; }
-  const a = cur.getBoundingClientRect(), ax = a.left + a.width / 2, ay = a.top + a.height / 2;
+  if(!cur){ const f = list.find(el=>el.closest('#view')) || list[0]; if(f){ f.focus({ preventScroll: true }); tvReveal(f, fast); } return f || null; }
+  const a = cur.getBoundingClientRect(), ay = a.top + a.height / 2, horiz = dir === 'left' || dir === 'right';
+  if(horiz) tvX = null; else if(tvX == null) tvX = a.left + a.width / 2;
+  const ax = horiz ? a.left + a.width / 2 : tvX;
   let best = null, bs = Infinity;
   for(const el of list){
     if(el === cur || el.contains(cur) || cur.contains(el)) continue;
     const b = el.getBoundingClientRect(), bx = b.left + b.width / 2, by = b.top + b.height / 2;
-    let main, side;
-    if(dir === 'right'){ if(b.left < a.right - 4 && bx <= ax + 4) continue; main = Math.max(0, b.left - a.right) + 1; side = Math.max(0, Math.max(a.top, b.top) - Math.min(a.bottom, b.bottom)) ; }
-    else if(dir === 'left'){ if(b.right > a.left + 4 && bx >= ax - 4) continue; main = Math.max(0, a.left - b.right) + 1; side = Math.max(0, Math.max(a.top, b.top) - Math.min(a.bottom, b.bottom)); }
-    else if(dir === 'down'){ if(b.top < a.bottom - 4 && by <= ay + 4) continue; main = Math.max(0, b.top - a.bottom) + 1; side = Math.max(0, Math.max(a.left, b.left) - Math.min(a.right, b.right)); }
-    else { if(b.bottom > a.top + 4 && by >= ay - 4) continue; main = Math.max(0, a.top - b.bottom) + 1; side = Math.max(0, Math.max(a.left, b.left) - Math.min(a.right, b.right)); }
-    const score = main + side * 3 + (dir === 'left' || dir === 'right' ? Math.abs(by - ay) : Math.abs(bx - ax)) * 0.05;   // allineati prima, poi i più vicini
+    let score;
+    if(horiz){   // destra/sinistra: solo sulla stessa riga, così non si "salta" in un'altra fila a fine corsa
+      if(Math.abs(by - ay) > Math.max(a.height, b.height) * 0.6) continue;
+      if(dir === 'right' ? bx <= a.left + a.width / 2 + 4 : bx >= a.left + a.width / 2 - 4) continue;
+      score = Math.abs(bx - (a.left + a.width / 2)) + Math.abs(by - ay) * 2;
+    } else {     // su/giù: la riga più vicina, poi la colonna più vicina a quella ricordata
+      if(dir === 'down' ? (b.top < a.bottom - 4 && by <= ay + 4) : (b.bottom > a.top + 4 && by >= ay - 4)) continue;
+      const main = dir === 'down' ? Math.max(0, b.top - a.bottom) : Math.max(0, a.top - b.bottom);
+      const side = Math.max(0, b.left - ax, ax - b.right);
+      score = main + side * 3 + Math.abs(bx - ax) * 0.05;
+    }
     if(score < bs){ bs = score; best = el; }
   }
-  if(best){ best.focus({ preventScroll: true }); best.scrollIntoView({ block: 'nearest', inline: 'nearest' }); }
+  if(best){ best.focus({ preventScroll: true }); tvReveal(best, fast); }
+  else if(!horiz) window.scrollBy({ top: (dir === 'down' ? 1 : -1) * window.innerHeight * 0.6, behavior: fast ? 'auto' : 'smooth' });   // niente da selezionare: scorre la pagina (testi lunghi)
   return best;
+}
+function tvSection(d){   // Pagina su/giù o CH+/CH−: salta da una sezione ("Interpreti", "Dello stesso regista"…) all'inizio della successiva/precedente
+  const v = document.getElementById('view'); if(!v) return;
+  const list = tvFocusables().filter(el=>el.closest('#view')), cur = list.includes(document.activeElement) ? document.activeElement : null;
+  const starts = [];   // il primo elemento selezionabile dopo ogni titolo di sezione (più il primo della pagina)
+  if(list[0]) starts.push(list[0]);
+  v.querySelectorAll('h2').forEach(h=>{ if(h.getBoundingClientRect().height <= 0) return; const f = list.find(el=>h.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING); if(f && !starts.includes(f)) starts.push(f); });
+  let f = null;
+  if(!cur) f = starts[0];
+  else if(d > 0) f = starts.find(s=>cur.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_FOLLOWING);
+  else f = starts.filter(s=>cur.compareDocumentPosition(s) & Node.DOCUMENT_POSITION_PRECEDING).pop();
+  if(f){ tvX = null; f.focus({ preventScroll: true }); tvReveal(f); }
+  else window.scrollBy({ top: d * window.innerHeight * 0.8, behavior: 'smooth' });
+}
+function tvMenu(){   // tasto Menu: porta alla barra in alto (e, se già lì, torna ai contenuti)
+  const act = document.activeElement;
+  if(act && act.closest && act.closest('.top')){ tvLanding(); return; }
+  const a = document.querySelector('.top .nav a[aria-current]') || document.querySelector('.top .nav a');
+  if(a){ tvX = null; a.focus({ preventScroll: true }); window.scrollTo({ top: 0, behavior: 'smooth' }); }
 }
 document.addEventListener('keydown', ev=>{
   if(!TV) return;
   const t = ev.target, typing = t && (t.tagName === 'INPUT' && !/^(checkbox|radio|button)$/.test(t.type) || t.tagName === 'TEXTAREA');
   const dir = { ArrowRight: 'right', ArrowLeft: 'left', ArrowDown: 'down', ArrowUp: 'up' }[ev.key];
-  if(dir){ if(typing && (dir === 'left' || dir === 'right')) return; ev.preventDefault(); tvMove(dir); return; }
+  if(dir){ if(typing && (dir === 'left' || dir === 'right')) return; ev.preventDefault(); tvMove(dir, ev.repeat); return; }
+  if(ev.key === 'Enter' && t && t.matches && t.matches('[data-go]:not(a):not(button)')){ ev.preventDefault(); t.click(); return; }   // OK sui link a regista/genere
+  if(!typing && (ev.key === 'PageDown' || ev.key === 'ChannelDown' || ev.key === 'MediaTrackNext')){ ev.preventDefault(); tvSection(1); return; }
+  if(!typing && (ev.key === 'PageUp' || ev.key === 'ChannelUp' || ev.key === 'MediaTrackPrevious')){ ev.preventDefault(); tvSection(-1); return; }
+  if(!typing && (ev.key === 'ContextMenu' || ev.key === 'Menu' || ev.keyCode === 82)){ ev.preventDefault(); tvMenu(); return; }
   if((ev.key === 'Escape' || ev.key === 'GoBack' || ev.key === 'BrowserBack' || (ev.key === 'Backspace' && !typing)) && location.hash){ ev.preventDefault(); history.back(); }
 });
-function tvLanding(){   // ogni pagina nuova parte con la selezione sul primo contenuto: si aspetta che le serie siano disegnati
+/* --- Si ricorda dove eri: tornando indietro la selezione riprende dalla card che avevi aperto --- */
+const TV_MEM = new Map();
+const tvKey = el => el.getAttribute('href') || el.getAttribute('data-go') || el.id || '';
+document.addEventListener('click', ev=>{ if(!TV) return; const el = ev.target.closest && ev.target.closest('a[href], [data-go], button'); if(el && el.closest('#view')){ const k = tvKey(el); if(k) TV_MEM.set(location.hash || '#', k); } }, true);
+function tvLanding(){   // ogni pagina nuova parte dalla card che avevi aperto (se torni indietro) o dal primo contenuto visibile
   if(!TV) return;
   let tries = 0;
+  const want = TV_MEM.get(location.hash || '#');
   const go = () => { const v = document.getElementById('view'); if(!v) return;
-    const main = ['.tile', '.fr', '.rk a', '.genre, .person'].map(q=>v.querySelector(q)).find(Boolean);
-    if(!main && ++tries < 16){ setTimeout(go, 60); return; }   // l'elenco non è ancora pronto: si riprova (fino a circa un secondo)
-    const f = main || ['.btn, .marks a', 'select, input', 'a[href]'].map(q=>v.querySelector(q)).find(Boolean);
-    if(f) f.focus({ preventScroll: true }); window.scrollTo && window.scrollTo(0, 0); };
+    let f = null, restored = false;
+    if(want){ f = tvFocusables().find(el=>el.closest('#view') && tvKey(el) === want); restored = !!f; if(!f && ++tries < 16){ setTimeout(go, 60); return; } }
+    if(!f){
+      const grid = ['.tile', '.fr', '.rk a', '.genre, .person', '.cm'].map(q=>v.querySelector(q)).find(Boolean);
+      if(!grid && ++tries < 16){ setTimeout(go, 60); return; }   // l'elenco non è ancora pronto: si riprova (fino a circa un secondo)
+      const first = tvFocusables().find(el=>el.closest('#view'));
+      f = (grid && grid.getBoundingClientRect().top < window.innerHeight * 1.1) ? grid : (first || grid);   // mai una card lontana in fondo alla pagina
+    }
+    if(f){ tvX = null; f.focus({ preventScroll: true }); if(restored) tvReveal(f, true); else window.scrollTo(0, 0); } };
   setTimeout(go, 60);
 }
 
@@ -1320,7 +1395,7 @@ function viewTools(){
     + `<div class="box"><h3>🌍 Traduzione in italiano</h3><div class="in"><p>Trame degli episodi e testi di Wikipedia in inglese vengono tradotti in automatico, senza chiavi. Ogni testo si traduce una volta sola e poi resta salvato.</p><p id="trState" class="note">Controllo il traduttore di Chrome…</p>`
     + `<div class="ctrl"><label>La tua email per MyMemory (facoltativa)<input id="trEmail" type="email" value="${esc(trEmail())}" placeholder="nome@esempio.it" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--ink); padding:0 10px; min-width:240px"></label><button class="btn" type="button" id="trSave">Salva</button></div>`
     + `<p class="note">MyMemory è il traduttore gratuito usato su telefono e televisore. Con un indirizzo email il suo limite passa da circa 5.000 a circa 50.000 caratteri al giorno (circa 200 trame). L'indirizzo resta su questo dispositivo e viene inviato solo a MyMemory, insieme ai testi da tradurre.</p></div></div>`
-    + `<div class="box"><h3>📺 Modalità TV</h3><div class="in"><p>Testi grandi, margini di sicurezza e navigazione con le frecce del telecomando: OK apre, Indietro torna alla pagina precedente. Si attiva da sola sui televisori; per salvarla nei preferiti del browser del televisore usa l'indirizzo che finisce con <b>?tv=1</b>.</p><div class="marks"><button class="btn${TV ? ' amber' : ''}" type="button" id="tvBtn" aria-pressed="${TV}">${TV ? '📺 Modalità TV attiva: disattiva' : '📺 Attiva la modalità TV'}</button></div></div></div>`
+    + `<div class="box"><h3>📺 Modalità TV</h3><div class="in"><p>Testi grandi, margini di sicurezza e navigazione con le frecce del telecomando: OK apre, Indietro torna alla pagina precedente e ritrova la card da cui eri partito. Pagina su/giù (o CH+/CH−) salta da una sezione all\'altra; Menu porta alla barra in alto. Tenendo premuta una freccia si scorre veloce. Si attiva da sola sui televisori; per salvarla nei preferiti del browser del televisore usa l'indirizzo che finisce con <b>?tv=1</b>.</p><div class="marks"><button class="btn${TV ? ' amber' : ''}" type="button" id="tvBtn" aria-pressed="${TV}">${TV ? '📺 Modalità TV attiva: disattiva' : '📺 Attiva la modalità TV'}</button></div></div></div>`
     + `<div class="box"><h3>Le tue liste</h3><div class="in"><p>Viste, da vedere, preferite, i tuoi voti e le classifiche restano su questo dispositivo. Fai una copia per non perderli.</p><div class="marks"><button class="btn" type="button" id="bk">💾 Scarica le liste</button><button class="btn" type="button" id="rs">📥 Ripristina le liste</button><input type="file" id="rsIn" accept=".json,application/json" class="hidden"></div></div></div>`
     + `<div class="box"><h3>Come si calcolano i capolavori</h3><div class="in"><p>Ogni serie riceve un punteggio da 0 a 100: per il 60% circa dal voto IMDb (pesato sul numero di voti, così pochi voti contano poco) e per il resto dalla critica (Rotten Tomatoes e Metacritic). Se la critica manca, conta solo il voto. Il punteggio serve a ordinare.</p><p>La scala ha tre gradini: <b>◆ grande serie</b> da 80 a 84, <b>✦ capolavoro</b> da 85 a 89, <b>✦✦ capolavoro assoluto</b> da 90 in su. Servono anche almeno 30.000 voti e la critica, quando c'è, almeno al 70% per le grandi serie e all'80% per i capolavori. Le serie iniziate negli ultimi 4 anni servono anche la conferma della critica (almeno 85%), perché i voti delle novità possono essere gonfiati.</p></div></div>`;
   V().querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(CRITICA_SCRIPT_TEXT); toast('📋 Script copiato: ora premi "Crea il file" e incollalo'); }catch(err){ const t = $('copyArea'); t.value = CRITICA_SCRIPT_TEXT; t.classList.remove('hidden'); t.select(); } }));
