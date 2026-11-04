@@ -489,7 +489,7 @@ function why(e){
    BW_SER: le serie indiane riconosciute nell'indice (dal cast). Non compaiono in classifiche, generi, decenni,
    suggerimenti, liste e classifiche degli attori: restano solo ricercabili. Per aggiungerne o toglierne, modifica
    l'elenco (codici IMDb senza «tt»); in più c'è il controllo in tempo reale su Wikidata (INDIA). */
-const BW_SER = new Set('0295776,10289938,10655506,11117570,11611698,11854694,11912196,12004706,12299774,12405230,12453444,12714854,12805346,13439476,13847564,13899566,13994872,14160660,14160712,14167344,14478162,14486948,15204292,15477488,15576504,15752618,16118500,16296870,16729514,17524566,19768024,19868314,19868542,21056976,21975100,22297290,22297578,23333666,26745617,26914830,27111295,2792284,28075268,31183656,31925787,32258354,32501022,3277592,34683290,35335046,35668375,38509140,39643967,40856520,6077448,6473300,6883044,8069036,9095260,9447956,9544034'.split(',').map(x=>'tt' + x));
+const BW_SER = new Set('0295776,10289938,10655506,11117570,11611698,11854694,11912196,12004706,12299774,12405230,12453444,12714854,12805346,12987728,13439476,13584954,13847564,13854248,13899566,13994872,14160660,14160712,14167344,14392248,14478162,14479078,14486948,14773858,15204292,15235748,15477488,15576504,15752618,16118500,16296870,16729514,16997004,17524566,19768024,19868314,19868542,19868722,19868804,21056976,21975100,22297290,22297578,23333666,26745617,26914830,27111295,27853283,2792284,28075268,28106741,28106779,30263074,31183656,31925787,32258354,32501022,3277592,34683290,35335046,35668375,35674465,35870921,38509140,39643967,40856520,4742876,6077448,6473300,6883044,8069036,9095260,9447956,9544034'.split(',').map(x=>'tt' + x));
 const isBW = e => !!e && (BW_SER.has(e.id) || INDIA.has(e.id));
 let ALL = [], BY_V = [], BY_BR = [], MASTER = [], BY_DIR = new Map(), GENRES = new Map(), DECADES = new Map();
 function computeAll(){
@@ -669,14 +669,14 @@ async function fetchMonth(){
     MONTH = dates; dset('mese1', { at: Date.now(), since, dates: [...dates.entries()] });
   }catch(e){}
 }
-function monthList(){ if(!MONTH) return []; const d = e => MONTH.get(e.id) || ''; return [...MONTH.keys()].map(imdbEntry).filter(Boolean).sort((a, b)=>d(a) < d(b) ? 1 : d(a) > d(b) ? -1 : b.v - a.v); }
+function monthList(){ if(!MONTH) return []; const d = e => MONTH.get(e.id) || ''; return [...MONTH.keys()].map(imdbEntry).filter(e=>e && !isBW(e)).sort((a, b)=>d(a) < d(b) ? 1 : d(a) > d(b) ? -1 : b.v - a.v); }
 function monthStrip(){ const m = monthList(), mi = noIndia(m); if(mi.length < 3) return null;
   const top = mi.slice().sort((a, b)=>b.v - a.v).slice(0, 14).sort((a, b)=>(MONTH.get(a.id) < MONTH.get(b.id) ? 1 : -1));
   return `<h2 class="sec">🆕 Uscite dell'ultimo mese <span class="note" style="font-family:var(--ui)">dal ${dayShort(monthSince())} al ${dayShort(today())}</span><a class="more" href="#lista/mese">Vedi tutte (${m.length})</a></h2><div class="strip">${top.map(tile).join('')}</div>`; }
 
 async function fetchNovita(){
   const c = await dget('novita2');
-  if(c && Date.now() - c.at < 864e5){ NOVITA = new Map(c.dates); SEASONS_NEW = (c.seasons || []).map(x=>Object.assign({}, x, { e: imdbEntry(x.id) })).filter(x=>x.e); SEASON_BY = new Map(SEASONS_NEW.map(x=>[x.id, x])); return; }
+  if(c && Date.now() - c.at < 864e5){ NOVITA = new Map(c.dates); SEASONS_NEW = (c.seasons || []).map(x=>Object.assign({}, x, { e: imdbEntry(x.id) })).filter(x=>x.e && !isBW(x.e)); SEASON_BY = new Map(SEASONS_NEW.map(x=>[x.id, x])); return; }
   if(navigator.onLine === false) return;
   const cand = novitaBase().slice(0, 150).map(e=>e.id), dates = new Map();
   if(cand.length){ try{
@@ -695,7 +695,7 @@ async function fetchNovita(){
       const cur = best.get(id); if(!cur || dd > cur.d) best.set(id, { id, ord: o, d: dd }); });
     seasons = [...best.values()].sort((a, b)=>a.d < b.d ? 1 : -1);
   }catch(e){} }
-  NOVITA = dates; SEASONS_NEW = seasons.map(x=>Object.assign({}, x, { e: imdbEntry(x.id) })); SEASON_BY = new Map(SEASONS_NEW.map(x=>[x.id, x]));
+  NOVITA = dates; SEASONS_NEW = seasons.map(x=>Object.assign({}, x, { e: imdbEntry(x.id) })).filter(x=>x.e && !isBW(x.e)); SEASON_BY = new Map(SEASONS_NEW.map(x=>[x.id, x]));
   dset('novita2', { at: Date.now(), dates: [...dates.entries()], seasons });
 }
 
@@ -762,7 +762,7 @@ function viewHome(){
     + CLS.filter(c=>c.pin && c.items.length).map(c=>{ const fs = c.items.map(imdbEntry).filter(Boolean), seen = fs.filter(e=>has(e.id, 'v')).length;
         return `<h2 class="sec">${esc(c.name)} <span class="note" style="font-family:var(--ui)">ne hai viste ${seen} su ${fs.length}</span><a class="more" href="#classifica/${esc(c.id)}">Vedi tutta</a></h2><div class="strip">${fs.slice(0, 14).map(tile).join('')}</div>`; }).join('')
     + (fr.length ? `<h2 class="sec">🎙 Promossi da Frusciante <a class="more" href="#lista/frusciante-si">Vedi tutti</a></h2><div class="strip">${fr.map(tile).join('')}</div>` : '')
-    + `<h2 class="sec">Scopri</h2><div class="genres">${['granfilm', 'votati', 'incorso', 'concluse', 'miniserie', 'maratona', 'lunghe', 'premiate', 'emmy', 'classici', 'recenti', 'gemme', 'critica-si', 'pubblico-si', 'animazione'].map(k=>{ const n = LISTS[k][1]().length; return n ? `<a class="genre" href="#lista/${k}" style="--tilebg:var(--s2)">${esc(LISTS[k][0])}<span>${n.toLocaleString('it-IT')}</span></a>` : ''; }).join('')}${piattTile()}</div>`
+    + `<h2 class="sec">Scopri</h2><div class="genres">${['granfilm', 'votati', 'incorso', 'concluse', 'miniserie', 'maratona', 'lunghe', 'premiate', 'emmy', 'classici', 'recenti', 'gemme', 'critica-si', 'pubblico-si', 'animazione', 'bollywood'].map(k=>{ const n = LISTS[k][1]().length; return n ? `<a class="genre" href="#lista/${k}" style="--tilebg:var(--s2)">${esc(LISTS[k][0])}<span>${n.toLocaleString('it-IT')}</span></a>` : ''; }).join('')}${piattTile()}</div>`
     + `<h2 class="sec">Per genere</h2><div class="genres">${[...GENRES.entries()].filter(([, l])=>l.length >= 40).sort((a, b)=>b[1].length - a[1].length).map(([g, l])=>`<a class="genre" href="#genere/${encodeURIComponent(g)}" style="--tilebg:hsl(${GCOL[g] != null ? GCOL[g] : 200} 28% 24%)">${esc(g)}<span>${l.length.toLocaleString('it-IT')}</span></a>`).join('')}</div>`;
   $('surprise').onclick = surprise;
 }
@@ -783,6 +783,7 @@ const LISTS = {
   granfilm: ['◆ Grandi serie', () => BY_V.filter(e=>e._gran).sort((a, b)=>b._s - a._s || b.v - a.v), 'punteggio', 'Serie eccellenti, un gradino sotto i capolavori: punteggio dell\'Atlante da 76, con almeno 20.000 voti.'],
   capolavori: ['✦ Capolavori', () => MASTER, 'punteggio', 'Le serie amate da pubblico e critica, punteggio da 85 a 89; quelle con ✦✦ sono capolavori assoluti, da 90 in su. Nella scheda di ognuna trovi il perché.'],
   assoluti: ['✦✦ Capolavori assoluti', () => MASTER.filter(e=>e._abs), 'punteggio', 'Le serie con punteggio da 90 in su: pubblico e critica entrambi altissimi.'],
+  bollywood: ['🎬 Le migliori serie indiane', () => [...BW_SER].map(imdbEntry).filter(e=>e && e.v >= 300).map(enrich), 'punteggio', 'Le serie indiane (Bollywood e industrie regionali), dalla più apprezzata. Hanno pubblico e voti di un altro mercato, quindi non compaiono nelle altre categorie: si trovano solo qui o con la ricerca.'],
   famosi: ['Le più famose', () => BY_V, 'fama', 'Le serie con più voti su IMDb: quelle che quasi tutti hanno visto.'],
   votati: ['Le più apprezzate', () => BY_BR, 'voto', 'Voto alto e tanti voti insieme: una serie con pochi voti, anche se tutti da 10, non scavalca i grandi classici.'],
   incorso: ['📡 In corso', () => BY_V.filter(e=>!e.y2 && parseInt(e.y, 10) >= new Date().getFullYear() - 15 && e.v >= 5000), 'fama', 'Le serie ancora in produzione: nuove stagioni in arrivo.'],
