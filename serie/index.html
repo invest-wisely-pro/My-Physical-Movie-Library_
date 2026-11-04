@@ -485,10 +485,16 @@ function why(e){
   if(e._f && e._f.s != null) p.push('Frusciante: ' + vd(e._f.s) + (e._f.s ? ` (${e._f.s > 0 ? '+4' : '−4'})` : '')); if(e._c && e._c.s != null) p.push('Criticoni: ' + vd(e._c.s) + (e._c.s ? ` (${e._c.s > 0 ? '+3' : '−3'})` : ''));
   return p.join(', ');
 }
+/* ---------- Serie indiane: fuori da tutte le categorie ----------
+   BW_SER: le serie indiane riconosciute nell'indice (dal cast). Non compaiono in classifiche, generi, decenni,
+   suggerimenti, liste e classifiche degli attori: restano solo ricercabili. Per aggiungerne o toglierne, modifica
+   l'elenco (codici IMDb senza «tt»); in più c'è il controllo in tempo reale su Wikidata (INDIA). */
+const BW_SER = new Set('0295776,10289938,10655506,11117570,11611698,11854694,11912196,12004706,12299774,12405230,12453444,12714854,12805346,13439476,13847564,13899566,13994872,14160660,14160712,14167344,14478162,14486948,15204292,15477488,15576504,15752618,16118500,16296870,16729514,17524566,19768024,19868314,19868542,21056976,21975100,22297290,22297578,23333666,26745617,26914830,27111295,2792284,28075268,31183656,31925787,32258354,32501022,3277592,34683290,35335046,35668375,38509140,39643967,40856520,6077448,6473300,6883044,8069036,9095260,9447956,9544034'.split(',').map(x=>'tt' + x));
+const isBW = e => !!e && (BW_SER.has(e.id) || INDIA.has(e.id));
 let ALL = [], BY_V = [], BY_BR = [], MASTER = [], BY_DIR = new Map(), GENRES = new Map(), DECADES = new Map();
 function computeAll(){
   ALL = SERIES; ALL.forEach(e=>{ if(!e._n) e._n = [e.k, e.ke].concat(e.ka || []).join(' '); });
-  const known = ALL.filter(e=>e.v >= 500); known.forEach(enrich);
+  const known = ALL.filter(e=>e.v >= 500 && !isBW(e)); known.forEach(enrich);   // niente serie indiane nelle categorie
   BY_V = known.slice().sort((a, b)=>b.v - a.v);
   BY_BR = known.filter(e=>e.v >= 25000).sort((a, b)=>b._br - a._br);
   MASTER = known.filter(e=>e._mp).sort((a, b)=>b._s - a._s || b._br - a._br || b.v - a.v);
@@ -499,7 +505,7 @@ let _actors = null;
 function actorRanking(){
   if(_actors || !CAST_INDEX) return _actors || [];
   const disp = new Map(); CAST_INDEX.names.forEach(n=>{ const k = normKey(n); if(k && !disp.has(k)) disp.set(k, n); });
-  _actors = [...CAST_INDEX.byActor.entries()].map(([k, ids])=>{ const fs = ids.map(imdbEntry).filter(x=>x && x.v >= 10000).map(enrich); return { name: disp.get(k) || k, n: fs.length, s: fs.reduce((t, e)=>t + Math.pow(e._s / 100, 2) * Math.log10(e.v), 0) }; })
+  _actors = [...CAST_INDEX.byActor.entries()].map(([k, ids])=>{ const fs = ids.map(imdbEntry).filter(x=>x && x.v >= 10000 && !isBW(x)).map(enrich); return { name: disp.get(k) || k, n: fs.length, s: fs.reduce((t, e)=>t + Math.pow(e._s / 100, 2) * Math.log10(e.v), 0) }; })
     .filter(a=>a.n >= 3).sort((a, b)=>b.s - a.s).slice(0, 600);
   return _actors;
 }
