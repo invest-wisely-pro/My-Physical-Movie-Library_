@@ -103,7 +103,10 @@ h2.sec a.more{font-family:var(--ui); font-size:13px; font-weight:600; color:var(
 .ruler a{display:flex; flex-direction:column; justify-content:flex-end; align-items:center; height:100%; position:relative;}
 .ruler .bar{width:100%; background:linear-gradient(180deg, var(--chart), var(--chart2)); border-radius:3px 3px 0 0; min-height:3px; transition:filter .15s;}
 .ruler a:hover .bar, .ruler a:focus-visible .bar{filter:brightness(1.25);}
-.ruler .yr{position:absolute; bottom:-24px; font-size:12px; color:var(--paper2); font-variant-numeric:tabular-nums;}
+.ruler .yr{position:absolute; bottom:-24px; font-size:12px; color:var(--paper2); font-variant-numeric:tabular-nums; white-space:nowrap;}
+.ruler .yr b{font-weight:400;} .ruler .y2{display:none;}
+.rulerhint{margin:18px 0 -2px; color:var(--paper2); font-size:14px;}
+@media (max-width:760px){ .ruler .y4{display:none;} .ruler .y2{display:inline;} }
 .ruler .yr::before{content:""; position:absolute; left:50%; top:-8px; width:1.5px; height:6px; background:var(--chart2);}
 .ruler .ct{font-size:11px; color:var(--paper3); margin-bottom:3px; font-variant-numeric:tabular-nums;}
 @media (max-width:640px){ .ruler{gap:3px; height:120px;} .ruler .yr{font-size:10px;} .ruler .ct{display:none;} }
@@ -804,7 +807,7 @@ function viewHome(){
   const max = Math.max(1, ...ds.map(x=>x[1].length));
   const fr = BY_V.filter(e=>e._f && e._f.s === 1).slice(0, 14);
   V().innerHTML = `<h1 class="pg">Atlante del Cinema</h1><p class="lead">${ALL.length.toLocaleString('it-IT')} film da esplorare per decennio, genere, regista e attore${CRITICA ? ', con i voti della critica' : ''}${CRIT ? ' e i giudizi di Frusciante e dei Criticoni' : ''}.</p>`
-    + `<div class="ruler" aria-label="Film per decennio">${ds.map(([d, l])=>`<a href="#decennio/${d}" aria-label="Anni ${d}: ${l.length} film"><span class="ct">${l.length >= 1000 ? Math.round(l.length / 100) / 10 + 'k' : l.length}</span><span class="bar" style="height:${Math.max(3, l.length / max * 100)}%"></span><span class="yr">${String(d).slice(2)}</span></a>`).join('')}</div>`
+    + `<p class="rulerhint">Ogni colonna è un <b>decennio</b> (1900, 1910… fino a oggi): il numero sopra indica quante film ci sono. Tocca una colonna per vederle.</p><div class="ruler" aria-label="Film per decennio">${ds.map(([d, l])=>`<a href="#decennio/${d}" title="Anni ${d}: ${l.length.toLocaleString('it-IT')} film" aria-label="Anni ${d}: ${l.length} film"><span class="ct">${l.length >= 1000 ? Math.round(l.length / 100) / 10 + 'k' : l.length}</span><span class="bar" style="height:${Math.max(3, l.length / max * 100)}%"></span><span class="yr"><b class="y4">${d}</b><b class="y2">’${String(d).slice(2)}</b></span></a>`).join('')}</div>`
     + `<div style="display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 4px"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button></div>`
     + (()=>{ const ms = monthStrip(); if(ms) return ms; const l = novitaList().slice(0, 14); return l.length ? `<h2 class="sec">${esc(NOVITA_TITLE)} <a class="more" href="#lista/novita">Vedi tutte</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; })()
     + (NEW_SEASONS && SEASONS_NEW.length ? `<h2 class="sec">📡 Nuove stagioni <a class="more" href="#lista/nuove">Vedi tutte</a></h2><div class="strip">${SEASONS_NEW.slice(0, 14).map(x=>tile(x.e)).join('')}</div>` : '')
