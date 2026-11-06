@@ -1,9 +1,7 @@
-# Aggiorna ogni mese l'indice IMDb offline dell'app con i dati ufficiali di IMDb.
+# Indice IMDb: si avvia a mano (Actions → Run workflow); ogni notte alle 2 ci pensa "Aggiornamento notturno".
 # Si può anche avviare a mano: scheda "Actions" → "Aggiorna indice IMDb" → "Run workflow".
 name: Aggiorna indice IMDb
 on:
-  schedule:
-    - cron: '0 4 3 * *'     # il 3 di ogni mese alle 4:00 UTC
   workflow_dispatch:
 permissions:
   contents: write

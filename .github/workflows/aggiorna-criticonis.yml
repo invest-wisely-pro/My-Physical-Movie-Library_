@@ -1,9 +1,7 @@
-# Aggiorna ogni mese l'indice "Frusciante e i Criticoni" (giudizi e numero di video da filmcriticoni.it).
+# Frusciante e i Criticoni: si avvia a mano (Actions → Run workflow); ogni notte alle 2 ci pensa "Aggiornamento notturno".
 # Si può anche avviare a mano: scheda "Actions" → "Aggiorna Frusciante e Criticoni" → "Run workflow".
 name: Aggiorna Frusciante e Criticoni
 on:
-  schedule:
-    - cron: '0 5 10 * *'    # il 10 di ogni mese alle 5:00 UTC
   workflow_dispatch:
 permissions:
   contents: write
