@@ -258,7 +258,7 @@ html.tv .st-chip{height:52px; font-size:19px;} html.tv .st-card{grid-template-co
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '1.3';
+const APP_VERSION = '1.4';
 /* Copiate dalla Videoteca da build.py: leggono gli indici esattamente come lei. */
 let IMDB_INDEX = null, IMDB_INDEX_STATE = 'idle', IMDB_BY_ID = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -962,11 +962,13 @@ function okOrigin(e){ const o = isBW(e) ? 'altro' : originOf(e); return o === 'o
 const PICK_KEY = (IS_SERIE ? 'serie' : 'atlante') + '-pescati';
 function picked(){ try{ return JSON.parse(localStorage.getItem(PICK_KEY) || '[]'); }catch(e){ return []; } }
 function remember(id){ const l = picked().filter(x=>x !== id); l.unshift(id); try{ localStorage.setItem(PICK_KEY, JSON.stringify(l.slice(0, 80))); }catch(e){} }
-const tierLabel = e => e._tier === 3 ? '✦✦ Capolavoro assoluto' : e._tier === 2 ? '✦ Capolavoro' : e._tier === 1 ? (IS_SERIE ? '◆ Grande serie' : '◆ Gran film') : '';
+const criticDarling = e => e._crit != null && e._crit >= 0.88 && e.v >= (IS_SERIE ? 20000 : 50000);   // amato dalla critica, anche se il pubblico IMDb è stato più tiepido (come Selma)
+const goodEnough = e => e._tier >= 1 || criticDarling(e);
+const tierLabel = e => e._tier === 3 ? '✦✦ Capolavoro assoluto' : e._tier === 2 ? '✦ Capolavoro' : e._tier === 1 ? (IS_SERIE ? '◆ Grande serie' : '◆ Gran film') : criticDarling(e) ? '📰 Amato dalla critica' : '';
 function stPool(f){
   f = f || {}; const M = f.mood ? MOODS.find(m=>m[0] === f.mood) : null;
   return BY_V.filter(e=>{ enrich(e);
-    if(!(e._tier >= 1) || has(e.id, 'v') || !okOrigin(e)) return false;
+    if(!goodEnough(e) || has(e.id, 'v') || !okOrigin(e)) return false;
     if(f.mine && !has(e.id, 'd')) return false;
     const g = genres(e);
     if(M && !M[2](new Set(g))) return false;
@@ -1042,7 +1044,7 @@ function recScore(e, P){
   else if(top[1] === 'dec' && Y > 0) why = `Il cinema che ami: ${decLbl(decade(e))}`;
   return { s, why: why || 'Vicino ai tuoi gusti' };
 }
-function recCandidates(){ const no = new Set(nope()); return BY_V.filter(e=>{ enrich(e); return ((e._tier >= 1) || (e._s >= 72 && e.v >= 25000)) && !LISTE[e.id] && !no.has(e.id) && okOrigin(e); }); }
+function recCandidates(){ const no = new Set(nope()); return BY_V.filter(e=>{ enrich(e); return (goodEnough(e) || (e._s >= 72 && e.v >= 25000)) && !LISTE[e.id] && !no.has(e.id) && okOrigin(e); }); }
 function recommend(n){
   const P = profile(); if(P.rated < 5) return { cold: true, rated: P.rated, list: [] };
   const cand = recCandidates(), scored = cand.map(e=>Object.assign({ e }, recScore(e, P)));
@@ -1071,7 +1073,7 @@ function viewPerTe(){
 }
 function similarTo(e0, n){   // "Se ti è piaciuto questo": stesso regista, attori in comune, generi ed epoca vicini
   const d0 = new Set(dirsOf(e0)), a0 = new Set(castOfFilm(e0.id).slice(0, 5)), g0 = new Set(genres(e0)), y0 = decade(e0), no = new Set(nope());
-  const out = BY_V.filter(e=>{ enrich(e); return e.id !== e0.id && ((e._tier >= 1) || (e._s >= 72 && e.v >= 25000)) && !has(e.id, 'v') && !no.has(e.id) && okOrigin(e); }).map(e=>{
+  const out = BY_V.filter(e=>{ enrich(e); return e.id !== e0.id && (goodEnough(e) || (e._s >= 72 && e.v >= 25000)) && !has(e.id, 'v') && !no.has(e.id) && okOrigin(e); }).map(e=>{
     const g = genres(e), inter = g.filter(x=>g0.has(x)).length, jac = inter / Math.max(1, new Set([...g, ...g0]).size);
     const dd = dirsOf(e).filter(x=>d0.has(x)), aa = castOfFilm(e.id).slice(0, 5).filter(x=>a0.has(x));
     const s = 1.5 * Math.min(dd.length, 1) + 0.5 * Math.min(aa.length, 3) + 1.2 * jac + (decade(e) === y0 ? 0.2 : 0) + (e._tier === 3 ? 0.15 : e._tier === 2 ? 0.1 : 0);
@@ -1094,7 +1096,7 @@ function viewStasera(){
                         : [['', 'Quanto serve'], ['breve', 'Meno di 100 minuti'], ['medio', 'Al massimo 2 ore'], ['lungo', 'Anche più di 2 ore']];
   const eras = [['', 'Qualsiasi epoca'], ['classici', 'Classici (prima del 1980)'], ['8090', 'Anni \'80 e \'90'], ['2000', 'Dal 2000'], ['recenti', 'Recenti (dal 2015)']];
   const sel = (id, l, v) => `<select id="${id}">${l.map(([k, t])=>`<option value="${k}"${k === v ? ' selected' : ''}>${esc(t)}</option>`).join('')}</select>`;
-  V().innerHTML = `<h1 class="pg">🍿 Cosa guardo stasera?</h1><p class="lead">Scegli un umore o un genere: ti propongo tre ${IS_SERIE ? 'serie' : 'film'} tra ${IS_SERIE ? 'le grandi serie' : 'i gran film'} e i capolavori che non hai ancora visto: americani ed europei, e dal resto del mondo solo i titoli riconosciuti dalla critica e dai premi internazionali.</p>`
+  V().innerHTML = `<h1 class="pg">🍿 Cosa guardo stasera?</h1><p class="lead">Scegli un umore o un genere: ti propongo tre ${IS_SERIE ? 'serie' : 'film'} tra ${IS_SERIE ? 'le grandi serie' : 'i gran film'}, i capolavori e ${IS_SERIE ? 'le serie amate' : 'i film amati'} dalla critica che non hai ancora visto: americani ed europei, e dal resto del mondo solo i titoli riconosciuti dalla critica e dai premi internazionali.</p>`
     + `<p class="lbl">Che umore hai?</p><div class="st-chips" id="sMood">${MOODS.map(([k, t])=>`<button type="button" class="st-chip${ST.mood === k ? ' on' : ''}" data-m="${k}">${t}</button>`).join('')}</div>`
     + `<p class="lbl">Oppure un genere</p><div class="st-row">${sel('sGen', [['', 'Qualsiasi genere']].concat(gens.map(g=>[g, g])), ST.gen)}</div>`
     + `<p class="lbl">${IS_SERIE ? 'Che impegno?' : 'Quanto tempo hai?'}</p><div class="st-row">${sel('sDur', durs, ST.dur)}${sel('sEra', eras, ST.era)}</div>`
