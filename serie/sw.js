@@ -2,7 +2,7 @@
    - L'app: prima la rete, copia salvata se offline.
    - Gli indici della Videoteca (../index.html, ../data/*.gz): copia salvata subito, aggiornata in sottofondo.
    - Locandine: copia salvata (massimo 300). Wikidata, Wikipedia, YouTube: sempre rete. */
-const VERSION = 'serie-1.4';
+const VERSION = 'serie-1.5';
 const SHELL = VERSION + '-shell', DATA = 'serie-dati', IMG = 'serie-locandine';
 const SHELL_FILES = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './fonts/inter-var.woff2'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(SHELL).then(c => c.addAll(SHELL_FILES)).then(() => self.skipWaiting())); });

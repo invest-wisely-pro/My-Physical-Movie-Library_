@@ -258,7 +258,7 @@ html.tv .st-chip{height:52px; font-size:19px;} html.tv .st-card{grid-template-co
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '1.2';
+const APP_VERSION = '1.3';
 /* Copiate dalla Videoteca da build.py: leggono gli indici esattamente come lei. */
 let IMDB_INDEX = null, IMDB_INDEX_STATE = 'idle', IMDB_BY_ID = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -851,8 +851,8 @@ async function fetchNovita(){
 const LKEY = 'atlante-liste';
 let LISTE = (()=>{ try{ return JSON.parse(localStorage.getItem(LKEY) || '{}') || {}; }catch(e){ return {}; } })();
 const has = (id, k) => !!(LISTE[id] && LISTE[id][k]);
-function setRating(id, n){ const r = LISTE[id] || {}; if(r.r === n) delete r.r; else { r.r = n; if(!r.v) r.v = Date.now(); delete r.d; } if(Object.keys(r).length) LISTE[id] = r; else delete LISTE[id]; try{ localStorage.setItem(LKEY, JSON.stringify(LISTE)); }catch(e){} }
-function toggle(id, k){ const r = LISTE[id] || {}; if(r[k]) delete r[k]; else r[k] = Date.now(); if(k === 'v' && r.v && r.d) delete r.d; if(Object.keys(r).length) LISTE[id] = r; else delete LISTE[id];
+function setRating(id, n){ PROFILE = null; const r = LISTE[id] || {}; if(r.r === n) delete r.r; else { r.r = n; if(!r.v) r.v = Date.now(); delete r.d; } if(Object.keys(r).length) LISTE[id] = r; else delete LISTE[id]; try{ localStorage.setItem(LKEY, JSON.stringify(LISTE)); }catch(e){} }
+function toggle(id, k){ PROFILE = null; const r = LISTE[id] || {}; if(r[k]) delete r[k]; else r[k] = Date.now(); if(k === 'v' && r.v && r.d) delete r.d; if(Object.keys(r).length) LISTE[id] = r; else delete LISTE[id];
   try{ localStorage.setItem(LKEY, JSON.stringify(LISTE)); }catch(e){ toast('Non riesco a salvare le liste in questo browser'); } }
 
 /* ---------- Pezzi di interfaccia ---------- */
@@ -903,6 +903,7 @@ function viewHome(){
     + `<p class="rulerhint">Ogni colonna è un <b>decennio</b> (1900, 1910… fino a oggi): il numero sopra indica quante film ci sono. Tocca una colonna per vederle.</p><div class="ruler" aria-label="Film per decennio">${ds.map(([d, l])=>`<a href="#decennio/${d}" title="Anni ${d}: ${l.length.toLocaleString('it-IT')} film" aria-label="Anni ${d}: ${l.length} film"><span class="ct">${l.length >= 1000 ? Math.round(l.length / 100) / 10 + 'k' : l.length}</span><span class="bar" style="height:${Math.max(3, l.length / max * 100)}%"></span><span class="yr"><b class="y4">${d}</b><b class="y2">’${String(d).slice(2)}</b></span></a>`).join('')}</div>`
     + `<div style="display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 4px"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button><a class="btn" href="#stasera">🍿 Cosa guardo stasera?</a></div>`
     + (()=>{ const ms = monthStrip(); if(ms) return ms; const l = novitaList().slice(0, 14); return l.length ? `<h2 class="sec">${esc(NOVITA_TITLE)} <a class="more" href="#lista/novita">Vedi tutte</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; })()
+    + perTeStrip()
     + (NEW_SEASONS && SEASONS_NEW.length ? `<h2 class="sec">📡 Nuove stagioni <a class="more" href="#lista/nuove">Vedi tutte</a></h2><div class="strip">${SEASONS_NEW.slice(0, 14).map(x=>tile(x.e)).join('')}</div>` : '')
     + bestStrip()
     + `<h2 class="sec">✦✦ Capolavori assoluti <a class="more" href="#lista/capolavori">Tutti i capolavori (${MASTER.length.toLocaleString('it-IT')})</a></h2><div class="strip">${noIndia(MASTER.filter(e=>e._abs).length >= 6 ? MASTER.filter(e=>e._abs) : MASTER).slice(0, 14).map(tile).join('')}</div>`
@@ -919,18 +920,19 @@ function viewHome(){
    Si pesca tra gran film / grandi serie, capolavori e capolavori assoluti non ancora visti; dai paesi non occidentali (India
    compresa) solo i titoli riconosciuti a livello internazionale, verificati prima di proporli. Gli ultimi titoli proposti non tornano finché non si è girato il resto. */
 const IS_SERIE = /\/serie\//.test(location.pathname);
-const MOODS = [
-  ['ridere', '😄 Da ridere', ['Commedia'], ['Horror', 'Guerra']],
-  ['brivido', '😱 Da brivido', ['Horror', 'Thriller']],
-  ['adrenalina', '💥 Adrenalina', ['Azione', 'Avventura']],
-  ['emozioni', '😢 Da emozionarsi', ['Drammatico', 'Romantico']],
-  ['pensare', '🧠 Da pensare', ['Fantascienza', 'Giallo', 'Noir']],
-  ['crimine', '🔍 Crimine e mistero', ['Crime', 'Giallo', 'Noir']],
-  ['epico', '⚔️ Epico', ['Guerra', 'Storico', 'Western', 'Fantasy']],
-  ['famiglia', '👨‍👩‍👧 In famiglia', ['Animazione', 'Famiglia'], ['Horror', 'Thriller', 'Crime', 'Guerra']],
-  ['vero', '📜 Storie vere', ['Biografico', 'Documentario', 'Storico']],
-  ['romantico', '❤️ Romantico', ['Romantico']],
-  ['musica', '🎶 Musica', ['Musica', 'Musical']],
+const hasAny = (g, l) => l.some(x=>g.has(x));
+const MOODS = [   // ricette: IMDb non dice quale genere è il principale, quindi contano combinazioni ed esclusioni
+  ['ridere', '😄 Da ridere', g => g.has('Commedia') && !hasAny(g, ['Horror', 'Guerra', 'Thriller', 'Drammatico']) || (g.has('Commedia') && g.has('Drammatico') && g.has('Romantico'))],
+  ['brivido', '😱 Da brivido', g => (g.has('Horror') || (g.has('Thriller') && (IS_SERIE ? hasAny(g, ['Giallo', 'Fantascienza', 'Fantasy', 'Crime']) && !g.has('Storico') : !hasAny(g, ['Azione', 'Avventura', 'Fantascienza'])))) && !hasAny(g, ['Commedia', 'Animazione', 'Famiglia', 'Romantico'])],
+  ['adrenalina', '💥 Adrenalina', g => (g.has('Azione') || (g.has('Avventura') && hasAny(g, ['Thriller', 'Guerra', 'Western']))) && !hasAny(g, ['Famiglia', 'Musical', 'Romantico', 'Animazione'])],
+  ['emozioni', '😢 Da emozionarsi', g => g.has('Drammatico') && hasAny(g, ['Romantico', 'Biografico', 'Famiglia', 'Musica', 'Sport']) && !hasAny(g, ['Crime', 'Thriller', 'Horror', 'Giallo', 'Noir', 'Azione', 'Guerra', 'Avventura'])],
+  ['pensare', '🧠 Da pensare', g => ((g.has('Fantascienza') && hasAny(g, ['Drammatico', 'Giallo', 'Thriller'])) || (g.has('Giallo') && hasAny(g, ['Drammatico', 'Thriller']))) && !hasAny(g, ['Commedia', 'Famiglia', 'Animazione', 'Horror'])],
+  ['crimine', '🔍 Crimine e mistero', g => hasAny(g, ['Crime', 'Giallo', 'Noir']) && !hasAny(g, ['Commedia', 'Famiglia', 'Animazione', 'Fantascienza', 'Horror', 'Fantasy', 'Avventura'])],
+  ['epico', '⚔️ Epico', g => (hasAny(g, ['Guerra', 'Western']) || (g.has('Storico') && hasAny(g, ['Azione', 'Avventura'])) || (g.has('Fantasy') && g.has('Avventura') && g.has('Azione'))) && !hasAny(g, ['Commedia', 'Famiglia', 'Animazione', 'Documentario', 'Romantico'])],
+  ['famiglia', '👨‍👩‍👧 In famiglia', g => (IS_SERIE ? g.has('Famiglia') : (g.has('Famiglia') || (g.has('Animazione') && !(g.has('Azione') && hasAny(g, ['Drammatico', 'Fantascienza']))))) && !hasAny(g, ['Horror', 'Thriller', 'Crime', 'Guerra'])],
+  ['vero', '📜 Storie vere', g => (hasAny(g, ['Biografico', 'Documentario']) || (g.has('Storico') && g.has('Drammatico'))) && !hasAny(g, ['Fantasy', 'Fantascienza', 'Animazione'])],
+  ['romantico', '❤️ Romantico', g => g.has('Romantico') && !hasAny(g, ['Horror', 'Thriller', 'Crime', 'Guerra', 'Azione'])],
+  ['musica', '🎶 Musica', g => hasAny(g, ['Musica', 'Musical'])],
 ];
 /* ---------- paese d'origine e riconoscimento internazionale ----------
    Americani ed europei (comprese le coproduzioni): sempre. Da qualunque altro paese, India compresa: solo se riconosciuti
@@ -967,7 +969,7 @@ function stPool(f){
     if(!(e._tier >= 1) || has(e.id, 'v') || !okOrigin(e)) return false;
     if(f.mine && !has(e.id, 'd')) return false;
     const g = genres(e);
-    if(M && (!g.some(x=>M[2].includes(x)) || g.some(x=>(M[3] || []).includes(x)))) return false;
+    if(M && !M[2](new Set(g))) return false;
     if(f.gen && !g.includes(f.gen)) return false;
     const y = parseInt(e.y, 10) || 0;
     if(f.era === 'classici' && !(y && y < 1980)) return false;
@@ -1002,7 +1004,88 @@ async function surprise(){
   const pool = stPool({}); if(!pool.length){ toast(IS_SERIE ? 'Hai visto tutte le serie consigliate: complimenti!' : 'Hai visto tutti i film consigliati: complimenti!'); return; }
   const [e] = await pickClean(pool, 1); if(e) location.hash = '#film/' + e.id;
 }
-let ST = { mood: '', gen: '', dur: '', era: '', mine: false }, ST_SHOWN = [];
+/* ---------- ✨ Per te: consigli dai tuoi gusti (tutto sul dispositivo, i tuoi gusti non escono da qui) ----------
+   Dai tuoi voti (8-10 molto a favore, 6-7 poco, 5 o meno contro), dai preferiti, dai visti e dai "Non mi interessa"
+   nasce un profilo: generi, registi, attori, decenni. Si propongono film non ancora visti, di qualità, vicini al profilo,
+   ognuno con il suo perché. Al massimo 2 per regista; uno ogni cinque "fuori dai tuoi soliti", per non chiudersi in una bolla. */
+const NOPE_KEY = (IS_SERIE ? 'serie' : 'atlante') + '-nonmiinteressa';
+function nope(){ try{ return JSON.parse(localStorage.getItem(NOPE_KEY) || '[]'); }catch(e){ return []; } }
+function addNope(id){ const l = nope(); if(!l.includes(id)) l.push(id); try{ localStorage.setItem(NOPE_KEY, JSON.stringify(l.slice(-500))); }catch(e){} PROFILE = null; }
+const dirsOf = e => String(e.dir || '').split(/\s*,\s*/).filter(Boolean);
+const decLbl = d => d < 2000 ? `anni '${String(d).slice(2)}` : `anni ${d}`;
+function tasteW(id){ const L = LISTE[id] || {}; if(L.r) return L.r >= 9 ? 3 : L.r >= 8 ? 2 : L.r >= 7 ? 1 : L.r >= 6 ? 0.3 : L.r >= 5 ? -0.6 : -2; if(L.p) return 2; if(L.v) return 0.4; if(L.d) return 0.25; return 0; }
+let PROFILE = null;
+function profile(){
+  if(PROFILE) return PROFILE;
+  const P = { g: new Map(), dir: new Map(), act: new Map(), dec: new Map(), best: { dir: new Map(), act: new Map() }, rated: 0 };
+  const add = (m, k, v) => { if(k) m.set(k, (m.get(k) || 0) + v); };
+  const feed = (e, w, id) => { genres(e).forEach(g=>add(P.g, g, w)); add(P.dec, decade(e), w * 0.5);
+    dirsOf(e).forEach(d=>{ add(P.dir, d, w); if(w > 0 && (!P.best.dir.has(d) || P.best.dir.get(d).w < w)) P.best.dir.set(d, { id, w }); });
+    castOfFilm(e.id).slice(0, 5).forEach(a=>{ add(P.act, a, w); if(w > 0 && (!P.best.act.has(a) || P.best.act.get(a).w < w)) P.best.act.set(a, { id, w }); }); };
+  Object.keys(LISTE).forEach(id=>{ const w = tasteW(id), e = w && imdbEntry(id); if(!e) return; if(LISTE[id].r || LISTE[id].p) P.rated++; feed(e, w, id); });
+  nope().forEach(id=>{ const e = imdbEntry(id); if(e) feed(e, -0.7, id); });   // "Non mi interessa": un piccolo passo indietro su ciò che lo accomuna ai tuoi gusti
+  const mx = m => Math.max(1, ...[...m.values()].map(Math.abs));
+  P.mg = mx(P.g); P.md = mx(P.dir); P.ma = mx(P.act); P.my = mx(P.dec);
+  return PROFILE = P;
+}
+function recScore(e, P){
+  const g = genres(e); let G = 0; g.forEach(x=>{ G += P.g.get(x) || 0; }); G = g.length ? G / g.length / P.mg : 0;
+  let D = 0, dB = ''; dirsOf(e).forEach(d=>{ const v = (P.dir.get(d) || 0) / P.md; if(v > D){ D = v; dB = d; } });
+  let A = 0, aV = 0, aB = ''; castOfFilm(e.id).slice(0, 5).forEach(a=>{ const v = (P.act.get(a) || 0) / P.ma; A += v; if(v > aV){ aV = v; aB = a; } }); A = Math.min(A, 1.5);
+  const Y = (P.dec.get(decade(e)) || 0) / P.my, Q = e._tier === 3 ? 0.3 : e._tier === 2 ? 0.2 : e._tier === 1 ? 0.1 : 0;
+  const s = 1.0 * G + 1.3 * D + 0.6 * A + 0.35 * Y + Q;
+  const top = [[1.3 * D, 'dir'], [0.6 * aV, 'act'], [1.0 * G, 'gen'], [0.35 * Y, 'dec']].sort((a, b)=>b[0] - a[0])[0];
+  let why = '';
+  if(top[1] === 'dir' && D > 0 && P.best.dir.get(dB)) why = `Dello stesso regista di «${title(imdbEntry(P.best.dir.get(dB).id))}»`;
+  else if(top[1] === 'act' && aV > 0 && P.best.act.get(aB)) why = `Con ${aB}, che hai apprezzato in «${title(imdbEntry(P.best.act.get(aB).id))}»`;
+  else if(top[1] === 'gen' && G > 0){ const l = g.filter(x=>(P.g.get(x) || 0) > 0).sort((a, b)=>P.g.get(b) - P.g.get(a)).slice(0, 2); if(l.length) why = `Generi che ami: ${l.map(x=>x.toLowerCase()).join(' e ')}`; }
+  else if(top[1] === 'dec' && Y > 0) why = `Il cinema che ami: ${decLbl(decade(e))}`;
+  return { s, why: why || 'Vicino ai tuoi gusti' };
+}
+function recCandidates(){ const no = new Set(nope()); return BY_V.filter(e=>{ enrich(e); return ((e._tier >= 1) || (e._s >= 72 && e.v >= 25000)) && !LISTE[e.id] && !no.has(e.id) && okOrigin(e); }); }
+function recommend(n){
+  const P = profile(); if(P.rated < 5) return { cold: true, rated: P.rated, list: [] };
+  const cand = recCandidates(), scored = cand.map(e=>Object.assign({ e }, recScore(e, P)));
+  const main = scored.filter(x=>x.s > 0.35).sort((a, b)=>b.s - a.s), out = [], perDir = new Map();
+  for(const x of main){ const d = dirsOf(x.e)[0] || ''; if(d && (perDir.get(d) || 0) >= 2) continue; if(d) perDir.set(d, (perDir.get(d) || 0) + 1); out.push(x); if(out.length >= n) break; }
+  const outside = scored.filter(x=>x.s < 0.15 && x.e._tier >= 2 && !out.includes(x)).sort((a, b)=>b.e.v - a.e.v).slice(0, 30);   // "fuori dai tuoi soliti": di grande qualità, lontani dal profilo
+  for(let pos = 4; pos < out.length && outside.length; pos += 5){ const k = Math.floor(Math.random() * Math.min(outside.length, 10)), x = outside.splice(k, 1)[0];
+    out.splice(pos, 0, Object.assign({}, x, { why: `Fuori dai tuoi soliti: ${tierLabel(x.e).replace(/^[^ ]+ /, '').toLowerCase()} da scoprire`, out: true })); }
+  return { cold: false, rated: P.rated, list: out.slice(0, n) };
+}
+function perTeStrip(){
+  const r = recommend(14);
+  if(r.cold) return r.rated ? `<h2 class="sec">✨ Per te</h2><p class="note">Vota almeno 5 ${IS_SERIE ? 'serie' : 'film'} (ne hai votati ${r.rated}) per ricevere consigli su misura.</p>` : '';
+  return r.list.length ? `<h2 class="sec">✨ Per te <a class="more" href="#perte">Vedi tutti</a></h2><div class="strip">${r.list.map(x=>tile(x.e)).join('')}</div>` : '';
+}
+function recCard(x){
+  const e = x.e, g = genres(e).slice(0, 3).join(', '), r = parseInt(e.r, 10) || 0;
+  const meta = [e.y, IS_SERIE ? (e.s ? e.s + (e.s === 1 ? ' stagione' : ' stagioni') : '') : (r ? r + ' min' : ''), g].filter(Boolean).join(' · ');
+  return `<div class="st-card" data-rec="${e.id}">${tile(e)}<div class="st-info"><b>${esc(title(e))}</b><span class="note">${esc(meta)}</span><span class="st-tier">${x.out ? '🧭' : '✨'} ${esc(x.why)}</span><span class="note">${esc(tierLabel(e))}</span><span style="display:flex; gap:8px; flex-wrap:wrap"><a class="btn" href="#film/${e.id}">Apri la scheda</a><button class="btn" type="button" data-nope="${e.id}">Non mi interessa</button></span></div></div>`;
+}
+function viewPerTe(){
+  setNav(''); const r = recommend(24);
+  V().innerHTML = `<h1 class="pg">✨ Per te</h1><p class="lead">${IS_SERIE ? 'Serie' : 'Film'} che non hai ancora visto, scelti in base ai tuoi voti, ai preferiti e a ciò che hai visto. Ogni consiglio dice il suo perché; uno ogni cinque è "fuori dai tuoi soliti", per scoprire qualcosa di diverso. "Non mi interessa" lo toglie e affina i consigli.</p>`
+    + (r.cold ? `<p class="lead">Vota almeno 5 ${IS_SERIE ? 'serie' : 'film'}${r.rated ? ` (ne hai votati ${r.rated})` : ''}: dalla scheda, con i numeri da 1 a 10, oppure segnandoli come preferiti.</p>` : `<div class="st-res">${r.list.map(recCard).join('')}</div>`);
+  V().querySelectorAll('[data-nope]').forEach(b=>b.onclick = () => { addNope(b.dataset.nope); toast('Non te lo proporrò più'); viewPerTe(); });
+}
+function similarTo(e0, n){   // "Se ti è piaciuto questo": stesso regista, attori in comune, generi ed epoca vicini
+  const d0 = new Set(dirsOf(e0)), a0 = new Set(castOfFilm(e0.id).slice(0, 5)), g0 = new Set(genres(e0)), y0 = decade(e0), no = new Set(nope());
+  const out = BY_V.filter(e=>{ enrich(e); return e.id !== e0.id && ((e._tier >= 1) || (e._s >= 72 && e.v >= 25000)) && !has(e.id, 'v') && !no.has(e.id) && okOrigin(e); }).map(e=>{
+    const g = genres(e), inter = g.filter(x=>g0.has(x)).length, jac = inter / Math.max(1, new Set([...g, ...g0]).size);
+    const dd = dirsOf(e).filter(x=>d0.has(x)), aa = castOfFilm(e.id).slice(0, 5).filter(x=>a0.has(x));
+    const s = 1.5 * Math.min(dd.length, 1) + 0.5 * Math.min(aa.length, 3) + 1.2 * jac + (decade(e) === y0 ? 0.2 : 0) + (e._tier === 3 ? 0.15 : e._tier === 2 ? 0.1 : 0);
+    const why = dd.length ? `Stesso regista: ${dd[0]}` : aa.length ? `Con ${aa.slice(0, 2).join(' e ')}` : inter ? `Stesso genere: ${g.filter(x=>g0.has(x)).slice(0, 2).map(x=>x.toLowerCase()).join(' e ')}` : '';
+    return { e, s, why, jac }; }).filter(x=>x.s >= 0.75 && x.jac >= 0.34).sort((a, b)=>b.s - a.s);
+  const res = [], perDir = new Map();
+  for(const x of out){ const d = dirsOf(x.e)[0] || ''; if(d && (perDir.get(d) || 0) >= 3) continue; if(d) perDir.set(d, (perDir.get(d) || 0) + 1); res.push(x); if(res.length >= n) break; }
+  return res;
+}
+function addSimilar(id){
+  const e = imdbEntry(id); if(!e || !V()) return; const l = similarTo(e, 12); if(!l.length) return;
+  V().insertAdjacentHTML('beforeend', `<h2 class="sec">Se ti è piaciuto questo</h2><div class="strip">${l.map(x=>tile(x.e)).join('')}</div>`);
+}
+let ST = { mood: '', gen: '', dur: '', era: '', mine: false, gusti: false }, ST_SHOWN = [];
 function viewStasera(){
   setNav(''); ST_SHOWN = [];
   const base = stPool({}), gc = {}; base.forEach(e=>genres(e).forEach(g=>{ gc[g] = (gc[g] || 0) + 1; }));
@@ -1016,14 +1099,16 @@ function viewStasera(){
     + `<p class="lbl">Oppure un genere</p><div class="st-row">${sel('sGen', [['', 'Qualsiasi genere']].concat(gens.map(g=>[g, g])), ST.gen)}</div>`
     + `<p class="lbl">${IS_SERIE ? 'Che impegno?' : 'Quanto tempo hai?'}</p><div class="st-row">${sel('sDur', durs, ST.dur)}${sel('sEra', eras, ST.era)}</div>`
     + `<p style="margin:14px 0 4px"><label style="display:inline-flex; gap:8px; align-items:center"><input type="checkbox" id="sMine"${ST.mine ? ' checked' : ''}> Solo dalla mia lista "Da vedere"</label></p>`
+    + (profile().rated >= 5 ? `<p style="margin:4px 0"><label style="display:inline-flex; gap:8px; align-items:center"><input type="checkbox" id="sGusti"${ST.gusti ? ' checked' : ''}> ✨ In base ai miei gusti</label></p>` : '')
     + `<p class="note" id="sCount"></p><p><button class="btn amber" id="sGo" type="button">🍿 Proponimi tre ${IS_SERIE ? 'serie' : 'film'}</button></p><div id="sOut"></div>`;
-  const count = () => { const n = stPool(ST).length; $('sCount').textContent = n ? `${n.toLocaleString('it-IT')} ${IS_SERIE ? (n === 1 ? 'serie' : 'serie') : (n === 1 ? 'film' : 'film')} tra cui scegliere.` : 'Nessun titolo con queste scelte: prova ad allargarle.'; $('sGo').disabled = !n; };
+  const count = () => { const n = stPoolG(ST).length; $('sCount').textContent = n ? `${n.toLocaleString('it-IT')} ${IS_SERIE ? (n === 1 ? 'serie' : 'serie') : (n === 1 ? 'film' : 'film')} tra cui scegliere.` : 'Nessun titolo con queste scelte: prova ad allargarle.'; $('sGo').disabled = !n; };
   $('sMood').querySelectorAll('[data-m]').forEach(b=>b.onclick = () => { ST.mood = ST.mood === b.dataset.m ? '' : b.dataset.m; if(ST.mood){ ST.gen = ''; $('sGen').value = ''; }
     $('sMood').querySelectorAll('[data-m]').forEach(x=>x.classList.toggle('on', x.dataset.m === ST.mood)); ST_SHOWN = []; count(); });
   $('sGen').onchange = ev => { ST.gen = ev.target.value; if(ST.gen){ ST.mood = ''; $('sMood').querySelectorAll('[data-m]').forEach(x=>x.classList.remove('on')); } ST_SHOWN = []; count(); };
   $('sDur').onchange = ev => { ST.dur = ev.target.value; ST_SHOWN = []; count(); };
   $('sEra').onchange = ev => { ST.era = ev.target.value; ST_SHOWN = []; count(); };
   $('sMine').onchange = ev => { ST.mine = ev.target.checked; ST_SHOWN = []; count(); };
+  if($('sGusti')) $('sGusti').onchange = ev => { ST.gusti = ev.target.checked; ST_SHOWN = []; count(); };
   $('sGo').onclick = () => propose(false);
   count();
   checkOrigin(stPool({}).map(e=>e.id)).then(ch=>{ if(ch && $('sCount')) count(); }).catch(()=>{});   // il paese d'origine di tutto il cappello, una volta sola
@@ -1033,8 +1118,12 @@ function stCard(e){
   const meta = [e.y, IS_SERIE ? (e.s ? e.s + (e.s === 1 ? ' stagione' : ' stagioni') : '') : (r ? r + ' min' : ''), g].filter(Boolean).join(' · ');
   return `<div class="st-card">${tile(e)}<div class="st-info"><b>${esc(title(e))}</b><span class="note">${esc(meta)}</span><span class="st-tier">${esc(tierLabel(e))}</span><p class="note" style="margin:0">${esc(why(e))}</p><a class="btn" href="#film/${e.id}">Apri la scheda</a></div></div>`;
 }
+function stPoolG(f){   // con "In base ai miei gusti": i 40 più vicini al tuo profilo
+  const pool = stPool(f); if(!f.gusti || profile().rated < 5) return pool;
+  const P = profile(); return pool.map(e=>({ e, s: recScore(e, P).s })).filter(x=>x.s > 0.2).sort((a, b)=>b.s - a.s).slice(0, 40).map(x=>x.e);
+}
 async function propose(more){
-  const pool = stPool(ST); if(!pool.length) return;
+  const pool = stPoolG(ST); if(!pool.length) return;
   $('sOut').innerHTML = '<p class="note">Scelgo…</p>';
   const res = await pickClean(pool, 3, more ? ST_SHOWN : []);
   if(!$('sOut')) return;
@@ -1716,7 +1805,8 @@ function route(){
   const h = decodeURIComponent(location.hash.replace(/^#/, '')), [k, ...rest] = h.split('/'), arg = rest.join('/');
   ROW_EXTRA = null;
   window.scrollTo && window.scrollTo(0, 0);
-  if(k === 'film') return viewFilm(arg);
+  if(k === 'film'){ viewFilm(arg); addSimilar(arg); return; }
+  if(k === 'perte') return viewPerTe();
   if(k === 'saghe') return viewSaghe();
   if(k === 'grandi-registi') return viewGrandiRegisti();
   if(k === 'lista') return viewNamedList(arg);
