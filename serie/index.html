@@ -256,7 +256,7 @@ html.tv .st-chip{height:52px; font-size:19px;} html.tv .st-card{grid-template-co
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '1.4';
+const APP_VERSION = '1.5';
 /* Copiate dalla Videoteca da build_serie.py: leggono l'indice delle serie e il cast esattamente come lei. */
 let SERIES = null, SERIES_BY_ID = null, SERIES_STATE = 'idle', _seriesPromise = null, IMDB_INDEX = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -853,7 +853,7 @@ function viewHome(){
   const fr = BY_V.filter(e=>e._f && e._f.s === 1).slice(0, 14);
   V().innerHTML = `<h1 class="pg">Atlante Serie TV</h1><p class="lead">${ALL.length.toLocaleString('it-IT')} serie da esplorare per decennio, genere e attore${CRITICA ? ', con i voti della critica' : ''}${CRIT ? ' e i giudizi di Frusciante e dei Criticoni' : ''}.</p>`
     + `<p class="rulerhint">Ogni colonna è un <b>decennio</b> (1900, 1910… fino a oggi): il numero sopra indica quante serie ci sono. Tocca una colonna per vederle.</p><div class="ruler" aria-label="Serie per decennio">${ds.map(([d, l])=>`<a href="#decennio/${d}" title="Anni ${d}: ${l.length.toLocaleString('it-IT')} serie" aria-label="Anni ${d}: ${l.length} serie"><span class="ct">${l.length >= 1000 ? Math.round(l.length / 100) / 10 + 'k' : l.length}</span><span class="bar" style="height:${Math.max(3, l.length / max * 100)}%"></span><span class="yr"><b class="y4">${d}</b><b class="y2">’${String(d).slice(2)}</b></span></a>`).join('')}</div>`
-    + `<div style="display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 4px"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button><a class="btn" href="#stasera">🍿 Cosa guardo stasera?</a></div>`
+    + `<div style="display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 4px"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button><a class="btn" href="#stasera">🍿 Cosa guardo stasera?</a><a class="btn" href="#perte">✨ Per te</a></div>`
     + (()=>{ const ms = monthStrip(); if(ms) return ms; const l = novitaList().slice(0, 14); return l.length ? `<h2 class="sec">${esc(NOVITA_TITLE)} <a class="more" href="#lista/novita">Vedi tutte</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; })()
     + perTeStrip()
     + (NEW_SEASONS && SEASONS_NEW.length ? `<h2 class="sec">📡 Nuove stagioni <a class="more" href="#lista/nuove">Vedi tutte</a></h2><div class="strip">${SEASONS_NEW.filter(x=>!INDIA.has(x.e.id)).slice(0, 14).map(x=>tile(x.e)).join('')}</div>` : '')
@@ -1009,7 +1009,7 @@ function recommend(n){
 }
 function perTeStrip(){
   const r = recommend(14);
-  if(r.cold) return r.rated ? `<h2 class="sec">✨ Per te</h2><p class="note">Vota almeno 5 ${IS_SERIE ? 'serie' : 'film'} (ne hai votati ${r.rated}) per ricevere consigli su misura.</p>` : '';
+  if(r.cold) return `<h2 class="sec">✨ Per te <a class="more" href="#perte">Come funziona</a></h2><p class="note">Dai un voto da 1 a 10 ad almeno 5 ${IS_SERIE ? 'serie' : 'film'} che hai visto (ne hai votati ${r.rated}): qui compariranno consigli su misura per te, ognuno con il suo perché.</p>`;   // sempre visibile, anche a zero voti
   return r.list.length ? `<h2 class="sec">✨ Per te <a class="more" href="#perte">Vedi tutti</a></h2><div class="strip">${r.list.map(x=>tile(x.e)).join('')}</div>` : '';
 }
 function recCard(x){
