@@ -44,6 +44,8 @@ EXTRA = {   # classifiche: se una richiesta non riesce, le altre (e la critica) 
   'aw': ('premi', PFX + 'SELECT ?imdb (COUNT(DISTINCT ?aw) AS ?n) WHERE { ?film wdt:P345 ?imdb ; wdt:P166 ?aw . FILTER(STRSTARTS(?imdb, "tt")) } GROUP BY ?imdb HAVING(COUNT(DISTINCT ?aw) >= 2)'),
   'osc': ('Oscar', PFX + 'SELECT ?imdb (COUNT(DISTINCT ?aw) AS ?n) WHERE { ?film wdt:P345 ?imdb ; wdt:P166 ?aw . ?aw (wdt:P31|wdt:P279|wdt:P361) wd:Q19020 . FILTER(STRSTARTS(?imdb, "tt")) } GROUP BY ?imdb'),
   'emmy': ('Emmy', PFX + 'SELECT ?imdb (COUNT(DISTINCT ?aw) AS ?n) WHERE { ?film wdt:P345 ?imdb ; wdt:P166 ?aw . ?aw (wdt:P31|wdt:P279|wdt:P361) wd:Q1044427 . FILTER(STRSTARTS(?imdb, "tt")) } GROUP BY ?imdb'),
+  # riconoscimento internazionale: premi o candidature a Oscar, Golden Globe, BAFTA, Cannes (Palma d'Oro, Gran Premio), Venezia (Leone d'Oro), Berlino (Orso d'Oro), Emmy
+  'intl': ('premi internazionali', PFX + 'SELECT ?imdb (COUNT(DISTINCT ?aw) AS ?n) WHERE { ?film wdt:P345 ?imdb . { ?film wdt:P166 ?aw } UNION { ?film wdt:P1411 ?aw } { ?aw (wdt:P31|wdt:P279|wdt:P361) ?g . VALUES ?g { wd:Q19020 wd:Q1011547 wd:Q732997 wd:Q42369 wd:Q49024 wd:Q130871 wd:Q1044427 wd:Q179808 wd:Q209459 wd:Q154590 } } UNION { VALUES ?aw { wd:Q179808 wd:Q209459 wd:Q154590 wd:Q844804 } } FILTER(STRSTARTS(?imdb, "tt")) } GROUP BY ?imdb'),
 }
 
 
@@ -109,10 +111,29 @@ def main():
                 try: v = int(float(n))
                 except ValueError: continue
                 if re.match(r'^tt\d+$', imdb) and v > 0: m[imdb] = v
-            if key in ('osc', 'emmy') and len(m) < 30: print(f'  {label}: solo {len(m)} titoli, classifica non credibile: la salto'); continue
+            if key in ('osc', 'emmy', 'intl') and len(m) < (300 if key == 'intl' else 30): print(f'  {label}: solo {len(m)} titoli, classifica non credibile: la salto'); continue
             out[key] = m; print(f'  {label}: {len(m)} titoli (da {via})')
         except Exception as e:
             print(f'  {label}: non disponibile stanotte ({str(e)[:80]}), si riprova la prossima')
+    # uscite dell'ultimo mese, per la home degli Atlanti: pronte all'apertura, senza far aspettare Wikidata al telefono
+    since = (datetime.date.fromisoformat(built) - datetime.timedelta(days=45)).isoformat()
+    XSD = 'PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n'
+    rng = f'FILTER(?d >= "{since}T00:00:00Z"^^xsd:dateTime && ?d <= "{built}T23:59:59Z"^^xsd:dateTime)'
+    MQ = {'mese': ('uscite del mese (film)', PFX + XSD + 'SELECT ?imdb ?d ?pl WHERE { ?f wdt:P345 ?imdb . FILTER(STRSTARTS(?imdb, "tt")) ?f p:P577 ?st . ?st ps:P577 ?d . ' + rng + ' OPTIONAL { ?st pq:P291 ?pl } }'),
+          'mese_s': ('uscite del mese (serie)', PFX + XSD + 'SELECT ?imdb ?d WHERE { ?f wdt:P345 ?imdb . FILTER(STRSTARTS(?imdb, "tt")) ?f wdt:P580 ?d . ' + rng + ' }')}
+    for key, (label, q) in MQ.items():
+        try:
+            EXTRA[key] = (label, q); j, via = ask(key, local); it, anyd = {}, {}
+            for b in j.get('results', {}).get('bindings', []):
+                imdb, d = b.get('imdb', {}).get('value', ''), str(b.get('d', {}).get('value', ''))[:10]
+                if not re.match(r'^tt\d+$', imdb) or not re.match(r'^\d{4}-\d\d-\d\d$', d) or d < since or d > built: continue
+                m = it if str(b.get('pl', {}).get('value', '')).endswith('/Q38') else anyd
+                if imdb not in m or d < m[imdb]: m[imdb] = d
+            res_m = {i: it.get(i) or anyd.get(i) for i in set(it) | set(anyd)}   # la data italiana se c'è, altrimenti la prima uscita
+            if len(res_m) < 20: print(f'  {label}: solo {len(res_m)} titoli, non credibile: la salto'); continue
+            out[key] = res_m; print(f'  {label}: {len(res_m)} titoli (da {via})')
+        except Exception as e:
+            print(f'  {label}: non disponibile stanotte ({str(e)[:80]}), l\'app le chiederà da sola')
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with open(out_path, 'wb') as f:
         f.write(gzip.compress(json.dumps(out, separators=(',', ':')).encode('utf-8'), 9))
