@@ -258,7 +258,7 @@ html.tv .st-chip{height:52px; font-size:19px;} html.tv .st-card{grid-template-co
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '1.6';
+const APP_VERSION = '1.7';
 /* Copiate dalla Videoteca da build.py: leggono gli indici esattamente come lei. */
 let IMDB_INDEX = null, IMDB_INDEX_STATE = 'idle', IMDB_BY_ID = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -894,6 +894,63 @@ function applyFilters(list, st){ let l = list; if(st.g) l = l.filter(e=>genres(e
 /* ---------- Pagine ---------- */
 const V = () => $('view');
 function setNav(k){ document.querySelectorAll('[data-nav]').forEach(a=>a.toggleAttribute('aria-current', a.dataset.nav === k)); if(k) document.querySelectorAll(`[data-nav="${k}"]`).forEach(a=>a.setAttribute('aria-current', 'page')); }
+/* ---------- 🗓 La fila del periodo: cambia con il calendario, in cima a Esplora ----------
+   Un blocco isolato: se qualcosa non va, non mostra nulla e la home resta com'è. Le scelte ruotano ogni giorno.
+   Per vedere un periodo in anticipo: aprire l'app con ?periodo=natale (halloween, oscar, estate, sanvalentino, inverno,
+   primavera, festival, autunno). */
+const XMAS = ['tt0038650', 'tt0099785', 'tt0104431', 'tt0095016', 'tt0099423', 'tt0319343', 'tt0314331', 'tt0107688', 'tt0086465', 'tt0087363', 'tt0039628', 'tt0110527', 'tt0338348', 'tt0170016', 'tt0457939', 'tt0096061', 'tt0104940', 'tt0085334', 'tt0097958', 'tt0111070', 'tt0307987', 'tt4729430', 'tt1067106', 'tt0044008', 'tt0047673', 'tt0034862', 'tt0037059', 'tt0033045', 'tt0053604', 'tt0103776', 'tt0116705', 'tt1430607', 'tt1401143', 'tt0099487', 'tt0424205', 'tt0373469', 'tt14849194', 'tt2990140', 'tt2402927', 'tt3281548', 'tt2294629', 'tt0241527', 'tt0093409', 'tt8623904', 'tt2709692', 'tt0205493', 'tt0105097', 'tt0091837', 'tt0388473', 'tt0081062'];
+const perPool = f => BY_V.filter(e=>{ enrich(e); return goodEnough(e) && okOrigin(e) && f(e, new Set(genres(e))); }).sort((a, b)=>(b._s - a._s) || (b.v - a.v));
+const perMood = k => { const M = MOODS.find(m=>m[0] === k); return perPool((e, g)=>M[2](g)); };
+const awardN = (e, k) => (CRITICA && CRITICA[k] && CRITICA[k][e.id]) || 0;
+let _PERIODS = null;   // calcolati alla prima richiesta, non all'avvio
+const periods = () => _PERIODS || (_PERIODS = IS_SERIE ? {
+  natale: ['🎄 Maratone per le feste', 'Serie brevi e bellissime, da finire durante le vacanze.', () => perPool(e=>e.s >= 1 && e.s <= 3)],
+  inverno: ['❄️ Serate d\'inverno', 'Serie da seguire con calma, sotto una coperta.', () => perMood('pensare')],
+  sanvalentino: ['❤️ San Valentino', 'Storie d\'amore, da vedere in due.', () => perMood('romantico')],
+  oscar: ['🏆 Le più premiate', 'Le serie con più Emmy.', () => BY_V.filter(e=>awardN(e, 'emmy') >= 2 && okOrigin(e)).sort((a, b)=>awardN(b, 'emmy') - awardN(a, 'emmy'))],
+  primavera: ['🌸 Leggerezza di primavera', 'Per ridere e staccare la testa.', () => perMood('ridere')],
+  estate: ['☀️ Serie per l\'estate', 'Azione e avventura, un episodio dopo l\'altro.', () => perMood('adrenalina')],
+  festival: ['🎬 Amate dalla critica', 'Le serie che la critica ha premiato di più.', () => perPool(e=>e._crit != null && e._crit >= 0.85)],
+  halloween: ['🎃 Notte di Halloween', 'Orrore, mistero e soprannaturale.', () => perPool((e, g)=>!['Commedia', 'Famiglia', 'Documentario'].some(x=>g.has(x)) && (g.has('Horror') || (g.has('Giallo') && ['Thriller', 'Fantasy', 'Fantascienza'].some(x=>g.has(x))) || (g.has('Fantasy') && g.has('Thriller'))))],
+  autunno: ['🍂 Serate d\'autunno', 'Indagini, crimini e misteri.', () => perMood('crimine')],
+} : {
+  natale: ['🎄 Film di Natale', 'I classici delle feste, da Frank Capra a Mamma, ho perso l\'aereo.', () => XMAS.map(imdbEntry).filter(Boolean).sort((a, b)=>b.v - a.v)],
+  inverno: ['❄️ Serate d\'inverno', 'Film da gustare con calma, sotto una coperta.', () => perMood('pensare')],
+  sanvalentino: ['❤️ San Valentino', 'Storie d\'amore, da vedere in due.', () => perMood('romantico')],
+  oscar: ['🏆 Stagione degli Oscar', 'I film che hanno vinto più statuette.', () => BY_V.filter(e=>awardN(e, 'osc') >= 4 && okOrigin(e)).sort((a, b)=>awardN(b, 'osc') - awardN(a, 'osc') || b.v - a.v)],
+  primavera: ['🌸 Leggerezza di primavera', 'Commedie per ridere e staccare la testa.', () => perMood('ridere')],
+  estate: ['☀️ Cinema d\'estate', 'Avventure da arena estiva.', () => perPool((e, g)=>g.has('Avventura') && !['Horror', 'Guerra', 'Documentario'].some(x=>g.has(x)))],
+  festival: ['🎬 Stagione dei festival', 'Nei giorni di Venezia e Toronto, i film più amati dalla critica.', () => perPool(e=>e._crit != null && e._crit >= 0.93)],
+  halloween: ['🎃 Notte di Halloween', 'I migliori film dell\'orrore.', () => perPool((e, g)=>g.has('Horror'))],
+  autunno: ['🍂 Serate d\'autunno', 'Gialli, noir e storie criminali.', () => perMood('crimine')],
+});
+function periodKey(d){
+  try{ const q = new URLSearchParams(location.search).get('periodo'); if(q && periods()[q]) return q; }catch(e){}
+  const k = (d.getMonth() + 1) * 100 + d.getDate();
+  return k >= 1201 || k <= 106 ? 'natale' : k <= 206 ? 'inverno' : k <= 215 ? 'sanvalentino' : k <= 331 ? 'oscar' : k <= 620 ? 'primavera' : k <= 831 ? 'estate' : k <= 1014 ? 'festival' : k <= 1102 ? 'halloween' : 'autunno';
+}
+function periodList(){ const P = periods()[periodKey(new Date())]; return { P, list: P[2]().filter(e=>!has(e.id, 'v')) }; }
+function dayPick(l, n){   // ogni giorno una scelta diversa tra i primi 45, sempre la stessa nell'arco della giornata
+  const day = Math.floor(Date.now() / 864e5), mix = x => { x ^= x >>> 16; x = Math.imul(x, 0x45d9f3b); x ^= x >>> 16; x = Math.imul(x, 0x45d9f3b); return (x ^ (x >>> 16)) >>> 0; };
+  const h = id => { let x = mix(day + 0x9e3779b9); for(let i = 0; i < id.length; i++) x = mix(x ^ id.charCodeAt(i)); return x; };   // rimescolamento vero: ogni giorno un ordine diverso
+  return l.slice(0, 45).map(e=>[h(e.id), e]).sort((a, b)=>a[0] - b[0]).slice(0, n).map(x=>x[1]);
+}
+let _perChecked = false;
+function seasonStrip(){
+  try{ const { P, list } = periodList();
+    if(!_perChecked && list.length){ _perChecked = true;   // una volta per visita: paese d'origine dei titoli in vetrina (niente successi solo nazionali), poi si ridisegna solo se la fila cambia
+      const ids = list.slice(0, 60).map(e=>e.id), before = dayPick(list, 14).map(e=>e.id).join();
+      Promise.all([Promise.resolve().then(()=>checkIndia(ids)).catch(()=>0), Promise.resolve().then(()=>checkOrigin(ids)).catch(()=>0)]).then(()=>{
+        let after = before; try{ after = dayPick(periodList().list, 14).map(e=>e.id).join(); }catch(e){}
+        if(after !== before && (!location.hash || location.hash === '#')) viewHome(); }).catch(()=>{}); }
+    if(list.length < 6) return '';
+    return `<h2 class="sec">${esc(P[0])} <a class="more" href="#periodo">Vedi tutti</a></h2><p class="note" style="margin:-4px 0 10px">${esc(P[1])}</p><div class="strip">${dayPick(list, 14).map(tile).join('')}</div>`;
+  }catch(err){ return ''; }
+}
+function viewPeriodo(){
+  setNav(''); let r; try{ r = periodList(); }catch(err){ return viewHome(); }
+  V().innerHTML = `<h1 class="pg">${esc(r.P[0])}</h1><p class="lead">${esc(r.P[1])} ${r.list.length.toLocaleString('it-IT')} titoli che non hai ancora visto.</p><div class="rows">${r.list.slice(0, 80).map(row).join('')}</div>`;
+}
 function viewHome(){
   setNav('home');
   const last = Math.floor(new Date().getFullYear() / 10) * 10, ds = []; for(let d = 1900; d <= last; d += 10) ds.push([d, DECADES.get(d) || []]);   // sempre dal 1900 a oggi
@@ -902,6 +959,7 @@ function viewHome(){
   V().innerHTML = `<h1 class="pg">Atlante del Cinema</h1><p class="lead">${ALL.length.toLocaleString('it-IT')} film da esplorare per decennio, genere, regista e attore${CRITICA ? ', con i voti della critica' : ''}${CRIT ? ' e i giudizi di Frusciante e dei Criticoni' : ''}.</p>`
     + `<p class="rulerhint">Ogni colonna è un <b>decennio</b> (1900, 1910… fino a oggi): il numero sopra indica quante film ci sono. Tocca una colonna per vederle.</p><div class="ruler" aria-label="Film per decennio">${ds.map(([d, l])=>`<a href="#decennio/${d}" title="Anni ${d}: ${l.length.toLocaleString('it-IT')} film" aria-label="Anni ${d}: ${l.length} film"><span class="ct">${l.length >= 1000 ? Math.round(l.length / 100) / 10 + 'k' : l.length}</span><span class="bar" style="height:${Math.max(3, l.length / max * 100)}%"></span><span class="yr"><b class="y4">${d}</b><b class="y2">’${String(d).slice(2)}</b></span></a>`).join('')}</div>`
     + `<div style="display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 4px"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button><a class="btn" href="#stasera">🍿 Cosa guardo stasera?</a><a class="btn" href="#perte">✨ Per te</a></div>`
+    + seasonStrip()
     + (()=>{ const ms = monthStrip(); if(ms) return ms; const l = novitaList().slice(0, 14); return l.length ? `<h2 class="sec">${esc(NOVITA_TITLE)} <a class="more" href="#lista/novita">Vedi tutte</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; })()
     + perTeStrip()
     + (NEW_SEASONS && SEASONS_NEW.length ? `<h2 class="sec">📡 Nuove stagioni <a class="more" href="#lista/nuove">Vedi tutte</a></h2><div class="strip">${SEASONS_NEW.slice(0, 14).map(x=>tile(x.e)).join('')}</div>` : '')
@@ -1836,6 +1894,7 @@ function route(){
   if(EPISODES && k === 'stagione'){ const [tt, n] = arg.split('/'); return viewSeason(tt, n); }
   if(EPISODES && k === 'episodio'){ const [tt, sn, en] = arg.split('/'); return viewEpisode(tt, sn, en); }
   if(k === 'stasera') return viewStasera();
+  if(k === 'periodo') return viewPeriodo();
   if(k === 'strumenti') return viewTools();
   viewHome();
 }
