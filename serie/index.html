@@ -256,7 +256,7 @@ html.tv .st-chip{height:52px; font-size:19px;} html.tv .st-card{grid-template-co
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '1.5';
+const APP_VERSION = '1.6';
 /* Copiate dalla Videoteca da build_serie.py: leggono l'indice delle serie e il cast esattamente come lei. */
 let SERIES = null, SERIES_BY_ID = null, SERIES_STATE = 'idle', _seriesPromise = null, IMDB_INDEX = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -1609,6 +1609,12 @@ async function viewEpisode(tt, s, n){
 const CRITICA_SCRIPT_TEXT = /*@@CRITICA_SCRIPT@@*/'';
 const CRITICA_WORKFLOW_TEXT = /*@@CRITICA_WORKFLOW@@*/'';
 function repoBase(){ const m = location.hostname.match(/^([a-z0-9-]+)\.github\.io$/i), seg = location.pathname.split('/').filter(Boolean); return m && seg.length >= 2 ? `https://github.com/${m[1]}/${seg[0]}` : ''; }
+/* La manutenzione (guida per attivare l'indice della critica) serve solo a chi gestisce il sito: resta nascosta finché non la
+   si accende, toccando 5 volte la riga della versione in fondo agli Strumenti, oppure aprendo l'app con ?manutenzione=1
+   (?manutenzione=0 la spegne). Vale per i due Atlanti, su quel dispositivo. */
+const MAINT_KEY = 'atlante-manutenzione';
+let MAINT = (()=>{ try{ const q = new URLSearchParams(location.search).get('manutenzione'); if(q === '1' || q === '0') localStorage.setItem(MAINT_KEY, q); return localStorage.getItem(MAINT_KEY) === '1'; }catch(e){ return false; } })();
+function setMaint(on){ MAINT = !!on; try{ localStorage.setItem(MAINT_KEY, MAINT ? '1' : '0'); }catch(e){} toast(MAINT ? '🔧 Manutenzione visibile' : 'Manutenzione nascosta'); }
 function viewTools(){
   setNav('strumenti'); const base = repoBase(), built = id => { const el = document.getElementById(id); return el && el.dataset.built ? el.dataset.built : ''; };
   const st = (ok, txt) => `<dt>${ok ? '✅' : '⚠️'} ${txt[0]}</dt><dd>${esc(txt[1])}</dd>`;
@@ -1617,14 +1623,16 @@ function viewTools(){
     + st(!!CAST_INDEX, ['Attori', CAST_INDEX ? `del ${built('imdbCastData') || '?'}` : 'non ancora creato: lo crea "Aggiorna indice IMDb" della Videoteca'])
 
     + st(true, ['Locandine', 'da Wikipedia, cercate mentre sfogli e salvate sul dispositivo'])
-    + st(!!CRITICA, ['Critica', CRITICA ? `del ${CRITICA.built}: ${Object.keys(CRITICA.rt).length.toLocaleString('it-IT')} serie con Rotten Tomatoes, ${Object.keys(CRITICA.mc).length.toLocaleString('it-IT')} con Metacritic` : 'non ancora creato: segui la guida qui sotto'])
+    + st(!!CRITICA, ['Critica', CRITICA ? `del ${CRITICA.built}: ${Object.keys(CRITICA.rt).length.toLocaleString('it-IT')} serie con Rotten Tomatoes, ${Object.keys(CRITICA.mc).length.toLocaleString('it-IT')} con Metacritic` : (MAINT ? 'non ancora creato: segui la guida qui sotto' : 'non ancora disponibile')])
     + `</dl><p class="note">Tutti gli indici si aggiornano da soli ogni notte alle 2 (ora di Roma). <a href="../" style="color:var(--chart)">Apri la Videoteca</a>, <a href="../atlante/" style="color:var(--chart)">Apri l'Atlante del Cinema</a>${CRIT ? '<br>Le locandine sono immagini di TMDB, raccolte dalle schede di filmcriticoni.it.' : ''}</p></div></div>`
+    + (MAINT ? (''   // solo per chi fa manutenzione: nascosto a tutti gli altri
     + `<div class="box"><h3>Attiva l'indice della critica (una volta sola)</h3><div class="in"><p>Serve per i capolavori con Rotten Tomatoes e Metacritic. Si aggiorna ogni notte alle 2 (ora di Roma) con l'automazione \"Aggiornamento notturno\".</p><p class="note"><b>Hai caricato il pacchetto completo?</b> Allora lo script (tools/aggiorna_critica.py) e l'automazione (.github/workflows/aggiorna-critica.yml) sono già nel repository: passa direttamente al punto 3. Se l'automazione si ferma, l'ultima riga del riepilogo dice il perché.</p>`
     + (base ? `<ol style="line-height:1.8"><li><b>Lo script:</b> <button class="btn" type="button" data-copy="s">📋 Copia lo script</button> poi <a class="btn" target="_blank" rel="noopener" href="${esc(base + '/new/main?filename=' + encodeURIComponent('tools/aggiorna_critica.py'))}">Crea il file ↗</a>, incolla e premi "Commit changes".</li>`
       + `<li><b>L'automazione:</b> <a class="btn" target="_blank" rel="noopener" href="${esc(base + '/new/main?filename=' + encodeURIComponent('.github/workflows/aggiorna-critica.yml') + '&value=' + encodeURIComponent(CRITICA_WORKFLOW_TEXT))}">Crea l'automazione ↗</a> e premi "Commit changes".</li>`
       + `<li><b>Il primo aggiornamento:</b> <a class="btn" target="_blank" rel="noopener" href="${esc(base + '/actions/workflows/aggiorna-critica.yml')}">Apri GitHub Actions ↗</a> → "Run workflow". Dopo 10-20 minuti, riapri l'Atlante.</li></ol>`
       : `<p class="note">Pubblica prima l'Atlante su GitHub Pages, nella cartella atlante del repository della Videoteca: qui compariranno i link diretti.</p><button class="btn" type="button" data-copy="s">📋 Copia lo script</button>`)
     + `<textarea class="copy hidden" id="copyArea" readonly></textarea></div></div>`
+    ) : '')
     + `<div class="box"><h3>🌍 Traduzione in italiano</h3><div class="in"><p>Trame degli episodi e testi di Wikipedia in inglese vengono tradotti in automatico, senza chiavi. Ogni testo si traduce una volta sola e poi resta salvato.</p><p id="trState" class="note">Controllo il traduttore di Chrome…</p>`
     + `<div class="ctrl"><label>La tua email per MyMemory (facoltativa)<input id="trEmail" type="email" value="${esc(trEmail())}" placeholder="nome@esempio.it" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--ink); padding:0 10px; min-width:240px"></label><button class="btn" type="button" id="trSave">Salva</button></div>`
     + `<p class="note">MyMemory è il traduttore gratuito usato su telefono e televisore. Con un indirizzo email il suo limite passa da circa 5.000 a circa 50.000 caratteri al giorno (circa 200 trame). L'indirizzo resta su questo dispositivo e viene inviato solo a MyMemory, insieme ai testi da tradurre.</p></div></div>`
@@ -1643,6 +1651,8 @@ function viewTools(){
     r.onload = () => { try{ const j = JSON.parse(r.result); if(!j || typeof j.liste !== 'object') throw new Error('x'); Object.entries(j.liste).forEach(([id, v])=>{ LISTE[id] = Object.assign({}, LISTE[id] || {}, v); }); localStorage.setItem(LKEY, JSON.stringify(LISTE));
       (Array.isArray(j.classifiche) ? j.classifiche : []).forEach(c=>{ if(c && c.id && Array.isArray(c.items) && !CLS.some(x=>x.id === c.id)) CLS.push(c); }); saveCls();
       toast(`Ripristinati: ${Object.keys(j.liste).length} serie nelle liste, ${(j.classifiche || []).length} classifiche`); }catch(err){ toast('Questo file non è una copia delle liste dell\'Atlante Serie TV'); } }; r.readAsText(f); };
+  V().insertAdjacentHTML('beforeend', `<p class="note" id="verLine" style="margin-top:18px; -webkit-user-select:none; user-select:none">${IS_SERIE ? 'Atlante Serie TV' : 'Atlante del Cinema'}, versione ${APP_VERSION}${MAINT ? ' · 🔧 manutenzione visibile (tocca 5 volte qui per nasconderla)' : ''}</p>`);
+  let taps = 0, tapAt = 0; $('verLine').onclick = () => { const n = Date.now(); taps = n - tapAt < 1500 ? taps + 1 : 1; tapAt = n; if(taps >= 5){ setMaint(!MAINT); viewTools(); } };
 }
 
 /* ---------- Navigazione ---------- */
