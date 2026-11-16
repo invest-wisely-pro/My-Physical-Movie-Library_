@@ -299,6 +299,8 @@ html.tv .hero-t{font-size:calc(58px * var(--k, 1));} html.tv .hero-eye{font-size
 .hero-snow i{position:absolute; top:-10px; border-radius:50%; background:#fff; opacity:0; animation:fiocco 12s linear infinite; will-change:transform;}
 @keyframes fiocco{ 0%{transform:translate3d(0, 0, 0); opacity:0;} 6%{opacity:var(--o, .6);} 92%{opacity:var(--o, .6);} 100%{transform:translate3d(var(--dx, 20px), 640px, 0); opacity:0;} }
 html.tv .hero-snow{display:none;}
+.tric{flex:none; align-self:center; display:inline-block; width:22px; height:15px; border-radius:3px; margin-right:-2px; background:linear-gradient(90deg, #1F8A4C 0 33.4%, #F2EFE6 33.4% 66.6%, #C8343A 66.6%); box-shadow:0 0 0 1px rgba(255,255,255,.12);}
+.genre .tric-t{display:inline-flex; align-items:center; gap:9px; font-family:var(--serif); font-size:16px; font-weight:700; color:var(--paper);} h1.pg .tric{vertical-align:2px; width:30px; height:20px; margin-right:6px;}
 /* le file di locandine */
 .strip{scrollbar-width:none; padding:8px 2px 10px; margin:0 -2px;} .strip::-webkit-scrollbar{display:none;}
 .tile{border-radius:10px; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;}
@@ -339,7 +341,7 @@ html.tv .ruler.mini{height:calc(150px * var(--k, 1));}
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '2.3';
+const APP_VERSION = '2.5';
 /* Copiate dalla Videoteca da build.py: leggono gli indici esattamente come lei. */
 let IMDB_INDEX = null, IMDB_INDEX_STATE = 'idle', IMDB_BY_ID = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -1137,6 +1139,7 @@ function viewHome(){
     + (seasonOnTop() ? seasonStrip() : '')
     + (()=>{ const ms = monthStrip(); if(ms) return ms; const l = novitaList().slice(0, 14); return l.length ? `<h2 class="sec">${esc(NOVITA_TITLE)} <a class="more" href="#lista/novita">Vedi tutte</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; })()
     + (seasonOnTop() ? '' : seasonStrip())
+    + itaStrip()
     + perTeStrip()
     + (NEW_SEASONS && SEASONS_NEW.length ? `<h2 class="sec">📡 Nuove stagioni <a class="more" href="#lista/nuove">Vedi tutte</a></h2><div class="strip">${SEASONS_NEW.slice(0, 14).map(x=>tile(x.e)).join('')}</div>` : '')
     + bestStrip()
@@ -1147,7 +1150,7 @@ function viewHome(){
         return `<h2 class="sec">${esc(c.name)} <span class="note" style="font-family:var(--ui)">ne hai visti ${seen} su ${fs.length}</span><a class="more" href="#classifica/${esc(c.id)}">Vedi tutta</a></h2><div class="strip">${fs.slice(0, 14).map(tile).join('')}</div>`; }).join('')
     + (fr.length ? `<h2 class="sec">🎙 Promossi da Frusciante <a class="more" href="#lista/frusciante-si">Vedi tutti</a></h2><div class="strip">${fr.map(tile).join('')}</div>` : '')
     + `<h2 class="sec">Per decennio <span class="note" style="font-family:var(--ui); font-weight:500">${ALL.length.toLocaleString('it-IT')} film dal 1900 a oggi</span></h2><div class="ruler mini" aria-label="Film per decennio">${ds.map(([d, l])=>`<a href="#decennio/${d}" title="Anni ${d}: ${l.length.toLocaleString('it-IT')} film" aria-label="Anni ${d}: ${l.length} film"><span class="ct">${l.length >= 1000 ? Math.round(l.length / 100) / 10 + 'k' : l.length}</span><span class="bar" style="height:${Math.max(3, l.length / max * 100)}%"></span><span class="yr"><b class="y4">${d}</b><b class="y2">’${String(d).slice(2)}</b></span></a>`).join('')}</div>`
-    + `<h2 class="sec">Scopri</h2><div class="genres">${['granfilm', 'votati', 'incassi', 'premiati', 'oscar', 'gemme', 'classici', 'recenti', 'critica-si', 'pubblico-si', 'controcorrente', 'brevi', 'kolossal', 'cinecomic', 'animazione', 'bollywood'].map(k=>{ const n = LISTS[k][1]().length; return n ? `<a class="genre" href="#lista/${k}" style="--tilebg:var(--s2)">${esc(LISTS[k][0])}<span>${n.toLocaleString('it-IT')}</span></a>` : ''; }).join('')}${sagheTile()}${registiTile()}</div>`
+    + `<h2 class="sec">Scopri</h2><div class="genres">${italiaTile()}${['granfilm', 'votati', 'incassi', 'premiati', 'oscar', 'gemme', 'classici', 'recenti', 'critica-si', 'pubblico-si', 'controcorrente', 'brevi', 'kolossal', 'cinecomic', 'animazione', 'bollywood'].map(k=>{ const n = LISTS[k][1]().length; return n ? `<a class="genre" href="#lista/${k}" style="--tilebg:var(--s2)">${esc(LISTS[k][0])}<span>${n.toLocaleString('it-IT')}</span></a>` : ''; }).join('')}${sagheTile()}${registiTile()}</div>`
     + `<h2 class="sec">Per genere</h2><div class="genres">${[...GENRES.entries()].filter(([, l])=>l.length >= 40).sort((a, b)=>b[1].length - a[1].length).map(([g, l])=>`<a class="genre" href="#genere/${encodeURIComponent(g)}" style="--tilebg:hsl(${GCOL[g] != null ? GCOL[g] : 200} 28% 24%)">${esc(g)}<span>${l.length.toLocaleString('it-IT')}</span></a>`).join('')}</div>`;
   $('surprise').onclick = surprise;
   heroStart(); dressStrips();
@@ -1375,7 +1378,59 @@ let ROW_EXTRA = null;   // il dato della classifica accanto al titolo (incassi, 
 const fmtMoney = n => n >= 1e9 ? (n / 1e9).toFixed(2).replace('.', ',') + ' mld $' : n >= 1e6 ? Math.round(n / 1e6).toLocaleString('it-IT') + ' mln $' : Math.round(n).toLocaleString('it-IT') + ' $';
 const byCrit = (k, min) => () => { const m = CRITICA && CRITICA[k]; if(!m) return []; return BY_V.filter(e=>m[e.id] >= (min || 1)).sort((a, b)=>(m[b.id] - m[a.id]) || (b.v - a.v)); };
 const critN = (k, f) => e => { const n = CRITICA && CRITICA[k] && CRITICA[k][e.id]; return n ? f(n) : ''; };
+/* ---------- Il cinema di casa: film e serie italiane ----------
+   Il paese viene dall'indice della critica (Wikidata, ogni notte): produzioni solo italiane, o italiane girate in italiano.
+   Finché l'indice non lo porta, la sezione semplicemente non compare. I film italiani hanno meno voti su IMDb dei kolossal
+   americani: qui il voto è pesato in modo più leggero, così i classici non finiscono in fondo. */
+const isIta = e => { try{ const a = CRITICA && CRITICA.ita, l = CRITICA && CRITICA.ita_l; return !!e && !!((a && a[e.id] === 1) || (l && l[e.id])); }catch(err){ return false; } };
+const itaScore = e => { const m = IS_SERIE ? 1500 : 3000, v = e.v || 0; return (v / (v + m)) * (e._R || 0) + (m / (v + m)) * 6.4; };
+let _ITA = null;
+function itaList(){ if(_ITA && _ITA.c === CRITICA) return _ITA.l; const l = BY_V.filter(e=>{ enrich(e); return isIta(e) && e.v >= (IS_SERIE ? 800 : 1500); }).sort((a, b)=>itaScore(b) - itaScore(a) || b.v - a.v); _ITA = { c: CRITICA, l }; return l; }
+function itaStrip(){
+  try{ const l = itaList().filter(e=>!has(e.id, 'v') && itaScore(e) >= 7); if(l.length < 6) return '';
+    return `<h2 class="sec"><span class="tric" aria-hidden="true"></span>${IS_SERIE ? 'Serie italiane' : 'Cinema italiano'} <a class="more" href="#italia">Apri la sezione</a></h2><div class="strip">${dayPick(l, 14).map(tile).join('')}</div>`;
+  }catch(err){ return ''; }
+}
+/* La pagina dedicata (#italia), costruita come quella delle saghe: pulsanti in alto e una fila per ogni capitolo —
+   i più grandi, decennio per decennio, i maestri, i generi di casa nostra, i premiati nel mondo, gli ultimi anni. */
+const ITA_NAME = () => IS_SERIE ? 'Serie italiane' : 'Cinema italiano';
+function itaChapters(){
+  const all = itaList(), good = all.filter(e=>itaScore(e) >= 6.5), yr = e => parseInt(e.y, 10) || 0, top = (l, n) => l.slice(0, n || 16), out = [];
+  const add = (key, name, note, list, more) => { if(list.length >= 5) out.push({ key, name, note, films: list, more: more || '' }); };
+  add('grandi', IS_SERIE ? 'Le più grandi' : 'I più grandi', IS_SERIE ? 'Le serie italiane più amate di sempre.' : 'I film italiani più amati di sempre.', top(all, 20));
+  const decs = [...new Set(good.map(decade).filter(Boolean))].sort((a, b)=>a - b), early = good.filter(e=>yr(e) && yr(e) < 1950);
+  if(!IS_SERIE) add('origini', 'Dalle origini al neorealismo', 'Fino al 1949: Rossellini, De Sica, il cinema che ha cambiato tutto.', top(early));
+  decs.filter(d=>IS_SERIE || d >= 1950).forEach(d=>add('d' + d, 'Anni ' + (d < 2000 ? '’' + String(d).slice(2) : d), '', top(good.filter(e=>decade(e) === d)), '#italia/' + d));
+  const G = IS_SERIE ? [['crime', 'Crime e polizieschi', g=>g.has('Crime') || g.has('Giallo')], ['commedia', 'Commedie', g=>g.has('Commedia')], ['dramma', 'Drammatiche', g=>g.has('Drammatico') && !g.has('Crime') && !g.has('Commedia')]]
+    : [['commedia', 'Commedia all’italiana', g=>g.has('Commedia')], ['western', 'Western all’italiana', g=>g.has('Western')], ['brivido', 'Gialli, thriller e horror', g=>g.has('Giallo') || g.has('Thriller') || g.has('Horror')], ['crime', 'Crime e poliziotteschi', g=>g.has('Crime')], ['dramma', 'Drammatici', g=>g.has('Drammatico') && !g.has('Commedia') && !g.has('Crime')]];
+  G.forEach(([k, name, f])=>add(k, name, '', top(good.filter(e=>f(new Set(genres(e)))))));
+  const prize = e => { try{ return (CRITICA && ((CRITICA.intl || {})[e.id] || 0)) + 3 * (CRITICA && ((CRITICA.osc || {})[e.id] || (CRITICA.emmy || {})[e.id] || 0)); }catch(err){ return 0; } };
+  add('premi', IS_SERIE ? 'Premiate nel mondo' : 'Premiati nel mondo', 'Oscar, Cannes, Venezia, Berlino, Golden Globe, BAFTA.', top(all.filter(e=>prize(e) > 0).sort((a, b)=>prize(b) - prize(a) || itaScore(b) - itaScore(a))));
+  const now = new Date().getFullYear(); add('oggi', IS_SERIE ? 'Le ultime' : 'Gli ultimi anni', `Dal ${now - 4} a oggi.`, top(all.filter(e=>yr(e) >= now - 4 && itaScore(e) >= 6.3)));
+  return out;
+}
+function itaMaestri(){   // i registi italiani dell'atlante: almeno tre film italiani, in ordine di peso
+  if(IS_SERIE) return []; const m = new Map();
+  itaList().forEach(e=>dirs(e).forEach(n=>{ const x = m.get(n) || { name: n, n: 0, s: 0 }; x.n++; x.s += Math.pow(Math.max(0, itaScore(e) - 5.5), 2); m.set(n, x); }));
+  return [...m.values()].filter(x=>x.n >= 3).sort((a, b)=>b.s - a.s).slice(0, 24);
+}
+function italiaTile(){ try{ const n = itaList().length; return n >= 6 ? `<a class="genre" href="#italia" style="--tilebg:var(--s2)"><span class="tric-t"><i class="tric" aria-hidden="true"></i>${ITA_NAME()}</span><span>${n.toLocaleString('it-IT')}</span></a>` : ''; }catch(err){ return ''; } }
+function viewItalia(arg){
+  setNav('home'); const all = itaList(), noun = IS_SERIE ? 'serie' : 'film';
+  if(all.length < 6){ V().innerHTML = `<p class="crumbs"><a href="#">Esplora</a> › ${ITA_NAME()}</p><h1 class="pg">${ITA_NAME()}</h1><p class="lead">Questa sezione arriva con il prossimo aggiornamento notturno degli indici.</p>`; return; }
+  const d = parseInt(arg, 10);
+  if(d){ ROW_EXTRA = null; return viewList('italiani', { o: 'nessuno', d }, all, `<p class="crumbs"><a href="#">Esplora</a> › <a href="#italia">${ITA_NAME()}</a> › Anni ${d}</p><h1 class="pg"><i class="tric" aria-hidden="true"></i> ${ITA_NAME()}, anni ${d < 2000 ? '’' + String(d).slice(2) : d}</h1>`, `${IS_SERIE ? 'Le serie italiane' : 'I film italiani'} del decennio, ${IS_SERIE ? 'dalla più apprezzata' : 'dal più apprezzato'}.`, { genre: true, decade: true }); }
+  const C = itaChapters(), M = itaMaestri(), seen = all.filter(e=>has(e.id, 'v')).length;
+  V().innerHTML = `<p class="crumbs"><a href="#">Esplora</a> › ${ITA_NAME()}</p><h1 class="pg"><i class="tric" aria-hidden="true"></i> ${ITA_NAME()}</h1>`
+    + `<p class="lead">${all.length.toLocaleString('it-IT')} ${noun} di casa nostra, capitolo per capitolo: ${IS_SERIE ? 'le più grandi, i decenni, i generi' : 'i più grandi, i decenni, i maestri, i generi'}.${seen ? ` Ne hai vist${IS_SERIE ? 'e' : 'i'} ${seen}.` : ''}</p>`
+    + `<div id="itjump" style="display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 6px">${C.map((x, i)=>`<button class="btn" type="button" data-it="${i}">${esc(x.name)}</button>`).join('')}${M.length ? '<button class="btn" type="button" data-it="m">I maestri</button>' : ''}<a class="btn amber" href="#lista/italiani">Tutt${IS_SERIE ? 'e' : 'i'} (${all.length.toLocaleString('it-IT')})</a></div>`
+    + C.map((x, i)=>{ const sv = x.films.filter(e=>has(e.id, 'v')).length;
+        return `<section id="it${i}"><h2 class="sec">${esc(x.name)} <span class="note" style="font-family:var(--ui); font-weight:500">${esc(x.note)}${sv ? `${x.note ? ' · ' : ''}vist${IS_SERIE ? 'e' : 'i'} ${sv} su ${x.films.length}` : ''}</span>${x.more ? `<a class="more" href="${x.more}">Tutto il decennio</a>` : ''}</h2><div class="strip">${x.films.map(tile).join('')}</div></section>`
+          + (x.key === 'grandi' && M.length ? `<section id="itm"><h2 class="sec">I maestri <span class="note" style="font-family:var(--ui); font-weight:500">I registi italiani con più film nell’atlante: tocca un nome per la sua filmografia.</span></h2><div class="people">${M.map(x=>`<a class="person" href="#regista/${encodeURIComponent(x.name)}"><b>${esc(x.name)}</b><span>${x.n} film</span></a>`).join('')}</div></section>` : ''); }).join('');
+  $('itjump').addEventListener('click', ev=>{ const b = ev.target.closest('[data-it]'); const el = b && document.getElementById('it' + b.dataset.it); if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+}
 const LISTS = {
+  italiani: [IS_SERIE ? 'Serie italiane' : 'Cinema italiano', () => itaList(), 'nessuno', IS_SERIE ? 'Le serie italiane dell\'atlante, dalla più apprezzata. Sono italiane le produzioni solo italiane o girate in italiano, secondo Wikidata.' : 'I film italiani dell\'atlante, dal più apprezzato: da Rossellini e Fellini a oggi. Sono italiane le produzioni solo italiane o girate in italiano, secondo Wikidata.'],
   mese: ['🆕 Uscite dell\'ultimo mese', () => monthList(), 'nessuno', 'I film usciti negli ultimi 30 giorni, dal più recente. La data è quella di Wikidata, in Italia quando la conosce; l\'elenco si aggiorna da solo ogni giorno.', e => dayShort(MONTH && MONTH.get(e.id))],
   'migliori-anno': ['⭐ I migliori dell\'anno', () => bestOfYear().l.slice(0, 200), 'nessuno', 'I film dell\'anno in corso con almeno 8.000 voti, dal più apprezzato. Cambia da solo con l\'anno.'],
   novita: [NOVITA_TITLE, () => novitaList(), 'nessuno', 'Le uscite dell\'anno in corso e del precedente, dalla più recente: la data è quella di uscita in Italia quando Wikidata la conosce.'],
@@ -2057,6 +2112,7 @@ function route(){
   if(k === 'perte') return viewPerTe();
   if(k === 'saghe') return viewSaghe();
   if(k === 'grandi-registi') return viewGrandiRegisti();
+  if(k === 'italia') return viewItalia(arg);
   if(k === 'lista') return viewNamedList(arg);
   if(k === 'genere') return viewGenre(arg);
   if(k === 'decennio') return viewDecade(arg);
