@@ -293,6 +293,11 @@ html.tv .hero-in{grid-template-columns:minmax(0, 1fr) calc(270px * var(--k, 1));
 html.tv .hero-t{font-size:calc(58px * var(--k, 1));} html.tv .hero-eye{font-size:calc(15px * var(--k, 1));} html.tv .hero-meta, html.tv .hero-sum{font-size:calc(20px * var(--k, 1));} html.tv .hs{font-size:calc(18px * var(--k, 1));} html.tv .hs small{font-size:calc(14px * var(--k, 1));}
 .quick{display:flex; flex-wrap:wrap; gap:10px; margin:14px 0 2px;} .quick .btn{flex:none;}
 @media (max-width:760px){ html:not(.tv) .quick{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin:12px -18px 0; padding:2px 18px;} html:not(.tv) .quick::-webkit-scrollbar{display:none;} }   /* telefono: una riga sola che scorre col dito */
+.hero-in{position:relative; z-index:1;}
+.hero-snow{position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none;}
+.hero-snow i{position:absolute; top:-10px; border-radius:50%; background:#fff; opacity:0; animation:fiocco 12s linear infinite; will-change:transform;}
+@keyframes fiocco{ 0%{transform:translate3d(0, 0, 0); opacity:0;} 6%{opacity:var(--o, .6);} 92%{opacity:var(--o, .6);} 100%{transform:translate3d(var(--dx, 20px), 640px, 0); opacity:0;} }
+html.tv .hero-snow{display:none;}
 /* le file di locandine */
 .strip{scrollbar-width:none; padding:8px 2px 10px; margin:0 -2px;} .strip::-webkit-scrollbar{display:none;}
 .tile{border-radius:10px; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;}
@@ -332,7 +337,7 @@ html.tv .ruler.mini{height:calc(150px * var(--k, 1));}
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '2.2';
+const APP_VERSION = '2.3';
 /* Copiate dalla Videoteca da build_serie.py: leggono l'indice delle serie e il cast esattamente come lei. */
 let SERIES = null, SERIES_BY_ID = null, SERIES_STATE = 'idle', _seriesPromise = null, IMDB_INDEX = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -1005,7 +1010,7 @@ function heroSlide(e, P, on){
   const t = tile(e), href = (t.match(/href="([^"]+)"/) || [])[1] || '#', bg = posterUrl(e, 'w342') || unL(WPOST.get(e.id) || '');
   const meta = [e.y ? esc(e.y) : '', dirs(e).slice(0, 2).map(esc).join(', '), genres(e).slice(0, 3).map(esc).join(' · '), e.r ? esc(e.r + ' min') : ''].filter(Boolean).join('  ·  ');
   const sc = [`<span class="hs">${fmtR(e._R)} <small>IMDb</small></span>`, e._rt != null ? `<span class="hs">${e._rt}% <small>critica</small></span>` : '', e._mc != null ? `<span class="hs">${e._mc} <small>Metacritic</small></span>` : ''].join('');
-  return `<div class="hero-s${on ? ' on' : ''}" data-id="${e.id}" style="--tilebg:${tileBg(e)}"${on ? '' : ' inert aria-hidden="true"'}>${bg ? `<div class="hero-bg" style="background-image:url('${esc(bg)}')"></div>` : ''}<div class="hero-in">`
+  return `<div class="hero-s${on ? ' on' : ''}" data-id="${e.id}" style="--tilebg:${tileBg(e)}"${on ? '' : ' inert aria-hidden="true"'}>${bg ? `<div class="hero-bg" style="background-image:url('${esc(bg)}')"></div>` : ''}${snowHTML()}<div class="hero-in">`
     + `<div class="hero-txt"><p class="hero-eye">Oggi in evidenza${P ? ' · ' + esc(P[0]) : ''}</p><h1 class="hero-t"><a href="${href}">${esc(title(e))}</a></h1>`
     + `<p class="hero-meta">${meta}</p><div class="hero-sc">${sc}${badges(e)}</div><p class="hero-sum" data-id="${e.id}"></p></div>`
     + `<div class="hero-act"><a class="btn go" href="${href}">Apri la scheda</a></div>`
@@ -1026,13 +1031,23 @@ function heroBg(id){   // quando la locandina arriva dopo (le serie), anche lo s
     const d = document.createElement('div'); d.className = 'hero-bg'; d.style.backgroundImage = 'url("' + u.replace(/["\\]/g, '') + '")'; h.insertBefore(d, h.firstChild); }catch(err){}
 }
 const _paintPoster = paintPoster; paintPoster = function(id){ _paintPoster(id); heroBg(id); };
-function heroFill(slide){   // due o tre frasi di presentazione, da Wikipedia (già in italiano, o tradotte): solo per il titolo che si sta guardando
+function heroFill(slide){   // di cosa parla, senza anticipazioni: l'inizio della trama (o la sinossi della serie); se manca, la presentazione di Wikipedia. Solo per il titolo che si sta guardando
   try{ const el = slide && slide.querySelector('.hero-sum'); if(!el || el.dataset.done || navigator.onLine === false) return; el.dataset.done = '1'; const id = el.dataset.id;
-    const put = t => { if(t && el.isConnected) el.textContent = t; };
-    Promise.resolve().then(()=>fetchDetails(id)).then(d=>{ const w = d && d.wiki; if(!w || !w.text) return;
-      const short = (String(w.text).match(/[^.!?]+[.!?]+(?=\s|$)/g) || [String(w.text)]).slice(0, 3).join('').trim().slice(0, 460);
-      return w.lang === 'en' ? translateIt(short).then(put) : put(short); }).catch(()=>{});
+    const put = t => { if(t && el.isConnected) el.textContent = t; }, show = x => x && x.t ? (x.lang === 'en' ? translateIt(x.t).then(put) : put(x.t)) : null;
+    Promise.resolve().then(()=>fetchDetails(id)).then(async d=>{
+      let pre = null;
+      try{ if(EPISODES){ const sh = await fetchShow(id); if(sh && sh.sum) pre = { t: premiseFrom(sh.sum) || String(sh.sum).slice(0, 400), lang: 'en' }; } }catch(err){}
+      try{ if(!pre && d && d.sl){ const p = await fetchPlot(id, d.sl); if(p && p.text){ const t = premiseFrom(p.text); if(t && t.length >= 60) pre = { t, lang: p.lang }; } } }catch(err){}
+      if(!pre){ const w = d && d.wiki; if(w && w.text) pre = { t: (String(w.text).match(/[^.!?]+[.!?]+(?=\s|$)/g) || [String(w.text)]).slice(0, 3).join('').trim().slice(0, 460), lang: w.lang }; }
+      return show(pre); }).catch(()=>{});
   }catch(err){}
+}
+function snowHTML(){   // ❄ a Natale, qualche fiocco che scende dentro la vetrina, dietro al titolo. Non sul televisore; fermo se il dispositivo chiede meno animazioni
+  try{ if(TV || periodKey(new Date()) !== 'natale') return ''; let h = '';
+    for(let i = 0; i < 18; i++){ const r = k => { const x = Math.sin((i + 1) * 12.9898 * k) * 43758.5453; return x - Math.floor(x); }, sz = 2 + Math.round(r(1) * 3);
+      h += `<i style="left:${(r(2) * 100).toFixed(1)}%; width:${sz}px; height:${sz}px; --o:${(0.35 + r(3) * 0.5).toFixed(2)}; --dx:${Math.round(r(4) * 70 - 35)}px; animation-duration:${(9 + r(5) * 10).toFixed(1)}s; animation-delay:-${(r(6) * 18).toFixed(1)}s"></i>`; }
+    return `<div class="hero-snow" aria-hidden="true">${h}</div>`;
+  }catch(err){ return ''; }
 }
 const HERO_MS = 7000; let _heroT = null;
 function heroGo(i){   // mostra il titolo numero i (gli altri restano fuori dalla portata di tastiera e telecomando)
