@@ -44,6 +44,10 @@ EXTRA = {   # classifiche: se una richiesta non riesce, le altre (e la critica) 
   'aw': ('premi', PFX + 'SELECT ?imdb (COUNT(DISTINCT ?aw) AS ?n) WHERE { ?film wdt:P345 ?imdb ; wdt:P166 ?aw . FILTER(STRSTARTS(?imdb, "tt")) } GROUP BY ?imdb HAVING(COUNT(DISTINCT ?aw) >= 2)'),
   'osc': ('Oscar', PFX + 'SELECT ?imdb (COUNT(DISTINCT ?aw) AS ?n) WHERE { ?film wdt:P345 ?imdb ; wdt:P166 ?aw . ?aw (wdt:P31|wdt:P279|wdt:P361) wd:Q19020 . FILTER(STRSTARTS(?imdb, "tt")) } GROUP BY ?imdb'),
   'emmy': ('Emmy', PFX + 'SELECT ?imdb (COUNT(DISTINCT ?aw) AS ?n) WHERE { ?film wdt:P345 ?imdb ; wdt:P166 ?aw . ?aw (wdt:P31|wdt:P279|wdt:P361) wd:Q1044427 . FILTER(STRSTARTS(?imdb, "tt")) } GROUP BY ?imdb'),
+  # cinema e serie italiane: 'ita' = in quanti paesi è prodotto un titolo che ha l'Italia tra i paesi (1 = solo Italia);
+  # 'ita_l' = titoli italiani girati (anche) in italiano. L'Atlante considera italiano chi è in 'ita' con 1 oppure in 'ita_l'.
+  'ita': ('produzioni italiane', PFX + 'SELECT ?imdb (COUNT(DISTINCT ?c) AS ?n) WHERE { ?film wdt:P345 ?imdb ; wdt:P495 wd:Q38 ; wdt:P495 ?c . FILTER(STRSTARTS(?imdb, "tt")) } GROUP BY ?imdb'),
+  'ita_l': ('italiani in lingua italiana', PFX + 'SELECT ?imdb (COUNT(DISTINCT ?l) AS ?n) WHERE { ?film wdt:P345 ?imdb ; wdt:P495 wd:Q38 ; wdt:P364 wd:Q652 ; wdt:P364 ?l . FILTER(STRSTARTS(?imdb, "tt")) } GROUP BY ?imdb'),
   # riconoscimento internazionale: premi o candidature a Oscar, Golden Globe, BAFTA, Cannes (Palma d'Oro, Gran Premio), Venezia (Leone d'Oro), Berlino (Orso d'Oro), Emmy
   'intl': ('premi internazionali', PFX + 'SELECT ?imdb (COUNT(DISTINCT ?aw) AS ?n) WHERE { ?film wdt:P345 ?imdb . { ?film wdt:P166 ?aw } UNION { ?film wdt:P1411 ?aw } { ?aw (wdt:P31|wdt:P279|wdt:P361) ?g . VALUES ?g { wd:Q19020 wd:Q1011547 wd:Q732997 wd:Q42369 wd:Q49024 wd:Q130871 wd:Q1044427 wd:Q179808 wd:Q209459 wd:Q154590 } } UNION { VALUES ?aw { wd:Q179808 wd:Q209459 wd:Q154590 wd:Q844804 } } FILTER(STRSTARTS(?imdb, "tt")) } GROUP BY ?imdb'),
 }
@@ -111,6 +115,7 @@ def main():
                 try: v = int(float(n))
                 except ValueError: continue
                 if re.match(r'^tt\d+$', imdb) and v > 0: m[imdb] = v
+            if key in ('ita', 'ita_l') and len(m) < 2000: print(f'  {label}: solo {len(m)} titoli, elenco non credibile: lo salto'); continue
             if key in ('osc', 'emmy', 'intl') and len(m) < (300 if key == 'intl' else 30): print(f'  {label}: solo {len(m)} titoli, classifica non credibile: la salto'); continue
             out[key] = m; print(f'  {label}: {len(m)} titoli (da {via})')
         except Exception as e:
