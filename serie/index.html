@@ -230,6 +230,82 @@ textarea.copy{width:100%; min-height:120px; font-size:11px; background:var(--s1)
 .st-card .tile{width:118px;} .st-info{display:flex; flex-direction:column; gap:6px; min-width:0;} .st-info b{font-size:18px; font-weight:750; letter-spacing:-.015em;} .st-tier{color:var(--amber2); font-weight:700; font-size:14px;}
 .st-info .btn{align-self:flex-start; margin-top:4px;}
 html.tv .st-chip{height:52px; font-size:19px;} html.tv .st-card{grid-template-columns:160px minmax(0,1fr);} html.tv .st-card .tile{width:160px;}
+
+/* ---------- 2.0 · Testata di vetro, vetrina del giorno, file con le frecce ---------- */
+.top{background:none; -webkit-backdrop-filter:none; backdrop-filter:none; border-bottom:0;}
+.top::before{content:""; position:absolute; inset:0; z-index:-1; background:rgba(15,20,22,.78); -webkit-backdrop-filter:saturate(1.6) blur(22px); backdrop-filter:saturate(1.6) blur(22px); border-bottom:1px solid rgba(255,255,255,.07);}   /* il vetro sta su un livello a parte: così la barra in basso del telefono resta fissa */
+html.tv .top::before{-webkit-backdrop-filter:none; backdrop-filter:none; background:var(--ink); border-bottom-color:var(--line);}
+.search{flex:1 1 200px;}
+.search input{padding-left:40px; border-color:transparent; background:rgba(255,255,255,.07) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23B5B0A4' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='6.5'/%3E%3Cpath d='m16 16 4.500 4.500'/%3E%3C/svg%3E") 13px center/17px no-repeat; transition:background-color .2s, border-color .2s;}
+.search input::placeholder{color:var(--paper3);}
+.search input:focus{outline:none; border-color:var(--chart); background-color:rgba(255,255,255,.11);}
+.nav a{transition:background .15s, color .15s;} .nav a svg{display:none;}
+.nav a:hover{color:var(--paper); background:rgba(255,255,255,.07);}
+.nav a[aria-current="page"]{background:var(--paper); color:var(--ink);}
+.m-only{display:none !important;}
+@media (max-width:760px){   /* telefono: in alto nome e ricerca, le sezioni in una barra in basso, a portata di pollice */
+  html:not(.tv) .top-in{padding:8px 14px; gap:10px; flex-wrap:nowrap;}
+  html:not(.tv) .brand b{font-size:17px;} html:not(.tv) .brand .rose{width:24px; height:24px;} html:not(.tv) .brand .rose::before{height:16px;} html:not(.tv) .brand .rose::after{width:16px;}
+  html:not(.tv) .search{flex:1 1 110px; margin-right:0;} html:not(.tv) .search input{height:38px;}
+  html:not(.tv) .top-in:focus-within .brand b{display:none;}
+  html:not(.tv) .nav{position:fixed; left:0; right:0; bottom:0; z-index:40; flex-wrap:nowrap; gap:0; padding:6px 6px calc(6px + env(safe-area-inset-bottom, 0px)); background:rgba(15,20,22,.93); -webkit-backdrop-filter:saturate(1.7) blur(22px); backdrop-filter:saturate(1.7) blur(22px); border-top:1px solid rgba(255,255,255,.08);}
+  html:not(.tv) .nav a{flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px; padding:5px 2px 3px; font-size:10.5px; font-weight:600; border-radius:10px; white-space:nowrap; letter-spacing:0;}
+  html:not(.tv) .nav a svg{display:block; width:22px; height:22px;}
+  html:not(.tv) .nav a[aria-current="page"]{background:none; color:var(--amber2);} html:not(.tv) .nav a:hover{background:none;}
+  html:not(.tv) .nav a[data-nav="registi"], html:not(.tv) .nav a[data-nav="attori"]{display:none;}   /* registi e attori: dai pulsanti della vetrina */
+  html:not(.tv) main{padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px));}
+  html:not(.tv) .toast{bottom:calc(84px + env(safe-area-inset-bottom, 0px));}
+  html:not(.tv) .m-only{display:inline-flex !important;}
+  html:not(.tv) h2.sec{font-size:19px; flex-wrap:wrap; gap:2px 10px; margin-top:24px;} html:not(.tv) h2.sec .note{font-size:12px;}
+}
+/* la vetrina: tre titoli sovrapposti, uno alla volta */
+.hero{position:relative; display:grid; overflow:hidden; border-radius:20px; margin:2px 0 6px; background:var(--s1); border:1px solid rgba(255,255,255,.08);}
+.hero-s{grid-area:1 / 1; position:relative; isolation:isolate; overflow:hidden; display:grid; align-items:center; background:var(--tilebg, var(--s2)); opacity:0; visibility:hidden; transition:opacity .7s ease, visibility 0s linear .7s;}
+.hero-s.on{opacity:1; visibility:visible; z-index:1; transition:opacity .7s ease;}
+.hero-bg{position:absolute; inset:-14%; z-index:-2; background:center 22%/cover no-repeat; filter:blur(40px) saturate(1.5) brightness(.66);}
+.hero-s::after{content:""; position:absolute; inset:0; z-index:-1; pointer-events:none; background:linear-gradient(90deg, rgba(10,14,16,.9) 0%, rgba(10,14,16,.58) 55%, rgba(10,14,16,.18) 100%), linear-gradient(0deg, rgba(10,14,16,.5), transparent 45%);}
+.hero-in{display:grid; grid-template-columns:minmax(0, 1fr) 212px; grid-template-areas:"txt p" "act p"; gap:0 36px; align-items:center; padding:34px 38px 46px;}
+.hero-dots{position:absolute; left:38px; bottom:18px; z-index:3; display:flex; gap:7px;}
+.hero-dot{position:relative; width:8px; height:8px; padding:0; border:0; border-radius:4px; background:rgba(255,255,255,.36); cursor:pointer; transition:width .3s ease, background .3s ease;}
+.hero-dot::after{content:""; position:absolute; inset:-11px -4px;}   /* più facile da toccare */
+.hero-dot.on{width:28px; background:var(--paper);} .hero-dot:hover{background:rgba(255,255,255,.7);}
+html.tv .hero-dots{left:calc(46px * var(--k, 1)); bottom:calc(20px * var(--k, 1)); gap:calc(10px * var(--k, 1));} html.tv .hero-dot{width:calc(12px * var(--k, 1)); height:calc(12px * var(--k, 1)); border-radius:calc(6px * var(--k, 1));} html.tv .hero-dot.on{width:calc(40px * var(--k, 1));}
+.hero-txt{grid-area:txt; min-width:0; align-self:end;} .hero-act{grid-area:act; align-self:start;} .hero-p{grid-area:p;}
+.hero-eye{margin:0 0 10px; font-size:12.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--amber2);}
+.hero-t{margin:0; font-family:var(--serif); font-weight:800; letter-spacing:-.035em; line-height:1.03; font-size:clamp(28px, 4.6vw, 52px); text-wrap:balance;}
+.hero-t a:hover{text-decoration:underline; text-decoration-thickness:2px; text-underline-offset:5px;}
+.hero-meta{margin:10px 0 0; color:rgba(236,231,220,.84); font-size:15px;}
+.hero-sc{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:14px;} .hero-sc .badges{justify-content:flex-start;}
+.hs{display:inline-flex; align-items:baseline; gap:5px; padding:4px 11px; border-radius:999px; background:rgba(255,255,255,.11); font-weight:750; font-size:14px; font-variant-numeric:tabular-nums;} .hs small{font-weight:600; font-size:11px; color:rgba(236,231,220,.72);}
+.hero .bd{background:rgba(255,255,255,.11);} .hero .bd.mp{background:rgba(233,162,59,.24);} .hero .bd.gf{background:rgba(143,184,201,.22);}
+.hero-sum{margin:14px 0 0; max-width:62ch; font-size:15.5px; line-height:1.55; color:rgba(236,231,220,.92); display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;} .hero-sum:empty{display:none;}
+.hero-act{display:flex; flex-wrap:wrap; gap:10px; margin-top:20px;}
+.hero-act .btn{height:42px; padding:0 18px; border-radius:21px; background:rgba(255,255,255,.11); border-color:rgba(255,255,255,.15);} .hero-act .btn:hover{background:rgba(255,255,255,.2); border-color:rgba(255,255,255,.3);}
+.hero-act .btn.go{background:var(--paper); border-color:var(--paper); color:var(--ink); font-weight:700;} .hero-act .btn.go:hover{background:#fff;}
+.hero-p .tile{border-radius:12px; box-shadow:0 22px 50px rgba(0,0,0,.55); border-color:rgba(255,255,255,.14);}
+@media (max-width:760px){
+  .hero{border-radius:16px;} .hero-s{align-items:start;} .hero-dots{left:16px; bottom:14px;} .hero-in{grid-template-columns:minmax(0, 1fr) 104px; grid-template-areas:"txt p" "act act"; gap:0 14px; padding:18px 16px 40px; align-items:start;}
+  .hero-txt{align-self:start;} .hero-eye{font-size:11px; margin-bottom:7px;} .hero-meta{font-size:13.5px; margin-top:7px;} .hero-sc{margin-top:10px; gap:6px;} .hero-sum{font-size:14px; margin-top:10px;}
+  .hero-act{margin-top:14px; gap:8px;} .hero-act .btn{height:38px; padding:0 13px; font-size:13.5px;} .hero-p .tile .tb{font-size:11.5px;} .hero-p .tile{padding:8px;}
+}
+html.tv .hero-bg{display:none;} html.tv .hero{border-radius:calc(24px * var(--k, 1));}
+html.tv .hero-in{grid-template-columns:minmax(0, 1fr) calc(270px * var(--k, 1)); padding:calc(40px * var(--k, 1)) calc(46px * var(--k, 1)) calc(56px * var(--k, 1)); gap:0 calc(46px * var(--k, 1));}
+html.tv .hero-t{font-size:calc(58px * var(--k, 1));} html.tv .hero-eye{font-size:calc(15px * var(--k, 1));} html.tv .hero-meta, html.tv .hero-sum{font-size:calc(20px * var(--k, 1));} html.tv .hs{font-size:calc(18px * var(--k, 1));} html.tv .hs small{font-size:calc(14px * var(--k, 1));}
+.quick{display:flex; flex-wrap:wrap; gap:10px; margin:14px 0 2px;} .quick .btn{flex:none;}
+@media (max-width:760px){ html:not(.tv) .quick{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin:12px -18px 0; padding:2px 18px;} html:not(.tv) .quick::-webkit-scrollbar{display:none;} }   /* telefono: una riga sola che scorre col dito */
+/* le file di locandine */
+.strip{scrollbar-width:none; padding:8px 2px 10px; margin:0 -2px;} .strip::-webkit-scrollbar{display:none;}
+.tile{border-radius:10px; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;}
+@media (hover:hover){ html:not(.tv) .tile:hover{transform:translateY(-3px) scale(1.025); box-shadow:0 14px 30px rgba(0,0,0,.5); border-color:rgba(255,255,255,.3); z-index:2;} }
+.sw{position:relative;}
+html:not(.tv) .sw:not(.at-end) > .strip{-webkit-mask-image:linear-gradient(90deg, #000 calc(100% - 56px), transparent); mask-image:linear-gradient(90deg, #000 calc(100% - 56px), transparent);}
+.sw-b{position:absolute; top:50%; transform:translateY(-50%); z-index:3; width:42px; height:42px; padding:0 0 4px; border-radius:50%; border:1px solid rgba(255,255,255,.18); background:rgba(20,27,30,.8); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); color:var(--paper); font-size:27px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; opacity:0; transition:opacity .18s, background .18s, color .18s;}
+.sw-b.prev{left:-14px;} .sw-b.next{right:-14px;}
+.sw:hover .sw-b{opacity:1;} .sw-b:hover{background:var(--paper); color:var(--ink);}
+.sw.at-start .sw-b.prev, .sw.at-end .sw-b.next{display:none;}
+@media (hover:none){ .sw-b{display:none;} }
+.ruler.mini{height:92px; margin:6px 0 46px;} @media (max-width:640px){ .ruler.mini{height:76px;} }
+html.tv .ruler.mini{height:calc(150px * var(--k, 1));}
 </style>
 </head>
 <body>
@@ -238,12 +314,12 @@ html.tv .st-chip{height:52px; font-size:19px;} html.tv .st-card{grid-template-co
     <a class="brand" href="#"><span class="rose" aria-hidden="true"></span><b>Atlante Serie TV</b></a>
     <form class="search" id="searchForm" role="search"><input id="q" type="search" placeholder="Cerca una serie, un attore…" aria-label="Cerca" autocomplete="off"></form>
     <nav class="nav" aria-label="Sezioni">
-      <a href="#" data-nav="home">Esplora</a>
-      <a href="#lista/capolavori" data-nav="lista">Capolavori</a>
-      <a href="#attori" data-nav="attori">Attori</a>
-      <a href="#liste" data-nav="liste">Le mie liste</a>
-      <a href="#classifiche" data-nav="classifiche">Classifiche</a>
-      <a href="#strumenti" data-nav="strumenti">Strumenti</a>
+      <a href="#" data-nav="home"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><circle cx='12' cy='12' r='9'/><path d='m15.500 8.500-2 5-5 2 2-5z'/></svg><span>Esplora</span></a>
+      <a href="#lista/capolavori" data-nav="lista"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='m12 3.500 2.600 5.300 5.900.900-4.300 4.100 1 5.800-5.200-2.800-5.200 2.800 1-5.800-4.300-4.100 5.900-.900z'/></svg><span>Capolavori</span></a>
+      <a href="#attori" data-nav="attori"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><circle cx='12' cy='8' r='3.600'/><path d='M4.500 20c.800-4 3.800-6 7.500-6s6.700 2 7.500 6'/></svg><span>Attori</span></a>
+      <a href="#liste" data-nav="liste"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z'/></svg><span>Le mie liste</span></a>
+      <a href="#classifiche" data-nav="classifiche"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M5 20v-7M12 20V5M19 20v-10'/></svg><span>Classifiche</span></a>
+      <a href="#strumenti" data-nav="strumenti"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M4 7h10M18 7h2M4 17h2M10 17h10'/><circle cx='16' cy='7' r='2'/><circle cx='8' cy='17' r='2'/></svg><span>Strumenti</span></a>
     </nav>
   </div>
 </header>
@@ -256,7 +332,7 @@ html.tv .st-chip{height:52px; font-size:19px;} html.tv .st-card{grid-template-co
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '1.9';
+const APP_VERSION = '2.2';
 /* Copiate dalla Videoteca da build_serie.py: leggono l'indice delle serie e il cast esattamente come lei. */
 let SERIES = null, SERIES_BY_ID = null, SERIES_STATE = 'idle', _seriesPromise = null, IMDB_INDEX = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -913,14 +989,88 @@ function viewPeriodo(){
   setNav(''); let r; try{ r = periodList(); }catch(err){ return viewHome(); }
   V().innerHTML = `<h1 class="pg">${esc(r.P[0])}</h1><p class="lead">${esc(r.P[1])} ${r.list.length.toLocaleString('it-IT')} titoli che non hai ancora visto.</p><div class="rows">${r.list.slice(0, 80).map(row).join('')}</div>`;
 }
+/* ---------- 🎬 La vetrina: il titolo del giorno in cima a Esplora ----------
+   Un blocco isolato: se qualcosa non va non mostra nulla e restano i tre pulsanti di sempre.
+   Il titolo viene dalla fila del periodo (a Natale un film di Natale), solo tra quelli con la locandina, e cambia ogni giorno. */
+function heroPick(){
+  let P = null, list = [];
+  try{ const r = periodList(); P = r.P; list = noIndia(r.list); }catch(err){}
+  const withP = l => IS_SERIE ? l : l.filter(e=>posterUrl(e, 'w342'));   // i film hanno la locandina nell'indice; per le serie arriva da Wikipedia un attimo dopo
+  let pool = withP(list.filter(e=>{ enrich(e); return goodEnough(e); }));
+  if(pool.length < 8) pool = withP(list);
+  if(pool.length < 8){ P = null; pool = withP(noIndia(MASTER.filter(e=>!has(e.id, 'v')))); }
+  return pool.length ? { l: dayPick(pool, 3), P } : null;   // tre titoli al giorno, che scorrono
+}
+function heroSlide(e, P, on){
+  const t = tile(e), href = (t.match(/href="([^"]+)"/) || [])[1] || '#', bg = posterUrl(e, 'w342') || unL(WPOST.get(e.id) || '');
+  const meta = [e.y ? esc(e.y) : '', dirs(e).slice(0, 2).map(esc).join(', '), genres(e).slice(0, 3).map(esc).join(' · '), e.r ? esc(e.r + ' min') : ''].filter(Boolean).join('  ·  ');
+  const sc = [`<span class="hs">${fmtR(e._R)} <small>IMDb</small></span>`, e._rt != null ? `<span class="hs">${e._rt}% <small>critica</small></span>` : '', e._mc != null ? `<span class="hs">${e._mc} <small>Metacritic</small></span>` : ''].join('');
+  return `<div class="hero-s${on ? ' on' : ''}" data-id="${e.id}" style="--tilebg:${tileBg(e)}"${on ? '' : ' inert aria-hidden="true"'}>${bg ? `<div class="hero-bg" style="background-image:url('${esc(bg)}')"></div>` : ''}<div class="hero-in">`
+    + `<div class="hero-txt"><p class="hero-eye">Oggi in evidenza${P ? ' · ' + esc(P[0]) : ''}</p><h1 class="hero-t"><a href="${href}">${esc(title(e))}</a></h1>`
+    + `<p class="hero-meta">${meta}</p><div class="hero-sc">${sc}${badges(e)}</div><p class="hero-sum" data-id="${e.id}"></p></div>`
+    + `<div class="hero-act"><a class="btn go" href="${href}">Apri la scheda</a></div>`
+    + `<div class="hero-p">${t}</div></div></div>`;
+}
+function heroHTML(){
+  try{ const h = heroPick(); if(!h || !h.l.length) return '';
+    return `<section class="hero" data-i="0" aria-label="In evidenza">${h.l.map((e, i)=>heroSlide(e, h.P, !i)).join('')}`
+      + (h.l.length > 1 ? `<div class="hero-dots">${h.l.map((e, i)=>`<button type="button" class="hero-dot${i ? '' : ' on'}" data-i="${i}" aria-label="${esc(title(e))}"></button>`).join('')}</div>` : '') + `</section>`;
+  }catch(err){ return ''; }
+}
+function quickHTML(){   // i pulsanti di sempre, subito sotto la vetrina: riguardano tutta l'app, non il titolo del giorno
+  const nav = k => { try{ return document.querySelector(`.nav [data-nav="${k}"]`); }catch(err){ return null; } };
+  return `<div class="quick"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button><a class="btn" href="#stasera">🍿 Cosa guardo stasera?</a><a class="btn" href="#perte">✨ Per te</a>${nav('registi') ? '<a class="btn m-only" href="#registi">🎬 Registi</a>' : ''}${nav('attori') ? '<a class="btn m-only" href="#attori">🎭 Attori</a>' : ''}</div>`;
+}
+function heroBg(id){   // quando la locandina arriva dopo (le serie), anche lo sfondo della vetrina la prende
+  try{ const h = document.querySelector('.hero-s[data-id="' + id + '"]'), u = unL(WPOST.get(id) || ''); if(!h || !u || h.querySelector('.hero-bg')) return;
+    const d = document.createElement('div'); d.className = 'hero-bg'; d.style.backgroundImage = 'url("' + u.replace(/["\\]/g, '') + '")'; h.insertBefore(d, h.firstChild); }catch(err){}
+}
+const _paintPoster = paintPoster; paintPoster = function(id){ _paintPoster(id); heroBg(id); };
+function heroFill(slide){   // due o tre frasi di presentazione, da Wikipedia (già in italiano, o tradotte): solo per il titolo che si sta guardando
+  try{ const el = slide && slide.querySelector('.hero-sum'); if(!el || el.dataset.done || navigator.onLine === false) return; el.dataset.done = '1'; const id = el.dataset.id;
+    const put = t => { if(t && el.isConnected) el.textContent = t; };
+    Promise.resolve().then(()=>fetchDetails(id)).then(d=>{ const w = d && d.wiki; if(!w || !w.text) return;
+      const short = (String(w.text).match(/[^.!?]+[.!?]+(?=\s|$)/g) || [String(w.text)]).slice(0, 3).join('').trim().slice(0, 460);
+      return w.lang === 'en' ? translateIt(short).then(put) : put(short); }).catch(()=>{});
+  }catch(err){}
+}
+const HERO_MS = 7000; let _heroT = null;
+function heroGo(i){   // mostra il titolo numero i (gli altri restano fuori dalla portata di tastiera e telecomando)
+  try{ const H = document.querySelector('#view .hero'); if(!H) return; const S = [...H.querySelectorAll('.hero-s')]; if(!S.length) return; i = ((i % S.length) + S.length) % S.length;
+    S.forEach((s, k)=>{ s.classList.toggle('on', k === i); if(k === i){ s.removeAttribute('inert'); s.removeAttribute('aria-hidden'); } else { s.setAttribute('inert', ''); s.setAttribute('aria-hidden', 'true'); } });
+    H.querySelectorAll('.hero-dot').forEach((d, k)=>d.classList.toggle('on', k === i)); H.dataset.i = i; heroFill(S[i]); }catch(err){}
+}
+function heroStart(){   // scorre da sola ogni 7 secondi; si ferma col mouse sopra, mentre la si usa, o se il dispositivo chiede meno animazioni
+  try{ clearInterval(_heroT); const H = document.querySelector('#view .hero'); if(!H) return; heroFill(H.querySelector('.hero-s.on'));
+    const cur = () => +H.dataset.i || 0;
+    H.querySelectorAll('.hero-dot').forEach(d=>{ d.onclick = () => heroGo(+d.dataset.i); });
+    let x0 = null; H.addEventListener('touchstart', ev=>{ x0 = ev.touches[0].clientX; }, { passive: true });
+    H.addEventListener('touchend', ev=>{ if(x0 == null) return; const dx = ev.changedTouches[0].clientX - x0; x0 = null; if(Math.abs(dx) > 45){ H.dataset.touched = '1'; heroGo(cur() + (dx < 0 ? 1 : -1)); } }, { passive: true });
+    if(H.querySelectorAll('.hero-s').length < 2) return;
+    let calm = false; try{ calm = matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(err){}
+    if(calm) return;
+    _heroT = setInterval(()=>{ const h = document.querySelector('#view .hero'); if(h !== H){ clearInterval(_heroT); return; }
+      if(document.hidden || H.dataset.touched || H.matches(':hover') || H.contains(document.activeElement)) return; heroGo(cur() + 1); }, HERO_MS);
+  }catch(err){}
+}
+/* ---------- File di locandine: frecce al passaggio del mouse e bordo che sfuma (non sul televisore) ---------- */
+function dressStrip(s){
+  if(s.dataset.dressed) return; s.dataset.dressed = '1';
+  const w = document.createElement('div'); w.className = 'sw at-start'; s.parentNode.insertBefore(w, s); w.appendChild(s);
+  const upd = () => { w.classList.toggle('at-start', s.scrollLeft < 8); w.classList.toggle('at-end', s.scrollLeft + s.clientWidth > s.scrollWidth - 8); };
+  [['prev', 'Scorri indietro', -1, '‹'], ['next', 'Scorri avanti', 1, '›']].forEach(([c, lab, dir, ch])=>{ const b = document.createElement('button'); b.type = 'button'; b.className = 'sw-b ' + c; b.tabIndex = -1; b.setAttribute('aria-label', lab); b.textContent = ch;
+    b.onclick = () => { try{ s.scrollBy({ left: dir * Math.max(200, s.clientWidth * 0.85), behavior: 'smooth' }); }catch(err){ s.scrollLeft += dir * 400; } }; w.appendChild(b); });
+  s.addEventListener('scroll', upd, { passive: true }); upd(); setTimeout(upd, 500);
+}
+function dressStrips(){ try{ if(TV) return; document.querySelectorAll('#view .strip:not([data-dressed])').forEach(dressStrip); }catch(err){} }
+try{ if(!TV && typeof MutationObserver !== 'undefined') new MutationObserver(dressStrips).observe(document.getElementById('view'), { childList: true, subtree: true }); }catch(err){}
+
 function viewHome(){
   setNav('home');
   const last = Math.floor(new Date().getFullYear() / 10) * 10, ds = []; for(let d = 1900; d <= last; d += 10) ds.push([d, DECADES.get(d) || []]);   // sempre dal 1900 a oggi
   const max = Math.max(1, ...ds.map(x=>x[1].length));
   const fr = BY_V.filter(e=>e._f && e._f.s === 1).slice(0, 14);
-  V().innerHTML = `<h1 class="pg">Atlante Serie TV</h1><p class="lead">${ALL.length.toLocaleString('it-IT')} serie da esplorare per decennio, genere e attore${CRITICA ? ', con i voti della critica' : ''}${CRIT ? ' e i giudizi di Frusciante e dei Criticoni' : ''}.</p>`
-    + `<p class="rulerhint">Ogni colonna è un <b>decennio</b> (1900, 1910… fino a oggi): il numero sopra indica quante serie ci sono. Tocca una colonna per vederle.</p><div class="ruler" aria-label="Serie per decennio">${ds.map(([d, l])=>`<a href="#decennio/${d}" title="Anni ${d}: ${l.length.toLocaleString('it-IT')} serie" aria-label="Anni ${d}: ${l.length} serie"><span class="ct">${l.length >= 1000 ? Math.round(l.length / 100) / 10 + 'k' : l.length}</span><span class="bar" style="height:${Math.max(3, l.length / max * 100)}%"></span><span class="yr"><b class="y4">${d}</b><b class="y2">’${String(d).slice(2)}</b></span></a>`).join('')}</div>`
-    + `<div style="display:flex; gap:10px; flex-wrap:wrap; margin:6px 0 4px"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button><a class="btn" href="#stasera">🍿 Cosa guardo stasera?</a><a class="btn" href="#perte">✨ Per te</a></div>`
+  V().innerHTML = heroHTML() + quickHTML()
     + (seasonOnTop() ? seasonStrip() : '')
     + (()=>{ const ms = monthStrip(); if(ms) return ms; const l = novitaList().slice(0, 14); return l.length ? `<h2 class="sec">${esc(NOVITA_TITLE)} <a class="more" href="#lista/novita">Vedi tutte</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; })()
     + (seasonOnTop() ? '' : seasonStrip())
@@ -933,9 +1083,11 @@ function viewHome(){
     + CLS.filter(c=>c.pin && c.items.length).map(c=>{ const fs = c.items.map(imdbEntry).filter(Boolean), seen = fs.filter(e=>has(e.id, 'v')).length;
         return `<h2 class="sec">${esc(c.name)} <span class="note" style="font-family:var(--ui)">ne hai viste ${seen} su ${fs.length}</span><a class="more" href="#classifica/${esc(c.id)}">Vedi tutta</a></h2><div class="strip">${fs.slice(0, 14).map(tile).join('')}</div>`; }).join('')
     + (fr.length ? `<h2 class="sec">🎙 Promossi da Frusciante <a class="more" href="#lista/frusciante-si">Vedi tutti</a></h2><div class="strip">${fr.map(tile).join('')}</div>` : '')
+    + `<h2 class="sec">Per decennio <span class="note" style="font-family:var(--ui); font-weight:500">${ALL.length.toLocaleString('it-IT')} serie dal 1900 a oggi</span></h2><div class="ruler mini" aria-label="Serie per decennio">${ds.map(([d, l])=>`<a href="#decennio/${d}" title="Anni ${d}: ${l.length.toLocaleString('it-IT')} serie" aria-label="Anni ${d}: ${l.length} serie"><span class="ct">${l.length >= 1000 ? Math.round(l.length / 100) / 10 + 'k' : l.length}</span><span class="bar" style="height:${Math.max(3, l.length / max * 100)}%"></span><span class="yr"><b class="y4">${d}</b><b class="y2">’${String(d).slice(2)}</b></span></a>`).join('')}</div>`
     + `<h2 class="sec">Scopri</h2><div class="genres">${['granfilm', 'votati', 'incorso', 'concluse', 'miniserie', 'maratona', 'lunghe', 'premiate', 'emmy', 'classici', 'recenti', 'gemme', 'critica-si', 'pubblico-si', 'animazione', 'bollywood'].map(k=>{ const n = LISTS[k][1]().length; return n ? `<a class="genre" href="#lista/${k}" style="--tilebg:var(--s2)">${esc(LISTS[k][0])}<span>${n.toLocaleString('it-IT')}</span></a>` : ''; }).join('')}${piattTile()}</div>`
     + `<h2 class="sec">Per genere</h2><div class="genres">${[...GENRES.entries()].filter(([, l])=>l.length >= 40).sort((a, b)=>b[1].length - a[1].length).map(([g, l])=>`<a class="genre" href="#genere/${encodeURIComponent(g)}" style="--tilebg:hsl(${GCOL[g] != null ? GCOL[g] : 200} 28% 24%)">${esc(g)}<span>${l.length.toLocaleString('it-IT')}</span></a>`).join('')}</div>`;
   $('surprise').onclick = surprise;
+  heroStart(); dressStrips();
 }
 /* ---------- 🍿 Cosa guardo stasera? e 🎲 Sorprendimi ----------
    Si pesca tra gran film / grandi serie, capolavori e capolavori assoluti non ancora visti; dai paesi non occidentali (India
