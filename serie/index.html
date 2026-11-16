@@ -300,6 +300,21 @@ html.tv .hero-t{font-size:calc(58px * var(--k, 1));} html.tv .hero-eye{font-size
 html.tv .hero-snow{display:none;}
 .tric{flex:none; align-self:center; display:inline-block; width:22px; height:15px; border-radius:3px; margin-right:-2px; background:linear-gradient(90deg, #1F8A4C 0 33.4%, #F2EFE6 33.4% 66.6%, #C8343A 66.6%); box-shadow:0 0 0 1px rgba(255,255,255,.12);}
 .genre .tric-t{display:inline-flex; align-items:center; gap:9px; font-family:var(--serif); font-size:16px; font-weight:700; color:var(--paper);} h1.pg .tric{vertical-align:2px; width:30px; height:20px; margin-right:6px;}
+/* ---------- 3.0 · Persone come ritratti rotondi, pagine a schede ---------- */
+.ptabs{display:flex; flex-wrap:wrap; gap:6px; margin:14px 0 6px;} .ptabs a{padding:8px 15px; border-radius:19px; background:var(--s1); border:1px solid var(--line); font-weight:650; font-size:14.5px; color:var(--paper2); transition:background .15s, color .15s;}
+.ptabs a:hover{color:var(--paper); background:var(--s2);} .ptabs a.on{background:var(--paper); border-color:var(--paper); color:var(--ink);}
+.psearch{width:100%; max-width:420px; height:40px; margin:4px 0 2px; padding:0 14px; border-radius:10px; border:1px solid var(--line); background:var(--s1); color:var(--paper); font:inherit; font-size:15px;} .psearch:focus{outline:none; border-color:var(--chart);}
+.strip.round{grid-auto-columns:124px; gap:10px;}
+.pa{display:block; min-width:0; text-align:center;} .pa b{font-size:14px; font-weight:650; line-height:1.25; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;} .pa small{display:block; margin-top:2px; font-size:12px; color:var(--paper3);}
+.pa .av{position:relative; display:block; width:112px; height:112px; margin:0 auto 9px; border-radius:50%; overflow:hidden; background:linear-gradient(145deg, hsl(var(--h, 200) 42% 34%), hsl(calc(var(--h, 200) + 40) 46% 17%)); box-shadow:0 0 0 1px rgba(255,255,255,.1), 0 8px 20px rgba(0,0,0,.35); transition:transform .18s ease, box-shadow .18s ease;}
+.pa .av i{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-style:normal; font-family:var(--serif); font-weight:800; font-size:30px; letter-spacing:-.02em; color:rgba(255,255,255,.85);}
+.pa .av img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:50% 22%;}
+@media (hover:hover){ html:not(.tv) .pa:hover .av{transform:translateY(-3px) scale(1.04); box-shadow:0 0 0 2px var(--paper), 0 14px 28px rgba(0,0,0,.5);} }
+.pgrid{display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:22px 8px; margin-top:8px;}
+@media (max-width:760px){ html:not(.tv) .ptabs{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin-left:-18px; margin-right:-18px; padding:0 18px;} html:not(.tv) .ptabs::-webkit-scrollbar{display:none;} html:not(.tv) .ptabs a{flex:none;}
+  html:not(.tv) .strip.round{grid-auto-columns:104px;} html:not(.tv) .pa .av{width:92px; height:92px;} html:not(.tv) .pa .av i{font-size:25px;} html:not(.tv) .pgrid{grid-template-columns:repeat(auto-fill, minmax(98px, 1fr)); gap:18px 6px;} }
+html.tv .strip.round{grid-auto-columns:calc(170px * var(--k, 1));} html.tv .pa .av{width:calc(150px * var(--k, 1)); height:calc(150px * var(--k, 1));} html.tv .pa .av i{font-size:calc(40px * var(--k, 1));} html.tv .pa b{font-size:calc(19px * var(--k, 1));} html.tv .pa small{font-size:calc(15px * var(--k, 1));}
+html.tv .pgrid{grid-template-columns:repeat(auto-fill, minmax(calc(170px * var(--k, 1)), 1fr));} html.tv .ptabs a{padding:calc(12px * var(--k, 1)) calc(20px * var(--k, 1)); font-size:calc(20px * var(--k, 1));} html.tv .pa:focus .av{box-shadow:0 0 0 4px var(--amber2);}
 /* le file di locandine */
 .strip{scrollbar-width:none; padding:8px 2px 10px; margin:0 -2px;} .strip::-webkit-scrollbar{display:none;}
 .tile{border-radius:10px; transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;}
@@ -339,7 +354,7 @@ html.tv .ruler.mini{height:calc(150px * var(--k, 1));}
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '2.6';
+const APP_VERSION = '3.0';
 /* Copiate dalla Videoteca da build_serie.py: leggono l'indice delle serie e il cast esattamente come lei. */
 let SERIES = null, SERIES_BY_ID = null, SERIES_STATE = 'idle', _seriesPromise = null, IMDB_INDEX = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -1368,25 +1383,29 @@ function itaChapters(){
   const now = new Date().getFullYear(); add('oggi', IS_SERIE ? 'Le ultime' : 'Gli ultimi anni', `Dal ${now - 4} a oggi.`, top(all.filter(e=>yr(e) >= now - 4 && itaScore(e) >= 6.3)));
   return out;
 }
-function itaMaestri(){   // i registi italiani dell'atlante: almeno tre film italiani, in ordine di peso
+function itaMaestri(n){   // i registi italiani dell'atlante: almeno tre film italiani, in ordine di peso
   if(IS_SERIE) return []; const m = new Map();
   itaList().forEach(e=>dirs(e).forEach(n=>{ const x = m.get(n) || { name: n, n: 0, s: 0 }; x.n++; x.s += Math.pow(Math.max(0, itaScore(e) - 5.5), 2); m.set(n, x); }));
-  return [...m.values()].filter(x=>x.n >= 3).sort((a, b)=>b.s - a.s).slice(0, 24);
+  return [...m.values()].filter(x=>x.n >= 3).sort((a, b)=>b.s - a.s).slice(0, n || 24);
 }
 function italiaTile(){ try{ const n = itaList().length; return n >= 6 ? `<a class="genre" href="#italia" style="--tilebg:var(--s2)"><span class="tric-t"><i class="tric" aria-hidden="true"></i>${ITA_NAME()}</span><span>${n.toLocaleString('it-IT')}</span></a>` : ''; }catch(err){ return ''; } }
 function viewItalia(arg){
   setNav('home'); const all = itaList(), noun = IS_SERIE ? 'serie' : 'film';
   if(all.length < 6){ V().innerHTML = `<p class="crumbs"><a href="#">Esplora</a> › ${ITA_NAME()}</p><h1 class="pg">${ITA_NAME()}</h1><p class="lead">Questa sezione arriva con il prossimo aggiornamento notturno degli indici.</p>`; return; }
-  const d = parseInt(arg, 10);
-  if(d){ ROW_EXTRA = null; return viewList('italiani', { o: 'nessuno', d }, all, `<p class="crumbs"><a href="#">Esplora</a> › <a href="#italia">${ITA_NAME()}</a> › Anni ${d}</p><h1 class="pg"><i class="tric" aria-hidden="true"></i> ${ITA_NAME()}, anni ${d < 2000 ? '’' + String(d).slice(2) : d}</h1>`, `${IS_SERIE ? 'Le serie italiane' : 'I film italiani'} del decennio, ${IS_SERIE ? 'dalla più apprezzata' : 'dal più apprezzato'}.`, { genre: true, decade: true }); }
-  const C = itaChapters(), M = itaMaestri(), seen = all.filter(e=>has(e.id, 'v')).length;
-  V().innerHTML = `<p class="crumbs"><a href="#">Esplora</a> › ${ITA_NAME()}</p><h1 class="pg"><i class="tric" aria-hidden="true"></i> ${ITA_NAME()}</h1>`
-    + `<p class="lead">${all.length.toLocaleString('it-IT')} ${noun} di casa nostra, capitolo per capitolo: ${IS_SERIE ? 'le più grandi, i decenni, i generi' : 'i più grandi, i decenni, i maestri, i generi'}.${seen ? ` Ne hai vist${IS_SERIE ? 'e' : 'i'} ${seen}.` : ''}</p>`
-    + `<div id="itjump" style="display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 6px">${C.map((x, i)=>`<button class="btn" type="button" data-it="${i}">${esc(x.name)}</button>`).join('')}${M.length ? '<button class="btn" type="button" data-it="m">I maestri</button>' : ''}<a class="btn amber" href="#lista/italiani">Tutt${IS_SERIE ? 'e' : 'i'} (${all.length.toLocaleString('it-IT')})</a></div>`
-    + C.map((x, i)=>{ const sv = x.films.filter(e=>has(e.id, 'v')).length;
-        return `<section id="it${i}"><h2 class="sec">${esc(x.name)} <span class="note" style="font-family:var(--ui); font-weight:500">${esc(x.note)}${sv ? `${x.note ? ' · ' : ''}vist${IS_SERIE ? 'e' : 'i'} ${sv} su ${x.films.length}` : ''}</span>${x.more ? `<a class="more" href="${x.more}">Tutto il decennio</a>` : ''}</h2><div class="strip">${x.films.map(tile).join('')}</div></section>`
-          + (x.key === 'grandi' && M.length ? `<section id="itm"><h2 class="sec">I maestri <span class="note" style="font-family:var(--ui); font-weight:500">I registi italiani con più film nell’atlante: tocca un nome per la sua filmografia.</span></h2><div class="people">${M.map(x=>`<a class="person" href="#regista/${encodeURIComponent(x.name)}"><b>${esc(x.name)}</b><span>${x.n} film</span></a>`).join('')}</div></section>` : ''); }).join('');
-  $('itjump').addEventListener('click', ev=>{ const b = ev.target.closest('[data-it]'); const el = b && document.getElementById('it' + b.dataset.it); if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  const d = parseInt(arg, 10), M = itaMaestri(60);
+  const TABS = [['', 'In evidenza']].concat(M.length >= 5 ? [['maestri', 'Maestri']] : [], [['decenni', 'Decenni'], ['generi', 'Generi'], ['tutti', IS_SERIE ? 'Tutte' : 'Tutti']]), tab = d ? 'tutti' : TABS.some(t=>t[0] === arg) ? arg : '';
+  const head = (sub) => `<p class="crumbs"><a href="#">Esplora</a> › ${sub ? `<a href="#italia">${ITA_NAME()}</a> › ${sub}` : ITA_NAME()}</p><h1 class="pg"><i class="tric" aria-hidden="true"></i> ${ITA_NAME()}</h1>`;
+  const tabs = `<div class="ptabs" id="ptabs">${TABS.map(([k, name])=>`<a href="#italia${k ? '/' + k : ''}" class="${k === tab ? 'on' : ''}">${name}</a>`).join('')}</div>`;
+  if(tab === 'tutti'){ ROW_EXTRA = null; return viewList('italiani', d ? { o: 'nessuno', d } : { o: 'nessuno' }, all, head(d ? 'Anni ' + d : (IS_SERIE ? 'Tutte' : 'Tutti')) + tabs, d ? `${IS_SERIE ? 'Le serie italiane' : 'I film italiani'} del decennio, ${IS_SERIE ? 'dalla più apprezzata' : 'dal più apprezzato'}.` : LISTS.italiani[3], { genre: true, decade: true }); }
+  const seen = all.filter(e=>has(e.id, 'v')).length, lead = `<p class="lead">${all.length.toLocaleString('it-IT')} ${noun} di casa nostra.${seen ? ` Ne hai vist${IS_SERIE ? 'e' : 'i'} ${seen}.` : ''}</p>`;
+  if(tab === 'maestri'){ const by = new Map(dirRanking().map(p=>[p.name, p])), L = M.map(m=>Object.assign({}, by.get(m.name) || {}, m)), rows = [];
+    if(typeof eraOf === 'function'){ const T = { o: 'I contemporanei', n: 'Gli anni ’70', c: 'I classici' }, g = { c: [], n: [], o: [] }; L.forEach(p=>g[eraOf(p)].push(p)); ['c', 'n', 'o'].forEach(k=>{ if(g[k].length >= 4) rows.push(psec(T[k], ERA_TXT[k], '', pstrip('regista', g[k]))); }); }
+    V().innerHTML = head() + lead + tabs + rows.join('') + psec('Tutti i maestri', 'I registi italiani con più film nell’atlante, dal più importante.', '', `<div class="pgrid">${L.map(p=>pa('regista', p)).join('')}</div>`, 'itm'); return; }
+  const C = itaChapters().filter(x=>tab === 'decenni' ? (x.key === 'origini' || /^d\d/.test(x.key)) : tab === 'generi' ? !['grandi', 'premi', 'oggi', 'origini'].includes(x.key) && !/^d\d/.test(x.key) : ['grandi', 'premi', 'oggi'].includes(x.key));
+  if(tab === 'decenni') C.reverse();
+  V().innerHTML = head() + lead + tabs + C.map(x=>{ const sv = x.films.filter(e=>has(e.id, 'v')).length;
+    return psec(x.name, x.note + (sv ? `${x.note ? ' · ' : ''}vist${IS_SERIE ? 'e' : 'i'} ${sv} su ${x.films.length}` : ''), x.more ? `<a class="more" href="${x.more}">Tutto il decennio</a>` : '', `<div class="strip">${x.films.map(tile).join('')}</div>`)
+      + (x.key === 'grandi' && M.length >= 5 ? psec('I maestri', '', `<a class="more" href="#italia/maestri">Tutti i maestri</a>`, pstrip('regista', M.slice(0, 20)), 'itm') : ''); }).join('');
 }
 const LISTS = {
   italiani: [IS_SERIE ? 'Serie italiane' : 'Cinema italiano', () => itaList(), 'nessuno', IS_SERIE ? 'Le serie italiane dell\'atlante, dalla più apprezzata. Paese e lingua vengono da Wikidata: produzioni solo italiane, o italiane girate in italiano.' : 'I film italiani dell\'atlante, dal più apprezzato: da Rossellini e Fellini a oggi. Paese e lingua vengono da Wikidata: produzioni solo italiane, o italiane girate in italiano.'],
@@ -1441,18 +1460,91 @@ function searchPeople(kind, words){   // TUTTI i registi e gli attori dell'indic
   }
   return out.sort((a, b)=>b.s - a.s).slice(0, 40);
 }
-function peopleView(kind, list, q){
-  const f = q ? list.filter(p=>normKey(p.name).includes(normKey(q))) : list;
-  return `<div class="people">${f.slice(0, 300).map(p=>`<a class="person" href="#${kind}/${encodeURIComponent(p.name)}"><b>${esc(p.name)}</b><span>${p.n} serie</span></a>`).join('') || '<p class="note">Nessun nome trovato.</p>'}</div>`;
+/* ---------- Persone come ritratti: registi e attori in file e griglie di cerchi con la foto ----------
+   La foto arriva da Wikipedia (voce con lo stesso nome), 48 nomi per richiesta, e resta in memoria tre mesi. Si usa solo se la voce
+   descrive davvero un regista (o un attore): così un omonimo non presta la faccia. Senza foto, o senza rete, restano le iniziali. */
+const FACE = new Map(), NOUN_P = IS_SERIE ? 'serie' : 'film';
+const faceKey = (kind, name) => (kind === 'regista' ? 'r' : 'a') + '|' + name;
+const hueOf = t => { let h = 0; for(const c of String(t)) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h % 360; };
+const inits = n => { const w = String(n || '').split(/\s+/).filter(Boolean); return ((w[0] || '')[0] || '').toUpperCase() + (w.length > 1 ? (w[w.length - 1][0] || '').toUpperCase() : ''); };
+function pa(kind, p){ const k = faceKey(kind, p.name), u = FACE.get(k);
+  return `<a class="pa" href="#${kind}/${encodeURIComponent(p.name)}" data-ph="${esc(k)}"><span class="av" style="--h:${hueOf(p.name)}"><i>${esc(inits(p.name))}</i>${u ? `<img src="${esc(u)}" alt="" loading="lazy" onerror="this.remove()">` : ''}</span><b>${esc(p.name)}</b>${p.n ? `<small>${p.n} ${NOUN_P}</small>` : ''}</a>`; }
+const FACE_OK = { r: /regist|cineast|director|filmmaker|sceneggiat|screenwriter|animat|produttor|producer|showrunner|autore|creator|scrittor|writer/i, a: /attor|attric|actor|actress|comic|comedian|cantante|singer|doppiat|modell|condutt|presentat|performer|wrestler|rapper|musicist|musician|regist|director/i };
+async function faceFetch(keys){   // chiave → indirizzo della foto; null se Wikipedia non risponde
+  const out = {}, byName = new Map(); keys.forEach(k=>{ const n = k.slice(2); if(!byName.has(n)) byName.set(n, []); byName.get(n).push(k); });
+  let names = [...byName.keys()], answered = false;
+  for(const lang of ['it', 'en']){ if(!names.length) break;
+    try{ const w = await jget(`https://${lang}.wikipedia.org/w/api.php?action=query&prop=pageimages|description&piprop=thumbnail&pithumbsize=240&pilicense=any&redirects=1&format=json&origin=*&titles=${encodeURIComponent(names.join('|'))}`);
+      answered = true; const qq = w.query || {}, alias = {}, pages = {}; (qq.normalized || []).concat(qq.redirects || []).forEach(n=>{ alias[n.from] = n.to; }); Object.values(qq.pages || {}).forEach(pg=>{ pages[pg.title] = pg; });
+      names = names.filter(n0=>{ let t = n0; for(let i = 0; i < 3 && alias[t]; i++) t = alias[t]; const pg = pages[t], src = pg && pg.thumbnail && pg.thumbnail.source, d = (pg && pg.description) || ''; let hit = false;
+        if(src) byName.get(n0).forEach(k=>{ if(FACE_OK[k[0]].test(d)){ out[k] = src; hit = true; } }); return !hit; });
+    }catch(err){}
+  }
+  return answered ? out : null;
 }
-function viewDirectors(){ setNav('registi'); const list = dirRanking();
-  V().innerHTML = `<h1 class="pg">Registi</h1><p class="lead">I registi con almeno tre serie note, in ordine di importanza: conta quanto sono amati i loro serie, e da quante persone.</p><div class="ctrl"><label>Cerca un regista<input id="pq" type="search" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--s1); padding:0 10px"></label></div><div id="pl">${peopleView('regista', list)}</div>`;
-  $('pq').addEventListener('input', ()=>{ $('pl').innerHTML = peopleView('regista', normKey($('pq').value).length >= 2 ? searchPeople('regista', normKey($('pq').value).split(' ').filter(Boolean)) : list); }); }
-function viewActors(){ setNav('attori');
-  if(!CAST_INDEX){ V().innerHTML = `<h1 class="pg">Attori</h1><div class="box"><div class="in">L'indice degli attori non c'è ancora: lo crea l'automazione <b>"Aggiorna indice IMDb"</b> della Videoteca. Lanciala su GitHub (Actions → Run workflow) e poi riapri l'Atlante.</div></div>`; return; }
-  const list = actorRanking();
-  V().innerHTML = `<h1 class="pg">Attori</h1><p class="lead">Gli attori con almeno tre serie note, in ordine di importanza.</p><div class="ctrl"><label>Cerca un attore<input id="pq" type="search" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--s1); padding:0 10px"></label></div><div id="pl">${peopleView('attore', list)}</div>`;
-  $('pq').addEventListener('input', ()=>{ $('pl').innerHTML = peopleView('attore', normKey($('pq').value).length >= 2 ? searchPeople('attore', normKey($('pq').value).split(' ').filter(Boolean)) : list); }); }
+function facePaint(){ document.querySelectorAll('#view a.pa[data-ph]').forEach(a=>{ const u = FACE.get(a.dataset.ph), av = a.querySelector('.av'); if(u && av && !av.querySelector('img')){ const i = document.createElement('img'); i.alt = ''; i.loading = 'lazy'; i.onerror = () => i.remove(); i.src = u; av.appendChild(i); } }); }
+let _faceBusy = false, _faceAgain = false, _faceT = null;
+function fillFaces(){ clearTimeout(_faceT); _faceT = setTimeout(faceRun, 150); }
+async function faceRun(){
+  if(_faceBusy){ _faceAgain = true; return; } _faceBusy = true;
+  try{ for(let round = 0; round < 12; round++){
+    const need = [...new Set([...document.querySelectorAll('#view a.pa[data-ph]')].map(a=>a.dataset.ph))].filter(k=>!FACE.has(k)).slice(0, 48); if(!need.length) break;
+    const todo = []; for(const k of need){ const c = await dget('ph1:' + k); if(c && Date.now() - c.at < (c.u ? 90 : 20) * 864e5) FACE.set(k, c.u); else todo.push(k); }
+    facePaint(); if(!todo.length) continue;
+    const found = navigator.onLine === false ? null : await faceFetch(todo);
+    todo.forEach(k=>{ const u = (found && found[k]) || ''; FACE.set(k, u); if(found) dset('ph1:' + k, { at: Date.now(), u }); });   // se la rete manca non si scrive nulla: si riprova la prossima volta
+    facePaint();
+  } }catch(err){}
+  _faceBusy = false; if(_faceAgain){ _faceAgain = false; fillFaces(); }
+}
+try{ if(typeof MutationObserver !== 'undefined') new MutationObserver(()=>{ if(document.querySelector('#view a.pa[data-ph]')) fillFaces(); }).observe(document.getElementById('view'), { childList: true, subtree: true }); }catch(err){}
+const psec = (title, note, more, body, id) => `<section${id ? ` id="${id}"` : ''}><h2 class="sec">${esc(title)}${note ? ` <span class="note" style="font-family:var(--ui); font-weight:500">${esc(note)}</span>` : ''}${more || ''}</h2>${body}</section>`;
+const pstrip = (kind, l) => `<div class="strip round">${l.map(p=>pa(kind, p)).join('')}</div>`;
+function peopleView(kind, list, q){   // ovunque servano dei nomi (anche nei risultati della ricerca): una griglia di ritratti
+  const f = q ? list.filter(p=>normKey(p.name).includes(normKey(q))) : list;
+  return f.length ? `<div class="pgrid">${f.slice(0, 180).map(p=>pa(kind, p)).join('')}</div>` : '<p class="note">Nessun nome trovato.</p>';
+}
+const PEOPLE_G = ['Drammatico', 'Commedia', 'Thriller', 'Crime', 'Azione', 'Fantascienza', 'Horror', 'Avventura', 'Romantico', 'Animazione', 'Western', 'Guerra', 'Fantasy', 'Documentario'];
+const _PD = {};
+function peopleData(kind){   // per ogni persona: i suoi titoli, quanti capolavori, quanti ne hai visti, i suoi generi
+  const base = kind === 'regista' ? dirRanking() : actorRanking(); if(_PD[kind] && _PD[kind].base === base) return _PD[kind];
+  const list = base.filter(p=>p.n >= 1);
+  list.forEach(p=>{ if(p._g) return; const fs = (kind === 'regista' ? (BY_DIR.get(p.name) || []) : actorFilmography(p.name)).filter(Boolean); fs.forEach(enrich);
+    p._mp = fs.filter(e=>e._mp).length; p._ids = fs.map(e=>e.id); const c = new Map(); fs.forEach(e=>genres(e).forEach(g=>c.set(g, (c.get(g) || 0) + 1)));
+    p._g = [...c.entries()].filter(([g, n])=>n >= 3 && n >= fs.length * 0.4).map(x=>x[0]); });
+  return (_PD[kind] = { base, list });
+}
+function peopleRows(kind, tab){
+  const D = peopleData(kind), all = D.list, R = kind === 'regista', out = [], add = (name, note, l, more) => { if(l.length >= 5) out.push({ name, note, l, more: more || '' }); };
+  if(tab === 'generi'){ PEOPLE_G.forEach(g=>add(g, '', all.filter(p=>p._g.includes(g)).slice(0, 24))); return out; }
+  if(tab === 'epoche'){ if(typeof eraOf !== 'function') return out; const T = R ? { o: 'Registi contemporanei', n: 'La New Hollywood e gli anni ’70', c: 'Registi classici' } : { o: 'Interpreti contemporanei', n: 'La New Hollywood e gli anni ’70', c: 'Interpreti classici' };
+    const g = { c: [], n: [], o: [] }; all.forEach(p=>g[eraOf(p)].push(p));
+    ['o', 'n', 'c'].forEach(k=>{ const a = g[k].filter(p=>!IN_MEZZO.has(p.name)); g[k].filter(p=>IN_MEZZO.has(p.name)).forEach(p=>a.splice(Math.min(a.length, 12), 0, p)); add(T[k], ERA_TXT[k] + ' · ' + a.length + ' nomi', a.slice(0, 36)); });
+    return out; }
+  add(R ? 'I più grandi' : 'I più grandi', R ? 'Quanto sono amati i loro ' + NOUN_P + ', e da quante persone.' : '', all.slice(0, 30));
+  add(R ? 'I maestri dei capolavori' : 'I volti dei capolavori', R ? 'Chi ne ha firmati di più.' : 'Chi ne ha interpretati di più.', all.filter(p=>p._mp >= 2).sort((a, b)=>b._mp - a._mp || b.s - a.s).slice(0, 24));
+  const seen = p => p._ids.filter(id=>has(id, 'v')).length; add(R ? 'I tuoi registi' : 'I tuoi attori', 'Quelli di cui hai visto più ' + NOUN_P + '.', all.map(p=>[seen(p), p]).filter(x=>x[0] >= 2).sort((a, b)=>b[0] - a[0] || b[1].s - a[1].s).slice(0, 24).map(x=>x[1]));
+  if(all.some(p=>isFinite(p.y0))) add('Le nuove voci', 'Esordio dal 2005.', all.filter(p=>p.y0 >= 2005).slice(0, 24));
+  if(R && !IS_SERIE){ try{ const by = new Map(all.map(p=>[p.name, p])); add('Maestri italiani', '', itaMaestri(24).map(m=>Object.assign({}, by.get(m.name) || {}, m)), '<a class="more" href="#italia/maestri">Cinema italiano</a>'); }catch(err){} }
+  return out;
+}
+function viewPeople(kind, arg){
+  const R = kind === 'regista', base = R ? 'registi' : 'attori'; setNav(base);
+  if(!R && !CAST_INDEX){ V().innerHTML = `<h1 class="pg">Attori</h1><div class="box"><div class="in">L'indice degli attori non c'è ancora: lo crea l'automazione <b>"Aggiorna indice IMDb"</b> della Videoteca. Lanciala su GitHub (Actions → Run workflow) e poi riapri l'Atlante.</div></div>`; return; }
+  const D = peopleData(kind), eras = typeof eraOf === 'function' && D.list.some(p=>isFinite(p.y0));
+  const TABS = [['', 'In evidenza']].concat(eras ? [['epoche', 'Epoche']] : [], [['generi', 'Generi'], ['tutti', 'Tutti']], R && typeof viewGrandiRegisti === 'function' ? [['grandi', 'I grandi maestri']] : []);
+  const tab = TABS.some(t=>t[0] === arg) ? arg : ''; let n = 60;
+  V().innerHTML = `<h1 class="pg">${R ? 'Registi' : 'Attori'}</h1><p class="lead">${D.list.length.toLocaleString('it-IT')} ${R ? 'registi' : 'attori e attrici'}, dal più importante: tocca un ritratto per la biografia e ${R ? 'la filmografia' : 'tutti i suoi ' + NOUN_P}.</p>`
+    + `<div class="ptabs" id="ptabs">${TABS.map(([k, name])=>`<a href="${k === 'grandi' ? '#grandi-registi' : '#' + base + (k ? '/' + k : '')}" class="${k === tab ? 'on' : ''}">${name}</a>`).join('')}</div>`
+    + `<input class="psearch" id="pq" type="search" placeholder="Cerca ${R ? 'un regista' : 'un attore o un\'attrice'}…" aria-label="Cerca per nome">`
+    + `<div id="prows">${tab === 'tutti' ? `<h2 class="sec">Tutti <span class="note" style="font-family:var(--ui); font-weight:500">${D.list.length.toLocaleString('it-IT')}</span></h2>` : peopleRows(kind, tab).map(r=>psec(r.name, r.note, r.more, pstrip(kind, r.l))).join('')}</div>`
+    + `<div id="pl"></div><p style="margin-top:18px"><button class="btn hidden" id="pm" type="button">Mostra altri</button></p>`;
+  const draw = () => { const q = normKey($('pq').value), on = q.length >= 2, l = on ? searchPeople(kind, q.split(' ').filter(Boolean)) : tab === 'tutti' ? D.list : [];
+    $('prows').classList.toggle('hidden', on); $('pl').innerHTML = l.length ? `<div class="pgrid">${l.slice(0, n).map(p=>pa(kind, p)).join('')}</div>` : on ? '<p class="note">Nessun nome trovato.</p>' : ''; $('pm').classList.toggle('hidden', l.length <= n); };
+  $('pq').addEventListener('input', ()=>{ n = 60; draw(); }); $('pm').onclick = () => { n += 60; draw(); }; draw();
+}
+function viewDirectors(arg){ viewPeople('regista', arg); }
+function viewActors(arg){ viewPeople('attore', arg); }
 function personPage(kind, name, films, roles, qid0){
   const seen = new Set(), fs = films.filter(e=>e && !seen.has(e.id) && seen.add(e.id)).map(enrich), known = fs.filter(e=>e.v >= 1000);
   const years = fs.map(e=>parseInt(e.y, 10)).filter(Boolean), mp = fs.filter(e=>e._mp).length, rated = fs.filter(e=>e.v >= 5000);
@@ -2010,9 +2102,9 @@ function route(){
   if(k === 'lista') return viewNamedList(arg);
   if(k === 'genere') return viewGenre(arg);
   if(k === 'decennio') return viewDecade(arg);
-  if(k === 'registi') return viewDirectors();
+  if(k === 'registi') return viewDirectors(arg);
   if(k === 'regista') return viewDirector(arg);
-  if(k === 'attori') return viewActors();
+  if(k === 'attori') return viewActors(arg);
   if(k === 'attore') return viewActor(arg);
   if(k === 'cerca') return viewSearch(arg);
   if(k === 'liste') return viewLists(arg);
