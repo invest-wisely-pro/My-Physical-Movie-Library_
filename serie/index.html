@@ -339,7 +339,7 @@ html.tv .ruler.mini{height:calc(150px * var(--k, 1));}
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '2.5';
+const APP_VERSION = '2.6';
 /* Copiate dalla Videoteca da build_serie.py: leggono l'indice delle serie e il cast esattamente come lei. */
 let SERIES = null, SERIES_BY_ID = null, SERIES_STATE = 'idle', _seriesPromise = null, IMDB_INDEX = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -1334,7 +1334,14 @@ const critN = (k, f) => e => { const n = CRITICA && CRITICA[k] && CRITICA[k][e.i
    Il paese viene dall'indice della critica (Wikidata, ogni notte): produzioni solo italiane, o italiane girate in italiano.
    Finché l'indice non lo porta, la sezione semplicemente non compare. I film italiani hanno meno voti su IMDb dei kolossal
    americani: qui il voto è pesato in modo più leggero, così i classici non finiscono in fondo. */
-const isIta = e => { try{ const a = CRITICA && CRITICA.ita, l = CRITICA && CRITICA.ita_l; return !!e && !!((a && a[e.id] === 1) || (l && l[e.id])); }catch(err){ return false; } };
+/* Chi è italiano. Sicuro: prodotto solo in Italia, oppure italiano e girato solo in italiano. Dubbio: più paesi e più lingue
+   (i western di Leone, ma anche Il padrino, che Wikidata dà con l'Italia tra i paesi e l'italiano tra le lingue): passa solo se il
+   regista è italiano, cioè ha almeno due film sicuramente italiani nell'atlante. */
+const itaSure = e => { const a = CRITICA && CRITICA.ita, l = CRITICA && CRITICA.ita_l; return !!e && !!((a && a[e.id] === 1) || (l && l[e.id] === 1)); };
+let _ITAD = null;
+function itaDirs(){ if(_ITAD && _ITAD.c === CRITICA) return _ITAD.s; const m = new Map(); ALL.forEach(e=>{ if(itaSure(e)) dirs(e).forEach(n=>m.set(n, (m.get(n) || 0) + 1)); }); const s = new Set([...m.entries()].filter(x=>x[1] >= 2).map(x=>x[0])); _ITAD = { c: CRITICA, s }; return s; }
+const isIta = e => { try{ if(!e || !CRITICA || !CRITICA.ita) return false; if(itaSure(e)) return true; const l = CRITICA.ita_l; if(!(l && l[e.id] > 1)) return false; if(IS_SERIE) return CRITICA.ita[e.id] <= 2;   // le serie non hanno un regista: basta che i paesi siano al massimo due
+  const D = itaDirs(); return dirs(e).some(n=>D.has(n)); }catch(err){ return false; } };
 const itaScore = e => { const m = IS_SERIE ? 1500 : 3000, v = e.v || 0; return (v / (v + m)) * (e._R || 0) + (m / (v + m)) * 6.4; };
 let _ITA = null;
 function itaList(){ if(_ITA && _ITA.c === CRITICA) return _ITA.l; const l = BY_V.filter(e=>{ enrich(e); return isIta(e) && e.v >= (IS_SERIE ? 800 : 1500); }).sort((a, b)=>itaScore(b) - itaScore(a) || b.v - a.v); _ITA = { c: CRITICA, l }; return l; }
@@ -1382,7 +1389,7 @@ function viewItalia(arg){
   $('itjump').addEventListener('click', ev=>{ const b = ev.target.closest('[data-it]'); const el = b && document.getElementById('it' + b.dataset.it); if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); });
 }
 const LISTS = {
-  italiani: [IS_SERIE ? 'Serie italiane' : 'Cinema italiano', () => itaList(), 'nessuno', IS_SERIE ? 'Le serie italiane dell\'atlante, dalla più apprezzata. Sono italiane le produzioni solo italiane o girate in italiano, secondo Wikidata.' : 'I film italiani dell\'atlante, dal più apprezzato: da Rossellini e Fellini a oggi. Sono italiane le produzioni solo italiane o girate in italiano, secondo Wikidata.'],
+  italiani: [IS_SERIE ? 'Serie italiane' : 'Cinema italiano', () => itaList(), 'nessuno', IS_SERIE ? 'Le serie italiane dell\'atlante, dalla più apprezzata. Paese e lingua vengono da Wikidata: produzioni solo italiane, o italiane girate in italiano.' : 'I film italiani dell\'atlante, dal più apprezzato: da Rossellini e Fellini a oggi. Paese e lingua vengono da Wikidata: produzioni solo italiane, o italiane girate in italiano.'],
   mese: ['🆕 Uscite dell\'ultimo mese', () => monthList(), 'nessuno', 'Le serie partite negli ultimi 30 giorni, dalla più recente. La data è quella della prima puntata su Wikidata; l\'elenco si aggiorna da solo ogni giorno.', e => dayShort(MONTH && MONTH.get(e.id))],
   'migliori-anno': ['⭐ Le migliori dell\'anno', () => bestOfYear().l.slice(0, 200), 'nessuno', 'Le serie partite nell\'anno in corso con almeno 3.000 voti, dalla più apprezzata. Cambia da solo con l\'anno.'],
   novita: [NOVITA_TITLE, () => novitaList(), 'nessuno', 'Le serie iniziate quest\'anno e lo scorso, dalla più recente: la data è quella della prima puntata (in Italia quando Wikidata la conosce).'],
