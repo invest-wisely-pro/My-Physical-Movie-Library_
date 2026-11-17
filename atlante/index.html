@@ -364,7 +364,7 @@ html.tv .ruler.mini{height:calc(150px * var(--k, 1));}
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '3.2';
+const APP_VERSION = '3.4';
 /* Copiate dalla Videoteca da build.py: leggono gli indici esattamente come lei. */
 let IMDB_INDEX = null, IMDB_INDEX_STATE = 'idle', IMDB_BY_ID = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -1086,28 +1086,34 @@ function viewPeriodo(){
 /* ---------- 🎬 La vetrina: il titolo del giorno in cima a Esplora ----------
    Un blocco isolato: se qualcosa non va non mostra nulla e restano i tre pulsanti di sempre.
    Il titolo viene dalla fila del periodo (a Natale un film di Natale), solo tra quelli con la locandina, e cambia ogni giorno. */
-function heroPick(){
-  let P = null, list = [];
-  try{ const r = periodList(); P = r.P; list = noIndia(r.list); }catch(err){}
+function heroPick(){   // tre titoli al giorno, uno per tipo: la stagione, le uscite del mese, i migliori dell'anno
   const withP = l => IS_SERIE ? l : l.filter(e=>posterUrl(e, 'w342'));   // i film hanno la locandina nell'indice; per le serie arriva da Wikipedia un attimo dopo
-  let pool = withP(list.filter(e=>{ enrich(e); return goodEnough(e); }));
-  if(pool.length < 8) pool = withP(list);
-  if(pool.length < 8){ P = null; pool = withP(noIndia(MASTER.filter(e=>!has(e.id, 'v')))); }
-  return pool.length ? { l: dayPick(pool, 3), P } : null;   // tre titoli al giorno, che scorrono
+  const fresh = l => noIndia(l.filter(e=>e && !has(e.id, 'v') && !isBW(e))), out = [], lab = [], used = new Set();
+  const take = (pool, label) => { const l = pool.filter(e=>!used.has(e.id)); if(!l.length) return false; const e = dayPick(l, 1)[0]; used.add(e.id); out.push(e); lab.push(label); return true; };
+  let season = [], P = null;
+  try{ const r = periodList(); P = r.P; const l = fresh(r.list); season = withP(l.filter(e=>{ enrich(e); return goodEnough(e); })); if(season.length < 8) season = withP(l); }catch(err){}
+  if(season.length < 8){ P = null; season = withP(fresh(MASTER)); }
+  take(season, P ? P[0] : 'Da non perdere');
+  try{ const ml = withP(fresh(monthList())).filter(e=>{ enrich(e); return e.v >= (IS_SERIE ? 300 : 1000) && e._R >= 6.3; }).sort((a, b)=>b.v - a.v).slice(0, 8);   // le più viste del mese, solo se piacciono
+    if(!take(ml, IS_SERIE ? 'Uscita questo mese' : 'Uscito questo mese') && IS_SERIE && typeof SEASONS_NEW !== 'undefined' && SEASONS_NEW)   // le serie nuove del mese sono poche: allora una nuova stagione
+      take(withP(fresh(SEASONS_NEW.map(x=>x.e))).filter(e=>{ enrich(e); return goodEnough(e); }).slice(0, 12), 'Nuova stagione'); }catch(err){}
+  try{ const b = bestOfYear(); take(withP(fresh(b.l)).filter(e=>{ enrich(e); return e._R >= 6.8; }).slice(0, 10), `Tra i migliori del ${b.Y}`); }catch(err){}
+  while(out.length < 3 && take(season.slice(0, 60), P ? P[0] : 'Da non perdere')){}
+  return out.length ? { l: out, lab } : null;
 }
-function heroSlide(e, P, on){
+function heroSlide(e, lab, on){
   const t = tile(e), href = (t.match(/href="([^"]+)"/) || [])[1] || '#', bg = posterUrl(e, 'w342') || unL(WPOST.get(e.id) || '');
   const meta = [e.y ? esc(e.y) : '', dirs(e).slice(0, 2).map(esc).join(', '), genres(e).slice(0, 3).map(esc).join(' · '), e.r ? esc(e.r + ' min') : ''].filter(Boolean).join('  ·  ');
   const sc = [`<span class="hs">${fmtR(e._R)} <small>IMDb</small></span>`, e._rt != null ? `<span class="hs">${e._rt}% <small>critica</small></span>` : '', e._mc != null ? `<span class="hs">${e._mc} <small>Metacritic</small></span>` : ''].join('');
   return `<div class="hero-s${on ? ' on' : ''}" data-id="${e.id}" style="--tilebg:${tileBg(e)}"${on ? '' : ' inert aria-hidden="true"'}>${bg ? `<div class="hero-bg" style="background-image:url('${esc(bg)}')"></div>` : ''}${snowHTML()}<div class="hero-in">`
-    + `<div class="hero-txt"><p class="hero-eye">Oggi in evidenza${P ? ' · ' + esc(P[0]) : ''}</p><h1 class="hero-t"><a href="${href}">${esc(title(e))}</a></h1>`
+    + `<div class="hero-txt"><p class="hero-eye">Oggi in evidenza${lab ? ' · ' + esc(lab) : ''}</p><h1 class="hero-t"><a href="${href}">${esc(title(e))}</a></h1>`
     + `<p class="hero-meta">${meta}</p><div class="hero-sc">${sc}${badges(e)}</div><p class="hero-sum" data-id="${e.id}"></p></div>`
     + `<div class="hero-act"><a class="btn go" href="${href}">Apri la scheda</a></div>`
     + `<div class="hero-p">${t}</div></div></div>`;
 }
 function heroHTML(){
   try{ const h = heroPick(); if(!h || !h.l.length) return '';
-    return `<section class="hero" data-i="0" aria-label="In evidenza">${h.l.map((e, i)=>heroSlide(e, h.P, !i)).join('')}`
+    return `<section class="hero" data-i="0" aria-label="In evidenza">${h.l.map((e, i)=>heroSlide(e, h.lab[i], !i)).join('')}`
       + (h.l.length > 1 ? `<div class="hero-dots">${h.l.map((e, i)=>`<button type="button" class="hero-dot${i ? '' : ' on'}" data-i="${i}" aria-label="${esc(title(e))}"></button>`).join('')}</div>` : '') + `</section>`;
   }catch(err){ return ''; }
 }
@@ -1445,6 +1451,14 @@ const ITA_NO = new Set(['tt0057345']);   // Il disprezzo: un film di Godard, fra
 function itaChapters(){
   const all = itaList(), good = all.filter(e=>itaScore(e) >= 6.5), yr = e => parseInt(e.y, 10) || 0, top = (l, n) => l, out = [];
   const add = (key, name, note, list, more, cap) => { if(list.length >= 5) out.push({ key, name, note, films: list.slice(0, cap || 16), full: list, more: more || '' }); };
+  // in testa, come nella pagina principale: le ultime uscite e i migliori dell'anno, solo italiani (niente reality, talk e quiz)
+  const Y0 = new Date().getFullYear(), show = e => !isBW(e) && !['Reality-TV', 'Talk-Show', 'Game-Show'].some(x=>genres(e).includes(x));
+  const md = e => (MONTH && MONTH.get(e.id)) || '', nm = MONTH ? [...MONTH.keys()].map(imdbEntry).filter(e=>e && isIta(e) && show(e)).sort((a, b)=>md(a) < md(b) ? 1 : md(a) > md(b) ? -1 : b.v - a.v) : [];
+  const yearL = ALL.filter(e=>+e.y === Y0 && !nm.includes(e) && e.v >= (IS_SERIE ? 20 : 50) && isIta(e) && show(e)).sort((a, b)=>b.v - a.v);
+  add('nuove', '🆕 Le ultime uscite', nm.length ? `${nm.length === 1 ? 'Una uscita' : nm.length + ' uscite'} dell'ultimo mese, poi le altre del ${Y0}.` : `Le uscite del ${Y0}.`, nm.concat(yearL), '', 16);
+  const m = IS_SERIE ? 300 : 800, rk = e => (e.v / (e.v + m)) * e._R + (m / (e.v + m)) * 6.4;
+  for(const Y of [Y0, Y0 - 1]){ const l = ALL.filter(e=>+e.y === Y && e.v >= (IS_SERIE ? 100 : 300) && isIta(e) && show(e)).filter(e=>{ enrich(e); return e._R >= 6.2; }).sort((a, b)=>rk(b) - rk(a));
+    if(l.length >= 6 || Y < Y0){ add('annata', `⭐ I migliori del ${Y}`, IS_SERIE ? 'Le serie italiane dell\'anno più apprezzate.' : 'I film italiani dell\'anno più apprezzati.', l, '', 16); break; } }
   add('grandi', IS_SERIE ? 'Le più grandi' : 'I più grandi', IS_SERIE ? 'Le serie italiane più amate di sempre.' : 'I film italiani più amati di sempre.', all, '', 20);
   const decs = [...new Set(good.map(decade).filter(Boolean))].sort((a, b)=>a - b), early = good.filter(e=>yr(e) && yr(e) < 1950);
   if(!IS_SERIE) add('origini', 'Dalle origini al neorealismo', 'Fino al 1949: Rossellini, De Sica, il cinema che ha cambiato tutto.', top(early));
@@ -1483,7 +1497,7 @@ function viewItalia(arg){
   if(tab === 'maestri'){ const by = new Map(dirRanking().map(p=>[p.name, p])), L = M.map(m=>Object.assign({}, by.get(m.name) || {}, m)), rows = [];
     if(typeof eraOf === 'function'){ const T = { o: 'I contemporanei', n: 'Gli anni ’70', c: 'I classici' }, g = { c: [], n: [], o: [] }; L.forEach(p=>g[eraOf(p)].push(p)); ['c', 'n', 'o'].forEach(k=>{ if(g[k].length >= 4) rows.push(psec(T[k], ERA_TXT[k], '', pstrip('regista', g[k]))); }); }
     V().innerHTML = head() + lead + tabs + rows.join('') + psec('Tutti i maestri', 'I registi italiani con più film nell’atlante, dal più importante.', '', `<div class="pgrid">${L.map(p=>pa('regista', p)).join('')}</div>`, 'itm'); return; }
-  const C = itaChapters().filter(x=>tab === 'decenni' ? (x.key === 'origini' || /^d\d/.test(x.key)) : tab === 'generi' ? !['grandi', 'premi', 'oggi', 'origini'].includes(x.key) && !/^d\d/.test(x.key) : ['grandi', 'premi', 'oggi'].includes(x.key));
+  const C = itaChapters().filter(x=>tab === 'decenni' ? (x.key === 'origini' || /^d\d/.test(x.key)) : tab === 'generi' ? !['nuove', 'annata', 'grandi', 'premi', 'oggi', 'origini'].includes(x.key) && !/^d\d/.test(x.key) : ['nuove', 'annata', 'grandi', 'premi', 'oggi'].includes(x.key));
   if(tab === 'decenni') C.reverse();
   V().innerHTML = head() + lead + tabs + C.map(x=>{ const sv = x.films.filter(e=>has(e.id, 'v')).length;
     return psec(x.name, x.note + (sv ? `${x.note ? ' · ' : ''}vist${IS_SERIE ? 'e' : 'i'} ${sv} su ${x.films.length}` : ''), x.full.length > x.films.length ? `<a class="more" href="${x.more || '#italia/vedi/' + x.key}">Vedi tutti (${x.full.length.toLocaleString('it-IT')})</a>` : '', `<div class="strip">${x.films.map(tile).join('')}</div>`)
