@@ -242,7 +242,13 @@ html.tv .top::before{-webkit-backdrop-filter:none; backdrop-filter:none; backgro
 .nav a{transition:background .15s, color .15s;} .nav a svg{display:none;}
 .nav a:hover{color:var(--paper); background:rgba(255,255,255,.07);}
 .nav a[aria-current="page"]{background:var(--paper); color:var(--ink);}
-.m-only{display:none !important;}
+.m-only{display:none !important;} .nav a.nav-altro{display:none;}
+.sheet-bg{position:fixed; inset:0; z-index:39; background:rgba(0,0,0,.5); opacity:0; transition:opacity .2s;} .sheet-bg.on{opacity:1;}
+.sheet{position:fixed; left:8px; right:8px; bottom:calc(74px + env(safe-area-inset-bottom, 0px)); z-index:41; padding:8px; border-radius:18px; background:rgba(26,33,36,.97); -webkit-backdrop-filter:blur(24px); backdrop-filter:blur(24px); border:1px solid rgba(255,255,255,.1); box-shadow:0 -10px 40px rgba(0,0,0,.5); transform:translateY(calc(100% + 20px)); transition:transform .24s cubic-bezier(.2,.8,.2,1);}
+.sheet.on{transform:none;} .sheet::before{content:""; display:block; width:38px; height:4px; margin:2px auto 8px; border-radius:2px; background:rgba(255,255,255,.25);}
+.sheet a{display:flex; align-items:center; gap:14px; padding:14px 14px; border-radius:12px; font-size:16.5px; font-weight:650; color:var(--paper);} .sheet a:active, .sheet a:hover{background:rgba(255,255,255,.07);} .sheet a svg{width:24px; height:24px; flex:none; color:var(--paper2);} .sheet a[aria-current="page"]{color:var(--amber2);} .sheet a[aria-current="page"] svg{color:var(--amber2);}
+.sheet a small{margin-left:auto; color:var(--paper3); font-weight:500; font-size:13px;}
+@media (prefers-reduced-motion: reduce){ .sheet, .sheet-bg{transition:none;} }
 @media (max-width:760px){   /* telefono: in alto nome e ricerca, le sezioni in una barra in basso, a portata di pollice */
   html:not(.tv) .top-in{padding:8px 14px; gap:10px; flex-wrap:nowrap;}
   html:not(.tv) .brand b{font-size:17px;} html:not(.tv) .brand .rose{width:24px; height:24px;} html:not(.tv) .brand .rose::before{height:16px;} html:not(.tv) .brand .rose::after{width:16px;}
@@ -252,7 +258,8 @@ html.tv .top::before{-webkit-backdrop-filter:none; backdrop-filter:none; backgro
   html:not(.tv) .nav a{flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:3px; padding:5px 2px 3px; font-size:10.5px; font-weight:600; border-radius:10px; white-space:nowrap; letter-spacing:0;}
   html:not(.tv) .nav a svg{display:block; width:22px; height:22px;}
   html:not(.tv) .nav a[aria-current="page"]{background:none; color:var(--amber2);} html:not(.tv) .nav a:hover{background:none;}
-  html:not(.tv) .nav a[data-nav="registi"], html:not(.tv) .nav a[data-nav="attori"]{display:none;}   /* registi e attori: dai pulsanti della vetrina */
+  html:not(.tv) .nav a[data-nav="registi"], html:not(.tv) .nav a[data-nav="attori"], html:not(.tv) .nav a[data-nav="strumenti"]{display:none;}   /* registi, attori e strumenti: dentro "Altro" */
+  html:not(.tv) .nav a.nav-altro{display:flex;}
   html:not(.tv) main{padding-bottom:calc(96px + env(safe-area-inset-bottom, 0px));}
   html:not(.tv) .toast{bottom:calc(84px + env(safe-area-inset-bottom, 0px));}
   html:not(.tv) .m-only{display:inline-flex !important;}
@@ -342,6 +349,7 @@ html.tv .ruler.mini{height:calc(150px * var(--k, 1));}
       <a href="#liste" data-nav="liste"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M7 4h10a1 1 0 0 1 1 1v15l-6-4-6 4V5a1 1 0 0 1 1-1z'/></svg><span>Le mie liste</span></a>
       <a href="#classifiche" data-nav="classifiche"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M5 20v-7M12 20V5M19 20v-10'/></svg><span>Classifiche</span></a>
       <a href="#strumenti" data-nav="strumenti"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><path d='M4 7h10M18 7h2M4 17h2M10 17h10'/><circle cx='16' cy='7' r='2'/><circle cx='8' cy='17' r='2'/></svg><span>Strumenti</span></a>
+      <a href="#strumenti" data-nav="altro" class="nav-altro" aria-haspopup="dialog"><svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' aria-hidden='true'><circle cx='5' cy='12' r='1.6' fill='currentColor'/><circle cx='12' cy='12' r='1.6' fill='currentColor'/><circle cx='19' cy='12' r='1.6' fill='currentColor'/></svg><span>Altro</span></a>
     </nav>
   </div>
 </header>
@@ -354,7 +362,7 @@ html.tv .ruler.mini{height:calc(150px * var(--k, 1));}
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '3.1';
+const APP_VERSION = '3.2';
 /* Copiate dalla Videoteca da build_serie.py: leggono l'indice delle serie e il cast esattamente come lei. */
 let SERIES = null, SERIES_BY_ID = null, SERIES_STATE = 'idle', _seriesPromise = null, IMDB_INDEX = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -943,7 +951,23 @@ function applyFilters(list, st){ let l = list; if(st.g) l = l.filter(e=>genres(e
 
 /* ---------- Pagine ---------- */
 const V = () => $('view');
-function setNav(k){ document.querySelectorAll('[data-nav]').forEach(a=>a.toggleAttribute('aria-current', a.dataset.nav === k)); if(k) document.querySelectorAll(`[data-nav="${k}"]`).forEach(a=>a.setAttribute('aria-current', 'page')); }
+function setNav(k){ document.querySelectorAll('[data-nav]').forEach(a=>a.toggleAttribute('aria-current', a.dataset.nav === k)); if(k) document.querySelectorAll(`[data-nav="${k}"]`).forEach(a=>a.setAttribute('aria-current', 'page'));
+  if(['registi', 'attori', 'strumenti'].includes(k)) document.querySelectorAll('[data-nav="altro"]').forEach(a=>a.setAttribute('aria-current', 'page')); }
+/* "Altro" (telefono): un pannello dal basso con le sezioni che non stanno nella barra */
+function sheetClose(){ const s = document.querySelector('.sheet'), b = document.querySelector('.sheet-bg'); if(!s) return; s.classList.remove('on'); b.classList.remove('on'); setTimeout(()=>{ s.remove(); b.remove(); }, 260); }
+function sheetOpen(){
+  if(document.querySelector('.sheet')){ sheetClose(); return; }
+  const items = ['registi', 'attori', 'strumenti'].map(k=>document.querySelector(`.nav a[data-nav="${k}"]`)).filter(Boolean);
+  const b = document.createElement('div'); b.className = 'sheet-bg'; b.onclick = sheetClose;
+  const s = document.createElement('nav'); s.className = 'sheet'; s.setAttribute('role', 'dialog'); s.setAttribute('aria-label', 'Altre sezioni');
+  s.innerHTML = items.map(a=>{ const k = a.dataset.nav, extra = k === 'registi' ? (dirRanking().length || '') : k === 'attori' ? (CAST_INDEX ? actorRanking().length : '') : '';
+    return `<a href="${a.getAttribute('href')}" data-nav="${k}"${a.hasAttribute('aria-current') ? ' aria-current="page"' : ''}>${(a.querySelector('svg') || {}).outerHTML || ''}<span>${a.textContent.trim()}</span>${extra ? `<small>${Number(extra).toLocaleString('it-IT')}</small>` : ''}</a>`; }).join('');
+  s.addEventListener('click', ev=>{ if(ev.target.closest('a')) sheetClose(); });
+  document.body.append(b, s); requestAnimationFrame(()=>{ b.classList.add('on'); s.classList.add('on'); }); const f = s.querySelector('a'); if(f) f.focus({ preventScroll: true });
+}
+document.addEventListener('click', ev=>{ const a = ev.target.closest && ev.target.closest('.nav a.nav-altro'); if(a){ ev.preventDefault(); sheetOpen(); } });
+document.addEventListener('keydown', ev=>{ if(ev.key === 'Escape' && document.querySelector('.sheet')) sheetClose(); });
+window.addEventListener('hashchange', ()=>{ if(document.querySelector('.sheet')) sheetClose(); });
 /* ---------- 🗓 La fila del periodo: cambia con il calendario, in cima a Esplora ----------
    Un blocco isolato: se qualcosa non va, non mostra nulla e la home resta com'è. Le scelte ruotano ogni giorno.
    Per vedere un periodo in anticipo: aprire l'app con ?periodo=natale (halloween, oscar, estate, sanvalentino, inverno,
@@ -1041,7 +1065,7 @@ function heroHTML(){
 }
 function quickHTML(){   // i pulsanti di sempre, subito sotto la vetrina: riguardano tutta l'app, non il titolo del giorno
   const nav = k => { try{ return document.querySelector(`.nav [data-nav="${k}"]`); }catch(err){ return null; } };
-  return `<div class="quick"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button><a class="btn" href="#stasera">🍿 Cosa guardo stasera?</a><a class="btn" href="#perte">✨ Per te</a>${nav('registi') ? '<a class="btn m-only" href="#registi">🎬 Registi</a>' : ''}${nav('attori') ? '<a class="btn m-only" href="#attori">🎭 Attori</a>' : ''}</div>`;
+  return `<div class="quick"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button><a class="btn" href="#stasera">🍿 Cosa guardo stasera?</a><a class="btn" href="#perte">✨ Per te</a></div>`;
 }
 function heroBg(id){   // quando la locandina arriva dopo (le serie), anche lo sfondo della vetrina la prende
   try{ const h = document.querySelector('.hero-s[data-id="' + id + '"]'), u = unL(WPOST.get(id) || ''); if(!h || !u || h.querySelector('.hero-bg')) return;
@@ -1106,11 +1130,11 @@ function viewHome(){
     + (seasonOnTop() ? seasonStrip() : '')
     + (()=>{ const ms = monthStrip(); if(ms) return ms; const l = novitaList().slice(0, 14); return l.length ? `<h2 class="sec">${esc(NOVITA_TITLE)} <a class="more" href="#lista/novita">Vedi tutte</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; })()
     + (seasonOnTop() ? '' : seasonStrip())
-    + itaStrip()
     + perTeStrip()
     + (NEW_SEASONS && SEASONS_NEW.length ? `<h2 class="sec">📡 Nuove stagioni <a class="more" href="#lista/nuove">Vedi tutte</a></h2><div class="strip">${SEASONS_NEW.filter(x=>!INDIA.has(x.e.id)).slice(0, 14).map(x=>tile(x.e)).join('')}</div>` : '')
     + bestStrip()
     + (()=>{ const g = goldenList(); return g.length >= 6 ? `<h2 class="sec">🏆 La Golden Age delle serie TV <a class="more" href="#lista/golden">Tutte le ${g.length} serie</a></h2><p class="note" style="margin:-4px 0 10px; max-width:70ch">Dalla fine degli anni '90 al 2018 la televisione ha raggiunto il cinema: da <em>Oz</em> e <em>I Soprano</em> a <em>Breaking Bad</em>, <em>Game of Thrones</em> e <em>Succession</em>, le serie che hanno cambiato tutto, in ordine di anno.</p><div class="strip">${g.map(tile).join('')}</div>` : ''; })()
+    + itaStrip()
     + `<h2 class="sec">✦✦ Capolavori assoluti <a class="more" href="#lista/capolavori">Tutti i capolavori (${MASTER.length.toLocaleString('it-IT')})</a></h2><div class="strip">${noIndia(MASTER.filter(e=>e._abs).length >= 6 ? MASTER.filter(e=>e._abs) : MASTER).slice(0, 14).map(tile).join('')}</div>`
     + `<h2 class="sec">Le più famose <a class="more" href="#lista/famosi">Vedi tutti</a></h2><div class="strip">${noIndia(BY_V.slice(0, 40)).slice(0, 14).map(tile).join('')}</div>`
     + CLS.filter(c=>c.pin && c.items.length).map(c=>{ const fs = c.items.map(imdbEntry).filter(Boolean), seen = fs.filter(e=>has(e.id, 'v')).length;
@@ -1375,9 +1399,9 @@ function itaChapters(){
   const decs = [...new Set(good.map(decade).filter(Boolean))].sort((a, b)=>a - b), early = good.filter(e=>yr(e) && yr(e) < 1950);
   if(!IS_SERIE) add('origini', 'Dalle origini al neorealismo', 'Fino al 1949: Rossellini, De Sica, il cinema che ha cambiato tutto.', top(early));
   decs.filter(d=>IS_SERIE || d >= 1950).forEach(d=>{ add('d' + d, 'Anni ' + (d < 2000 ? '’' + String(d).slice(2) : d), '', good.filter(e=>decade(e) === d), '#italia/' + d); const c = out[out.length - 1]; if(c && c.key === 'd' + d) c.full = all.filter(e=>decade(e) === d); });   // "Vedi tutti" porta all'intero decennio
-  const G = IS_SERIE ? [['crime', 'Crime e polizieschi', g=>g.has('Crime') || g.has('Giallo')], ['commedia', 'Commedie', g=>g.has('Commedia')], ['dramma', 'Drammatiche', g=>g.has('Drammatico') && !g.has('Crime') && !g.has('Commedia')]]
+  const G = IS_SERIE ? [['crime', 'Crime e polizieschi', g=>(g.has('Crime') || g.has('Giallo')) && !g.has('Documentario') && !g.has('Commedia'), 'Da La piovra e Montalbano a Gomorra e Mare fuori.'], ['commedia', 'Commedie', g=>g.has('Commedia') && !g.has('Animazione') && !g.has('Crime') && !g.has('Reality-TV'), ''], ['animazione', 'Animazione', g=>g.has('Animazione'), 'Da La linea a Zerocalcare.'], ['storia', 'Storiche e d’avventura', g=>(g.has('Storico') || g.has('Avventura')) && !g.has('Animazione') && !g.has('Crime') && !g.has('Commedia') && !g.has('Horror'), ''], ['dramma', 'Drammatiche', g=>g.has('Drammatico') && !['Crime', 'Commedia', 'Storico', 'Avventura', 'Horror', 'Western', 'Animazione', 'Biografico', 'Documentario'].some(x=>g.has(x)), ''], ['doc', 'Documentari e true crime', g=>g.has('Documentario'), '']]
     : [['commedia', 'Commedia all’italiana', g=>g.has('Commedia')], ['western', 'Western all’italiana', g=>g.has('Western')], ['brivido', 'Gialli, thriller e horror', g=>g.has('Giallo') || g.has('Thriller') || g.has('Horror')], ['crime', 'Crime e poliziotteschi', g=>g.has('Crime')], ['dramma', 'Drammatici', g=>g.has('Drammatico') && !g.has('Commedia') && !g.has('Crime')]];
-  G.forEach(([k, name, f])=>add(k, name, '', top(good.filter(e=>f(new Set(genres(e)))))));
+  G.forEach(([k, name, f, note])=>add(k, name, note || '', good.filter(e=>f(new Set(genres(e)), e))));
   const prize = e => { try{ return (CRITICA && ((CRITICA.intl || {})[e.id] || 0)) + 3 * (CRITICA && ((CRITICA.osc || {})[e.id] || (CRITICA.emmy || {})[e.id] || 0)); }catch(err){ return 0; } };
   add('premi', IS_SERIE ? 'Premiate nel mondo' : 'Premiati nel mondo', 'Oscar, Cannes, Venezia, Berlino, Golden Globe, BAFTA.', top(all.filter(e=>prize(e) > 0).sort((a, b)=>prize(b) - prize(a) || itaScore(b) - itaScore(a))));
   const now = new Date().getFullYear(); add('oggi', IS_SERIE ? 'Le ultime' : 'Gli ultimi anni', `Dal ${now - 4} a oggi.`, top(all.filter(e=>yr(e) >= now - 4 && itaScore(e) >= 6.3)));
@@ -2032,7 +2056,7 @@ function viewTools(){
     + `<div class="box"><h3>🌍 Traduzione in italiano</h3><div class="in"><p>Trame degli episodi e testi di Wikipedia in inglese vengono tradotti in automatico, senza chiavi. Ogni testo si traduce una volta sola e poi resta salvato.</p><p id="trState" class="note">Controllo il traduttore di Chrome…</p>`
     + `<div class="ctrl"><label>La tua email per MyMemory (facoltativa)<input id="trEmail" type="email" value="${esc(trEmail())}" placeholder="nome@esempio.it" style="height:36px; border-radius:8px; border:1px solid var(--line); background:var(--ink); padding:0 10px; min-width:240px"></label><button class="btn" type="button" id="trSave">Salva</button></div>`
     + `<p class="note">MyMemory è il traduttore gratuito usato su telefono e televisore. Con un indirizzo email il suo limite passa da circa 5.000 a circa 50.000 caratteri al giorno (circa 200 trame). L'indirizzo resta su questo dispositivo e viene inviato solo a MyMemory, insieme ai testi da tradurre.</p></div></div>`
-    + `<div class="box"><h3>📺 Modalità TV</h3><div class="in"><p>Testi grandi, margini di sicurezza e navigazione con le frecce del telecomando: OK apre, Indietro torna alla pagina precedente e ritrova la card da cui eri partito. Pagina su/giù (o CH+/CH−) salta da una sezione all\'altra; Menu porta alla barra in alto. Tenendo premuta una freccia si scorre veloce. Si attiva da sola sui televisori; per salvarla nei preferiti del browser del televisore usa l'indirizzo che finisce con <b>?tv=1</b>.</p><div class="marks"><button class="btn${TV ? ' amber' : ''}" type="button" id="tvBtn" aria-pressed="${TV}">${TV ? '📺 Modalità TV attiva: disattiva' : '📺 Attiva la modalità TV'}</button></div></div></div>`
+    + ((TV || MAINT) ? `<div class="box"><h3>📺 Modalità TV</h3><div class="in"><p>Testi grandi, margini di sicurezza e navigazione con le frecce del telecomando: OK apre, Indietro torna alla pagina precedente e ritrova la card da cui eri partito. Pagina su/giù (o CH+/CH−) salta da una sezione all\'altra; Menu porta alla barra in alto. Tenendo premuta una freccia si scorre veloce. Si attiva da sola sui televisori; per salvarla nei preferiti del browser del televisore usa l'indirizzo che finisce con <b>?tv=1</b>.</p><div class="marks"><button class="btn${TV ? ' amber' : ''}" type="button" id="tvBtn" aria-pressed="${TV}">${TV ? '📺 Modalità TV attiva: disattiva' : '📺 Attiva la modalità TV'}</button></div></div></div>` : '')
     + `<div class="box"><h3>Le tue liste</h3><div class="in"><p>Viste, da vedere, preferite, i tuoi voti e le classifiche restano su questo dispositivo. Fai una copia per non perderli.</p><div class="marks"><button class="btn" type="button" id="bk">💾 Scarica le liste</button><button class="btn" type="button" id="rs">📥 Ripristina le liste</button><input type="file" id="rsIn" accept=".json,application/json" class="hidden"></div></div></div>`
     + `<div class="box"><h3>Come si calcolano i capolavori</h3><div class="in"><p>Ogni serie riceve un punteggio da 0 a 100: per il 60% circa dal voto IMDb (pesato sul numero di voti, così pochi voti contano poco) e per il resto dalla critica (Rotten Tomatoes e Metacritic). Se la critica manca, conta solo il voto. Il punteggio serve a ordinare.</p><p>La scala ha tre gradini: <b>◆ grande serie</b> da 80 a 84, <b>✦ capolavoro</b> da 85 a 89, <b>✦✦ capolavoro assoluto</b> da 90 in su. Servono anche almeno 30.000 voti e la critica, quando c'è, almeno al 70% per le grandi serie e all'80% per i capolavori. Le serie iniziate negli ultimi 4 anni servono anche la conferma della critica (almeno 85%), perché i voti delle novità possono essere gonfiati.</p></div></div>`;
   V().querySelectorAll('[data-copy]').forEach(b=>b.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(CRITICA_SCRIPT_TEXT); toast('📋 Script copiato: ora premi "Crea il file" e incollalo'); }catch(err){ const t = $('copyArea'); t.value = CRITICA_SCRIPT_TEXT; t.classList.remove('hidden'); t.select(); } }));
@@ -2040,7 +2064,7 @@ function viewTools(){
   chromeTr().then(st=>{ const el = $('trState'); if(!el) return;
     el.innerHTML = st === 'available' ? '✅ Traduttore di Chrome attivo su questo dispositivo: traduzioni illimitate, anche offline.' : (st === 'downloadable' || st === 'downloading') ? 'Su questo computer puoi attivare il traduttore di Chrome: gratis, senza limiti e anche offline. <button type="button" class="btn" id="trChrome" style="height:34px">⬇️ Attivalo</button>' : 'Il traduttore interno di Chrome non è disponibile su questo dispositivo (c\'è solo in Chrome per computer): si usa MyMemory.';
     if($('trChrome')) $('trChrome').onclick = () => activateChrome($('trChrome'), ()=>{ if($('trState')) $('trState').textContent = '✅ Traduttore di Chrome attivo su questo dispositivo: traduzioni illimitate, anche offline.'; }); });
-  $('tvBtn').onclick = () => { try{ localStorage.setItem('serie-tv-mode', TV ? '0' : '1'); }catch(e){} location.reload(); };
+  if($('tvBtn')) $('tvBtn').onclick = () => { try{ localStorage.setItem('serie-tv-mode', TV ? '0' : '1'); }catch(e){} location.reload(); };
   $('bk').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify({ app: 'Atlante Serie TV', liste: LISTE, classifiche: CLS }, null, 1)], { type: 'application/json' })); a.download = `serie-liste-${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); setTimeout(()=>a.remove(), 1000); toast('Liste scaricate'); };
   $('rs').onclick = () => $('rsIn').click();
   $('rsIn').onchange = ev => { const f = ev.target.files[0]; ev.target.value = ''; if(!f) return; const r = new FileReader();
