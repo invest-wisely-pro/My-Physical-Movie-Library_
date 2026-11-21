@@ -363,7 +363,7 @@ html.tv .ruler.mini{height:calc(150px * var(--k, 1));}
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '3.6';
+const APP_VERSION = '3.7';
 /* Copiate dalla Videoteca da build_serie.py: leggono l'indice delle serie e il cast esattamente come lei. */
 let SERIES = null, SERIES_BY_ID = null, SERIES_STATE = 'idle', _seriesPromise = null, IMDB_INDEX = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -919,6 +919,7 @@ function badges(e){
   enrich(e); const b = [];
   if(e._abs) b.push('<span class="bd mp">✦✦ Capolavoro assoluto</span>'); else if(e._mp) b.push('<span class="bd mp">✦ Capolavoro</span>'); else if(e._gran) b.push('<span class="bd gf">◆ Grande serie</span>');
   if(OWN.has(e.id)) b.push('<span class="bd own">✓ Videoteca</span>');
+  if(libHas(e.id)) b.push('<span class="bd own" title="È nella tua libreria (Plex, Jellyfin, Kodi)">📺 In libreria</span>');
   const vd = (x, who) => x && x.s != null ? `<span class="bd ${x.s === 1 ? 'pos' : x.s === -1 ? 'neg' : 'mix'}" title="${who}: ${x.s === 1 ? 'positivo' : x.s === -1 ? 'negativo' : 'misto'}">🎙 ${who === 'Frusciante' ? 'F' : 'C'}</span>` : '';
   b.push(vd(e._f, 'Frusciante'), vd(e._c, 'Criticoni'));
   if(LISTE[e.id] && LISTE[e.id].r) b.push(`<span class="bd mp">★ ${LISTE[e.id].r}</span>`);
@@ -931,8 +932,8 @@ function row(e){
     + `<span class="sub">${ROW_EXTRA && ROW_EXTRA(e) ? `<b class="nv">${esc(ROW_EXTRA(e))}</b>, ` : ''}${SEASON_BY.get(e.id) ? `<b class="nv">Stagione ${SEASON_BY.get(e.id).ord} dal ${esc(fmtD(SEASON_BY.get(e.id).d))}</b>, ` : NOVITA && NOVITA.get(e.id) && (parseInt(e.y, 10) || 0) >= new Date().getFullYear() - 1 ? `<b class="nv">uscita: ${esc(fmtD(NOVITA.get(e.id)))}</b>, ` : ''}${[esc(yrs(e)), esc(stag(e)), genres(e).slice(0, 3).map(goGen).join(', ')].filter(Boolean).join(', ')}</span></span>${badges(e)}</a>`;
 }
 function tile(e){ enrich(e); const p0 = posterUrl(e, 'w342') || WPOST.get(e.id) || '';
-  if(isL(p0)) return `<a class="tile has-l" href="#film/${e.id}" style="--tilebg:${tileBg(e)}" aria-label="${esc(title(e) + (e.y ? ', ' + e.y : ''))}">${landHTML(p0)}<span><span class="tt">${esc(title(e))}</span></span><span class="tb"><span class="${e._mp ? 'mp' : ''}">${e._abs ? '✦✦ ' : e._mp ? '✦ ' : e._gran ? '◆ ' : ''}${fmtR(e._R)}</span><span>${OWN.has(e.id) ? '✓' : ''}</span></span></a>`;
-  const p = p0; return `<a class="tile${p ? ' has-p' : ''}" href="#film/${e.id}"${p || WPOST.has(e.id) ? '' : ` data-pid="${e.id}"`} style="--tilebg:${tileBg(e)}" aria-label="${esc(title(e) + (e.y ? ', ' + e.y : ''))}">${p ? `<img class="tp" src="${esc(p)}" alt="" loading="lazy"${chk(p, e.id)} onerror="this.parentElement.classList.remove('has-p'); this.remove()">` : ''}<span><span class="tt">${esc(title(e))}</span><span class="ty">${esc([yrs(e), stag(e)].filter(Boolean).join(', '))}</span></span><span class="tb"><span class="${e._mp ? 'mp' : ''}">${e._abs ? '✦✦ ' : e._mp ? '✦ ' : e._gran ? '◆ ' : ''}${fmtR(e._R)}</span><span>${OWN.has(e.id) ? '✓' : ''}</span></span></a>`; }
+  if(isL(p0)) return `<a class="tile has-l" href="#film/${e.id}" style="--tilebg:${tileBg(e)}" aria-label="${esc(title(e) + (e.y ? ', ' + e.y : ''))}">${landHTML(p0)}<span><span class="tt">${esc(title(e))}</span></span><span class="tb"><span class="${e._mp ? 'mp' : ''}">${e._abs ? '✦✦ ' : e._mp ? '✦ ' : e._gran ? '◆ ' : ''}${fmtR(e._R)}</span><span>${OWN.has(e.id) ? '✓' : ''}${libHas(e.id) ? ' 📺' : ''}</span></span></a>`;
+  const p = p0; return `<a class="tile${p ? ' has-p' : ''}" href="#film/${e.id}"${p || WPOST.has(e.id) ? '' : ` data-pid="${e.id}"`} style="--tilebg:${tileBg(e)}" aria-label="${esc(title(e) + (e.y ? ', ' + e.y : ''))}">${p ? `<img class="tp" src="${esc(p)}" alt="" loading="lazy"${chk(p, e.id)} onerror="this.parentElement.classList.remove('has-p'); this.remove()">` : ''}<span><span class="tt">${esc(title(e))}</span><span class="ty">${esc([yrs(e), stag(e)].filter(Boolean).join(', '))}</span></span><span class="tb"><span class="${e._mp ? 'mp' : ''}">${e._abs ? '✦✦ ' : e._mp ? '✦ ' : e._gran ? '◆ ' : ''}${fmtR(e._R)}</span><span>${OWN.has(e.id) ? '✓' : ''}${libHas(e.id) ? ' 📺' : ''}</span></span></a>`; }
 function paged(id, items, render, size){   // elenchi lunghi a pagine
   size = size || 60; let n = size;
   const draw = () => { const el = $(id); if(!el) return; el.innerHTML = items.slice(0, n).map(render).join('') || '<p class="note">Nessuna serie.</p>';
@@ -1162,7 +1163,8 @@ function viewHome(){
     + itaStrip()
     + `<h2 class="sec">✦✦ Capolavori assoluti <a class="more" href="#lista/capolavori">Tutti i capolavori (${MASTER.length.toLocaleString('it-IT')})</a></h2><div class="strip">${noIndia(MASTER.filter(e=>e._abs).length >= 6 ? MASTER.filter(e=>e._abs) : MASTER).slice(0, 14).map(tile).join('')}</div>`
     + `<h2 class="sec">Le più famose <a class="more" href="#lista/famosi">Vedi tutti</a></h2><div class="strip">${noIndia(BY_V.slice(0, 40)).slice(0, 14).map(tile).join('')}</div>`
-    + CLS.filter(c=>c.pin && c.items.length).map(c=>{ const fs = c.items.map(imdbEntry).filter(Boolean), seen = fs.filter(e=>has(e.id, 'v')).length;
+    + libStrip()
+    + CLS.filter(c=>c.pin && c.kind !== 'lib' && c.items.length).map(c=>{ const fs = c.items.map(imdbEntry).filter(Boolean), seen = fs.filter(e=>has(e.id, 'v')).length;
         return `<h2 class="sec">${esc(c.name)} <span class="note" style="font-family:var(--ui)">ne hai viste ${seen} su ${fs.length}</span><a class="more" href="#classifica/${esc(c.id)}">Vedi tutta</a></h2><div class="strip">${fs.slice(0, 14).map(tile).join('')}</div>`; }).join('')
     + (fr.length ? `<h2 class="sec">🎙 Promossi da Frusciante <a class="more" href="#lista/frusciante-si">Vedi tutti</a></h2><div class="strip">${fr.map(tile).join('')}</div>` : '')
     + `<h2 class="sec">Per decennio <span class="note" style="font-family:var(--ui); font-weight:500">${ALL.length.toLocaleString('it-IT')} serie dal 1900 a oggi</span></h2><div class="ruler mini" aria-label="Serie per decennio">${ds.map(([d, l])=>`<a href="#decennio/${d}" title="Anni ${d}: ${l.length.toLocaleString('it-IT')} serie" aria-label="Anni ${d}: ${l.length} serie"><span class="ct">${l.length >= 1000 ? Math.round(l.length / 100) / 10 + 'k' : l.length}</span><span class="bar" style="height:${Math.max(3, l.length / max * 100)}%"></span><span class="yr"><b class="y4">${d}</b><b class="y2">’${String(d).slice(2)}</b></span></a>`).join('')}</div>`
@@ -1822,7 +1824,7 @@ function viewFilm(id){
     + `<div class="facts">${e.y ? `<a href="#decennio/${decade(e)}">${esc(yrs(e))}</a>` : ''}${e.y && !e.y2 ? '<span class="bd own">📡 in corso</span>' : ''}${e.s ? `<span>${esc(stag(e))}${e.ep ? ', ' + e.ep + ' episodi' : ''}</span>` : ''}${genres(e).map(g=>`<a href="#genere/${encodeURIComponent(g)}">${esc(g)}</a>`).join('')}<span id="dur"></span></div>`
     + `<div class="scores"><div class="score"><b>${fmtR(e._R)}</b><span>IMDb, ${fmtV(e.v)} voti</span></div>${e._rt != null ? `<div class="score"><b>${e._rt}%</b><span>Rotten Tomatoes</span></div>` : ''}${e._mc != null ? `<div class="score"><b>${e._mc}</b><span>Metacritic</span></div>` : ''}`
     + `<div class="score ${e._mp ? 'mp' : e._gran ? 'gf' : ''}"><b>${e._abs ? '✦✦ ' : e._mp ? '✦ ' : e._gran ? '◆ ' : ''}${e._s}</b><span>${e._abs ? 'Capolavoro assoluto' : e._mp ? 'Capolavoro' : e._gran ? 'Grande serie' : 'Punteggio dell\'Atlante'}</span></div></div><p class="why">${esc(why(e))}</p>`
-    + `<div class="marks">${[['v', '✓ Vista'], ['d', '＋ Da vedere'], ['p', '♥ Preferita']].map(([k, l])=>`<button class="btn" type="button" data-mark="${k}" aria-pressed="${has(id, k)}">${l}</button>`).join('')}${OWN.has(id) ? '<span class="bd own" style="align-self:center">✓ Nella tua Videoteca</span>' : ''}</div>`
+    + `<div class="marks">${[['v', '✓ Vista'], ['d', '＋ Da vedere'], ['p', '♥ Preferita']].map(([k, l])=>`<button class="btn" type="button" data-mark="${k}" aria-pressed="${has(id, k)}">${l}</button>`).join('')}${OWN.has(id) ? '<span class="bd own" style="align-self:center">✓ Nella tua Videoteca</span>' : ''}${libHas(id) ? '<span class="bd own" style="align-self:center" title="È nella tua libreria (Plex, Jellyfin, Kodi)">📺 In libreria</span>' : ''}</div>`
     + `<div class="rate-wrap"><span class="note">Il tuo voto</span><div class="rate" role="group" aria-label="Il tuo voto">${[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n=>`<button type="button" data-rate="${n}" aria-pressed="${n === my}" aria-label="${n} su 10">${n}</button>`).join('')}</div></div>`
     + `<div class="marks"><a class="btn" href="https://www.youtube.com/results?search_query=${q}" target="_blank" rel="noopener">▶ Cerca il trailer su YouTube</a>${CLS.length ? `<select id="addRk" aria-label="Aggiungi a una classifica" style="height:38px; border-radius:19px; border:1px solid var(--line); background:var(--s2); padding:0 12px"><option value="">🏆 Aggiungi a una classifica…</option>${CLS.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('')}</select>` : '<a class="btn" href="#classifiche">🏆 Crea una classifica</a>'}</div></div></div>` + `<div id="linksBox">${linksHTML(e, null)}</div>`
     + (e.sc && e.sc.length > 1 ? `<div class="box"><h3>Episodi per stagione</h3><div class="in"><div class="bars">${e.sc.map((n, i)=>`<a class="barrow" href="#stagione/${e.id}/${i + 1}"><span>Stagione ${i + 1}</span><i style="width:${Math.max(3, n / Math.max(...e.sc) * 100)}%"></i><span class="v">${n}</span></a>`).join('')}</div></div></div>` : '')
@@ -1879,7 +1881,9 @@ function viewLists(tab){
 /* ---------- 🏆 Le mie classifiche ---------- */
 const CKEY = 'serie-classifiche';
 let CLS = (()=>{ try{ const x = JSON.parse(localStorage.getItem(CKEY) || '[]'); return Array.isArray(x) ? x : []; }catch(e){ return []; } })();
-function saveCls(){ try{ localStorage.setItem(CKEY, JSON.stringify(CLS)); }catch(e){ toast('Non riesco a salvare le classifiche in questo browser'); } }
+let _LIB = null;
+const libHas = id => { if(!_LIB) _LIB = new Set(CLS.filter(c=>c.kind === 'lib').flatMap(c=>c.items)); return _LIB.has(id); };
+function saveCls(){ _LIB = null; try{ localStorage.setItem(CKEY, JSON.stringify(CLS)); }catch(e){ toast('Non riesco a salvare le classifiche in questo browser'); } }
 const sizeLbl = n => n ? 'Top ' + n : 'Libera';
 function addToRanking(cid, id){
   const c = CLS.find(x=>x.id === cid); if(!c) return false;
@@ -1991,7 +1995,7 @@ function readImport(text, fname){   // qualsiasi file → righe pronte per match
   const m = mediaToLines(text, fname); if(m){ const seen = new Set(); return m.filter(l=>{ const k = l.toLowerCase(); if(seen.has(k)) return false; seen.add(k); return true; }).join('\n'); }
   return csvToLines(text);
 }
-function importList(name, text, src, pin, seen){
+function importList(name, text, src, pin, seen, kind){
   text = /§tt\d/.test(text) ? text : readImport(text);
   const lines = String(text || '').split(/\n+/).map(x=>x.trim()).filter(x=>x && !/^(fonte|source)\b/i.test(x));
   const items = [], miss = [], got = lines.map(matchLine).filter(Boolean);
@@ -2000,6 +2004,11 @@ function importList(name, text, src, pin, seen){
   if(!items.length) return { ok: false, miss };
   const c = { id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: name || 'Classifica importata', size: 0, genre: '', items, src: src || '', miss, pin: pin !== false, created: Date.now(), updated: Date.now() };
   if(seen){ const now = Date.now(); items.forEach(id=>{ const r = LISTE[id] || {}; if(!r.v){ r.v = now; delete r.d; LISTE[id] = r; } }); PROFILE = null; try{ localStorage.setItem(LKEY, JSON.stringify(LISTE)); }catch(e){} }
+  if(kind === 'lib'){   // libreria del server: niente numeri; se esiste già con lo stesso nome, si aggiorna
+    c.kind = 'lib'; c.pin = false; if(!name) c.name = 'La mia libreria';
+    const old = CLS.find(x=>x.kind === 'lib' && normKey(x.name) === normKey(c.name));
+    if(old){ old.items = items; old.miss = miss; old.updated = Date.now(); if(src) old.src = src; saveCls(); return { ok: true, c: old, miss, updated: true }; }
+  }
   CLS.push(c); saveCls(); return { ok: true, c, miss };
 }
 
@@ -2015,33 +2024,66 @@ function viewRankings(){
     + `<div class="marks"><button class="btn" type="button" id="imFileBtn">📁 Scegli i file (CSV, playlist, .nfo, testo)</button><input type="file" id="imFile" multiple accept=".csv,.txt,.xml,.nfo,.m3u,.m3u8,.json,text/csv,text/plain,application/xml,text/xml,application/json" class="hidden"></div>`
     + `<details class="box" style="margin:10px 0"><summary style="cursor:pointer; padding:10px 14px; font-weight:600">📺 Dai tuoi server: Plex, Jellyfin, Kodi</summary><div class="in"><p>L'Atlante legge anche i file dei server multimediali e riconosce i titoli dal codice IMDb, quando c'è, o dal nome della cartella (es. «Il sorpasso (1962)»). Puoi scegliere più file insieme.</p><ul style="margin:0 0 8px 18px; padding:0; line-height:1.55">
       <li><b>Jellyfin</b>: le playlist sono file <code>playlist.xml</code> nella cartella dei dati del server (<code>data/playlists/…</code>); se hai attivato il salvataggio dei metadati NFO, puoi scegliere anche i file <code>.nfo</code> (contengono il codice IMDb).</li>
-      <li><b>Plex</b>: Plex non esporta da solo; con il programma gratuito <b>WebTools-NG</b> (Export Tools) esporti una libreria o una playlist in CSV con il codice IMDb; vanno bene anche le esportazioni di <b>Tautulli</b>.</li>
+      <li><b>Plex</b>: in Plex Web apri un titolo → ⋯ → <i>Informazioni</i> → <i>Visualizza XML</i>; per tutta la libreria, nell'indirizzo di quella pagina sostituisci quello che viene dopo <code>32400</code> con <code>/library/sections/1/all</code> (il numero cambia da libreria a libreria) e salva la pagina (Ctrl+S). Vanno bene anche i CSV del programma gratuito <b>WebTools-NG</b> o di <b>Tautulli</b>.</li>
       <li><b>Kodi</b>: Impostazioni → Media → Libreria → Esporta libreria (file <code>.nfo</code> o <code>videodb.xml</code>); anche le playlist <code>.m3u</code>.</li>
       <li><b>Qualsiasi server</b>: copia l'elenco delle cartelle delle serie (su Windows: seleziona le cartelle, Maiusc + clic destro → «Copia come percorso») e incollalo qui sotto.</li></ul>
+      <p><b>Cosa succede dopo.</b> Scegli «📺 È la mia libreria» (l'Atlante lo propone da solo per i file dei server): nasce la pagina della tua libreria, con copertine, filtri per genere e decennio, ordine per punteggio o anno e le schede «Da vedere» e «Già visti». In Esplora compare la fila «📺 Dalla tua libreria, da vedere» e in tutto l'Atlante i film che hai sono segnati con 📺. Se importi di nuovo con lo stesso nome, la libreria si aggiorna. I titoli non riconosciuti restano in fondo alla pagina della libreria, da cercare con un tocco.</p>
       <p class="note">Niente collegamenti al server e niente chiavi: l'Atlante legge solo il file che scegli, sul tuo dispositivo.</p></div></details>`
     + `<textarea id="imText" aria-label="Elenco dei titoli" placeholder="1. Primo titolo (anno)\n2. Secondo titolo\n…\n(oppure percorsi di cartelle, codici IMDb tt…)" style="width:100%; min-height:150px; border-radius:8px; border:1px solid var(--line); background:var(--ink); color:var(--paper); padding:10px; font:inherit"></textarea>`
-    + `<div class="marks"><label style="display:flex; align-items:center; gap:8px"><input type="checkbox" id="imPin" checked> Mostrala come sezione in Esplora</label><label style="display:flex; align-items:center; gap:8px"><input type="checkbox" id="imSeen"> Segnali anche come visti</label><button class="btn amber" type="button" id="imGo">📋 Importa</button></div>`
+    + `<div class="marks"><span id="imKind" style="display:flex; flex-wrap:wrap; gap:6px 14px"><label style="display:flex; align-items:center; gap:6px"><input type="radio" name="imk" value="cls" checked> 🏆 È una classifica (in ordine)</label><label style="display:flex; align-items:center; gap:6px"><input type="radio" name="imk" value="lib"> 📺 È la mia libreria (Plex, Jellyfin, Kodi…)</label></span><label style="display:flex; align-items:center; gap:8px" id="imPinL"><input type="checkbox" id="imPin" checked> Mostrala come sezione in Esplora</label><label style="display:flex; align-items:center; gap:8px"><input type="checkbox" id="imSeen"> Segnali anche come visti</label><button class="btn amber" type="button" id="imGo">📋 Importa</button></div>`
     + `<p class="note">Hai l'elenco in una foto o in una stampa? Il telefono può copiarne il testo: su Android con Google Lens (Testo → Seleziona tutto → Copia), su iPhone tenendo premuto sul testo della foto (Testo dal vivo), su Windows con lo Strumento di cattura (Azioni testo).</p></div></div>`
-    + (CLS.length ? `<div class="people">${CLS.slice().sort((a, b)=>(b.updated || 0) - (a.updated || 0)).map(c=>`<a class="person" href="#classifica/${esc(c.id)}" style="flex-direction:column"><b>${esc(c.name)}</b><span>${sizeLbl(c.size)}${c.genre ? ', ' + esc(c.genre) : ''}, ${c.items.length} serie</span><span style="white-space:normal">${c.items.slice(0, 3).map((id, i)=>`${i + 1}. ${esc(title(imdbEntry(id) || { id }))}`).join(', ')}</span></a>`).join('')}</div>` : '<p class="note">Nessuna classifica ancora.</p>');
+    + (CLS.some(c=>c.kind === 'lib') ? `<h2 class="sec">📺 Le tue librerie</h2><div class="people">${CLS.filter(c=>c.kind === 'lib').map(c=>{ const fs = c.items.map(imdbEntry).filter(Boolean), v = fs.filter(e=>has(e.id, 'v')).length; return `<a class="person" href="#libreria/${esc(c.id)}" style="flex-direction:column"><b>📺 ${esc(c.name)}</b><span>${fs.length} ${IS_SERIE ? 'serie' : 'film'}, ${fs.length - v} da vedere</span></a>`; }).join('')}</div><h2 class="sec">🏆 Le tue classifiche</h2>` : '')
+    + (CLS.some(c=>c.kind !== 'lib') ? `<div class="people">${CLS.filter(c=>c.kind !== 'lib').slice().sort((a, b)=>(b.updated || 0) - (a.updated || 0)).map(c=>`<a class="person" href="#classifica/${esc(c.id)}" style="flex-direction:column"><b>${esc(c.name)}</b><span>${sizeLbl(c.size)}${c.genre ? ', ' + esc(c.genre) : ''}, ${c.items.length} serie</span><span style="white-space:normal">${c.items.slice(0, 3).map((id, i)=>`${i + 1}. ${esc(title(imdbEntry(id) || { id }))}`).join(', ')}</span></a>`).join('')}</div>` : '<p class="note">Nessuna classifica ancora.</p>');
   const autoName = () => { if(!$('rkName').dataset.touched) $('rkName').value = `La mia top ${$('rkSize').value === '0' ? '' : $('rkSize').value + ' '}${$('rkGenre').value.toLowerCase()}`.replace(/\s+/g, ' ').trim(); };
   $('rkName').oninput = () => { $('rkName').dataset.touched = $('rkName').value ? '1' : ''; };
   $('rkGenre').onchange = autoName; $('rkSize').onchange = autoName;
   $('imFileBtn').onclick = () => $('imFile').click();
   $('imFile').onchange = async ev => { const fs = [...ev.target.files]; ev.target.value = ''; if(!fs.length) return;
-    const txt = await Promise.all(fs.map(f=>(f.text ? f.text() : new Promise((ok, no)=>{ const r = new FileReader(); r.onload = () => ok(String(r.result || '')); r.onerror = no; r.readAsText(f); })).then(x=>readImport(x, f.name)).catch(()=>'')));
+    let server = false;
+    const txt = await Promise.all(fs.map(f=>(f.text ? f.text() : new Promise((ok, no)=>{ const r = new FileReader(); r.onload = () => ok(String(r.result || '')); r.onerror = no; r.readAsText(f); })).then(x=>{ if(mediaToLines(x, f.name) !== null || /\btt\d{6,9}\b/.test(x) && !/^\s*\d+[.)]/m.test(x)) server = true; return readImport(x, f.name); }).catch(()=>'')));
     const seen = new Set(), lines = txt.join('\n').split('\n').map(x=>x.trim()).filter(x=>x && !seen.has(x.toLowerCase()) && seen.add(x.toLowerCase()));
     $('imText').value = lines.join('\n');
     if(!$('imName').value.trim()) $('imName').value = fs.length === 1 ? fs[0].name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').replace(/^playlist$/i, 'La mia playlist').trim() : 'La mia libreria';
+    if(server || lines.length > 120){ const r = document.querySelector('#imKind input[value="lib"]'); if(r){ r.checked = true; imKindSync(); } if(!$('imName').dataset.touched && (fs.length > 1 || /^(playlist|movie|tvshow|videodb|items|export|library)/i.test(fs[0].name))) $('imName').value = 'La mia libreria'; }
     toast(`${fs.length > 1 ? fs.length + ' file letti' : 'File letto'}: ${lines.length} titoli pronti da importare`); };
-  $('imGo').onclick = () => { const r = importList($('imName').value.trim(), $('imText').value, $('imSrc').value.trim(), $('imPin').checked, $('imSeen').checked);
+  const imKindSync = () => { const lib = (document.querySelector('#imKind input:checked') || {}).value === 'lib'; $('imPinL').hidden = lib; $('imGo').textContent = lib ? '📺 Importa la libreria' : '📋 Importa'; };
+  document.querySelectorAll('#imKind input').forEach(r=>r.onchange = imKindSync);
+  $('imName').addEventListener('input', ()=>{ $('imName').dataset.touched = '1'; });
+  $('imGo').onclick = () => { const kind = (document.querySelector('#imKind input:checked') || {}).value === 'lib' ? 'lib' : '';
+    const r = importList($('imName').value.trim(), $('imText').value, $('imSrc').value.trim(), $('imPin').checked, $('imSeen').checked, kind);
+    if(r.ok && kind === 'lib'){ toast(`📺 ${r.updated ? 'Libreria aggiornata' : 'Libreria importata'}: ${r.c.items.length} ${IS_SERIE ? 'serie' : 'film'} riconosciuti` + (r.miss.length ? `, ${r.miss.length} da controllare` : '')); location.hash = '#libreria/' + r.c.id; return; }
     if(!r.ok){ toast(r.miss.length ? 'Nessun titolo riconosciuto: controlla che ci sia un titolo per riga' : 'Incolla prima l\'elenco dei titoli'); return; }
     toast(`Importati ${r.c.items.length} titoli` + (r.miss.length ? `, ${r.miss.length} non riconosciuti (li trovi nella classifica)` : '')); location.hash = '#classifica/' + r.c.id; };
   $('rkNew').onclick = () => { const name = $('rkName').value.trim() || `La mia top ${$('rkSize').value === '0' ? '' : $('rkSize').value}`.trim();
     const c = { id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name, size: +$('rkSize').value, genre: $('rkGenre').value, items: [], created: Date.now(), updated: Date.now() };
     CLS.push(c); saveCls(); location.hash = '#classifica/' + c.id; };
 }
+function viewLibrary(arg){
+  setNav('classifiche'); const [id, sub] = String(arg || '').split('/'), libs = CLS.filter(c=>c.kind === 'lib'), c = id === 'tutte' ? null : libs.find(x=>x.id === id);
+  if(!libs.length || (id !== 'tutte' && !c)) return viewRankings();
+  const W = IS_SERIE ? 'serie' : 'film', ids = [...new Set((c ? [c] : libs).flatMap(x=>x.items))], all = ids.map(imdbEntry).filter(Boolean).map(enrich);
+  const seen = all.filter(e=>has(e.id, 'v')), todo = all.filter(e=>!has(e.id, 'v')), base = sub === 'davedere' ? todo : sub === 'visti' ? seen : all;
+  const tabs = `<div class="marks lib-tabs">${[['', 'Tutti', all.length], ['davedere', 'Da vedere', todo.length], ['visti', 'Già visti', seen.length]].map(([s, l, n])=>`<a class="btn${(sub || '') === s ? ' amber' : ''}" href="#libreria/${esc(id)}${s ? '/' + s : ''}">${l} · ${n.toLocaleString('it-IT')}</a>`).join('')}</div>`;
+  const head = `<p class="crumbs"><a href="#classifiche">Le mie classifiche</a> › Libreria</p><h1 class="pg">📺 ${esc(c ? c.name : 'Le tue librerie')}</h1>`;
+  viewList('lib', { o: 'punteggio' }, base, head + tabs, `${all.length.toLocaleString('it-IT')} ${W}${c && c.updated ? ', aggiornata il ' + new Date(c.updated).toLocaleDateString('it-IT') : ''}. Il segno 📺 li indica anche nel resto dell'Atlante.`, { genre: true, decade: true, mp: true });
+  if(!c) return;
+  V().insertAdjacentHTML('beforeend', (c.miss && c.miss.length ? `<div class="box"><h3>Da controllare (${c.miss.length})</h3><div class="in"><p class="note">Questi titoli non li ho riconosciuti: tocca per cercarli, a volte il titolo italiano è diverso.</p><div class="cast">${c.miss.slice(0, 300).map(t=>`<a class="bd" href="#cerca/${encodeURIComponent(String(t).replace(/§tt\d+\s*/, '').replace(/\s*\(\d{4}\)\s*$/, ''))}">${esc(String(t).replace(/§tt\d+\s*/, ''))}</a>`).join('')}</div><p><button class="btn" type="button" id="lbMissOk">Ho finito, nascondi l'elenco</button></p></div></div>` : '')
+    + `<div class="marks"><label style="display:flex; align-items:center; gap:8px"><input type="checkbox" id="lbRow" ${c.libRow !== false ? 'checked' : ''}> Mostra «Dalla tua libreria, da vedere» in Esplora</label><button class="btn" type="button" id="lbRen">✏️ Rinomina</button><button class="btn" type="button" id="lbDel">Elimina la libreria</button></div>`
+    + `<p class="note">Per aggiornarla, importa di nuovo il file in <a href="#classifiche" style="color:var(--chart)">Classifiche</a> con lo stesso nome («${esc(c.name)}») e scegli «📺 È la mia libreria».</p>`);
+  $('lbRow').onchange = () => { c.libRow = $('lbRow').checked; saveCls(); toast(c.libRow ? 'La trovi in Esplora' : 'Tolta da Esplora'); };
+  if($('lbMissOk')) $('lbMissOk').onclick = () => { c.miss = []; saveCls(); viewLibrary(arg); };
+  $('lbRen').onclick = () => { const n = (window.prompt('Nuovo nome della libreria', c.name) || '').trim(); if(n){ c.name = n; c.updated = Date.now(); saveCls(); viewLibrary(arg); } };
+  $('lbDel').onclick = () => { if(!window.confirm(`Eliminare la libreria «${c.name}»? I ${W} restano nell'Atlante, sparisce solo il segno 📺.`)) return; CLS.splice(CLS.indexOf(c), 1); saveCls(); toast('Libreria eliminata'); location.hash = '#classifiche'; };
+}
+function libStrip(){   // in Esplora: i migliori della tua libreria che non hai ancora visto, diversi ogni giorno
+  const libs = CLS.filter(c=>c.kind === 'lib' && c.libRow !== false); if(!libs.length) return '';
+  const all = [...new Set(libs.flatMap(c=>c.items))].map(imdbEntry).filter(Boolean).map(enrich), todo = all.filter(e=>!has(e.id, 'v')).sort((a, b)=>b._s - a._s || b.v - a.v);
+  if(!todo.length) return '';
+  const top = todo.slice(0, 60), off = Math.floor(Date.now() / 864e5) % Math.max(1, top.length), pick = top.slice(off).concat(top.slice(0, off)).slice(0, 14);
+  return `<h2 class="sec">📺 Dalla tua libreria, da vedere <span class="note" style="font-family:var(--ui)">${todo.length.toLocaleString('it-IT')} su ${all.length.toLocaleString('it-IT')}, i migliori per primi</span><a class="more" href="#libreria/${libs.length > 1 ? 'tutte' : esc(libs[0].id)}/davedere">Vedi tutti</a></h2><div class="strip">${pick.map(tile).join('')}</div>`;
+}
 function viewRanking(cid){
-  setNav('classifiche'); const c = CLS.find(x=>x.id === cid); if(!c) return viewRankings();
+  setNav('classifiche'); const c = CLS.find(x=>x.id === cid); if(!c) return viewRankings(); if(c.kind === 'lib') return viewLibrary(cid);
   const draw = () => {
     const items = c.items.map(imdbEntry).filter(Boolean).map(enrich);
     V().innerHTML = `<p class="crumbs"><a href="#classifiche">Le mie classifiche</a></p><h1 class="pg"><input id="rkTitle" value="${esc(c.name)}" aria-label="Nome della classifica" style="font:inherit; color:inherit; background:transparent; border:0; border-bottom:1px dashed var(--line); width:100%"></h1>`
@@ -2244,6 +2286,7 @@ function route(){
   if(k === 'liste') return viewLists(arg);
   if(k === 'classifiche') return viewRankings();
   if(k === 'classifica') return viewRanking(arg);
+  if(k === 'libreria') return viewLibrary(arg);
   if(k === 'persona'){ const [nm, qid] = arg.split('/'); return viewPersona(nm, qid); }
   if(EPISODES && k === 'stagione'){ const [tt, n] = arg.split('/'); return viewSeason(tt, n); }
   if(EPISODES && k === 'episodio'){ const [tt, sn, en] = arg.split('/'); return viewEpisode(tt, sn, en); }
