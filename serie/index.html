@@ -363,7 +363,7 @@ html.tv .ruler.mini{height:calc(150px * var(--k, 1));}
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '3.7';
+const APP_VERSION = '3.8';
 /* Copiate dalla Videoteca da build_serie.py: leggono l'indice delle serie e il cast esattamente come lei. */
 let SERIES = null, SERIES_BY_ID = null, SERIES_STATE = 'idle', _seriesPromise = null, IMDB_INDEX = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -1470,7 +1470,7 @@ function viewItalia(arg){
 }
 const LISTS = {
   italiani: [IS_SERIE ? 'Serie italiane' : 'Cinema italiano', () => itaList(), 'nessuno', IS_SERIE ? 'Le serie italiane dell\'atlante, dalla più apprezzata. Paese e lingua vengono da Wikidata: produzioni solo italiane, o italiane girate in italiano.' : 'I film italiani dell\'atlante, dal più apprezzato: da Rossellini e Fellini a oggi. Paese e lingua vengono da Wikidata: produzioni solo italiane, o italiane girate in italiano.'],
-  mese: ['🆕 Uscite dell\'ultimo mese', () => monthList(), 'nessuno', 'Le serie partite negli ultimi 30 giorni, dalla più recente. La data è quella della prima puntata su Wikidata; l\'elenco si aggiorna da solo ogni giorno.', e => dayShort(MONTH && MONTH.get(e.id))],
+  mese: ['🆕 Uscite dell\'ultimo mese', () => monthList(), 'nessuno', 'Le serie nuove e le nuove stagioni partite negli ultimi 30 giorni, dalla più recente. Le date vengono da Wikidata e dal palinsesto di TVmaze; l\'elenco si aggiorna da solo ogni notte.', e => { const sn = CRITICA && CRITICA.mese_sn && CRITICA.mese_sn[e.id]; return dayShort(MONTH && MONTH.get(e.id)) + (sn > 1 ? ` · stagione ${sn}` : ''); }],
   'migliori-anno': ['⭐ Le migliori dell\'anno', () => bestOfYear().l.slice(0, 200), 'nessuno', 'Le serie partite nell\'anno in corso con almeno 3.000 voti, dalla più apprezzata. Cambia da solo con l\'anno.'],
   novita: [NOVITA_TITLE, () => novitaList(), 'nessuno', 'Le serie iniziate quest\'anno e lo scorso, dalla più recente: la data è quella della prima puntata (in Italia quando Wikidata la conosce).'],
   nuove: ['📡 Nuove stagioni', () => SEASONS_NEW.map(x=>x.e), 'nessuno', 'Le serie con una stagione iniziata negli ultimi quattro mesi, dalla più recente.'],
