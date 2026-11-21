@@ -8,6 +8,9 @@ inserisce nel file HTML indicato (di solito index.html).
 
 Regole: film per il cinema o per la TV (movie, tvMovie), non per adulti, con un
 titolo italiano registrato su IMDb (i film distribuiti in Italia).
+Eccezione per le novità (usciti quest'anno o l'anno scorso): entrano anche senza titolo italiano, col titolo
+originale, se hanno già un minimo di voti (RECENT_MIN_FILM / RECENT_MIN_SERIE). IMDb aggiunge il titolo italiano
+solo quando il titolo arriva in Italia, spesso settimane dopo: senza questa eccezione le uscite del mese sparivano.
 Formato di ogni riga: id|titolo italiano|titolo originale|anno|durata|generi|voti|voto|alias~alias|regia
 In un blocco separato: i primi 5 attori di ogni film (tabella dei nomi + riferimenti),
 per avere offline anche le filmografie degli attori (ruoli principali).
@@ -25,6 +28,7 @@ BASE = 'https://datasets.imdbws.com/'
 FILES = ['title.basics.tsv.gz', 'title.akas.tsv.gz', 'title.ratings.tsv.gz', 'title.crew.tsv.gz', 'name.basics.tsv.gz', 'title.principals.tsv.gz', 'title.episode.tsv.gz']
 OPTIONAL = ('title.principals.tsv.gz', 'title.episode.tsv.gz')
 CAST_PER_FILM = 5   # ruoli principali: i primi attori dei titoli di testa
+RECENT_MIN_FILM, RECENT_MIN_SERIE = 100, 30   # novità senza titolo italiano: voti minimi per entrare
 GENRES = {'Drama':'Drammatico','Comedy':'Commedia','Romance':'Romantico','Crime':'Crime','Documentary':'Documentario','Action':'Azione',
   'Thriller':'Thriller','Adventure':'Avventura','Horror':'Horror','Mystery':'Giallo','Biography':'Biografico','Family':'Famiglia','Fantasy':'Fantasy',
   'History':'Storico','Sci-Fi':'Fantascienza','Animation':'Animazione','Music':'Musica','War':'Guerra','Western':'Western','Musical':'Musical',
@@ -59,12 +63,15 @@ def download(dest):
 
 def build(paths):
     # 1) candidati: movie / tvMovie, non adulti
-    cand, scand = set(), set()
+    cand, scand, recent = set(), set(), set()
+    Y = datetime.date.today().year
     for line in open_tsv(paths['title.basics.tsv.gz']):
         p = line.rstrip('\n').split('\t')
-        if len(p) > 4 and p[4] == '0':
+        if len(p) > 5 and p[4] == '0':
             if p[1] in ('movie', 'tvMovie'): cand.add(int(p[0][2:]))
             elif p[1] in ('tvSeries', 'tvMiniSeries'): scand.add(int(p[0][2:]))
+            else: continue
+            if p[5].isdigit() and int(p[5]) >= Y - 1: recent.add(int(p[0][2:]))
     log('Candidati (movie/tvMovie non adulti):', len(cand), '· serie:', len(scand))
     # 2) titoli italiani: principale = "imdbDisplay" (altrimenti il primo), gli altri come alias
     it, its = {}, {}
@@ -80,6 +87,11 @@ def build(paths):
         if 'imdbDisplay' in p[5] and rec[0] is None: rec[0] = t
         else: rec[1].append(t)
     log('Con titolo italiano:', len(it), '· serie:', len(its))
+    noit = set()   # novità senza titolo italiano (per ora): entrano col titolo originale, poi si filtrano per voti
+    for k in recent:
+        if k in cand and k not in it: it[k] = [None, []]; noit.add(k)
+        elif k in scand and k not in its: its[k] = [None, []]; noit.add(k)
+    log('Novità senza titolo italiano (prima del filtro dei voti):', len(noit))
     # 3) dati del film (e delle serie)
     rows, srows = {}, {}
     for line in open_tsv(paths['title.basics.tsv.gz']):
@@ -89,10 +101,12 @@ def build(paths):
         is_ser = k in its
         if k not in it and not is_ser: continue
         main, alts = (its if is_ser else it)[k]
-        if main is None:
-            if not alts: continue
-            main, alts = alts[0], alts[1:]
         prim = clean(p[2])
+        if main is None:
+            if not alts:
+                if k not in noit or not prim: continue
+                main, alts = prim, []
+            else: main, alts = alts[0], alts[1:]
         en = prim if prim and prim.lower() != main.lower() else ''
         seen = {main.lower()}; al = []
         for a in alts:
@@ -116,6 +130,10 @@ def build(paths):
         k = int(p[0][2:])
         if k in rows: rows[k][7] = p[1]; rows[k][6] = p[2]
         elif k in srows: srows[k][9] = p[1]; srows[k][8] = p[2]
+    # 4b) novità senza titolo italiano: solo quelle che qualcuno ha già votato
+    drop = [k for k in noit if k in rows and int(rows[k][6] or 0) < RECENT_MIN_FILM] + [k for k in noit if k in srows and int(srows[k][8] or 0) < RECENT_MIN_SERIE]
+    for k in drop: rows.pop(k, None); srows.pop(k, None)
+    log('Novità senza titolo italiano tenute:', sum(1 for k in noit if k in rows), 'film,', sum(1 for k in noit if k in srows), 'serie')
     # 5) regia
     need = {}
     for line in open_tsv(paths['title.crew.tsv.gz']):

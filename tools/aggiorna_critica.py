@@ -53,6 +53,48 @@ EXTRA = {   # classifiche: se una richiesta non riesce, le altre (e la critica) 
 }
 
 
+# Nuove serie e nuove stagioni dal calendario di TVmaze (gratis, senza chiavi): le puntate numero 1 di ogni stagione.
+# Wikidata conosce solo l'inizio di una serie nuova, e spesso con giorni di ritardo; TVmaze ha il palinsesto giorno per giorno.
+TVM_COUNTRIES = ['US', 'GB', 'IT', 'CA', 'AU', 'IE', 'DE', 'FR', 'ES', 'NL', 'SE', 'DK', 'NO', 'BE', 'NZ']
+TVM_LANG = {'English', 'Italian', 'Spanish', 'French', 'German', 'Danish', 'Swedish', 'Norwegian', 'Dutch', 'Portuguese', 'Finnish', 'Icelandic', 'Polish'}
+
+
+def tvmaze_premieres(since, until, get=None):
+    """{imdb: (data, stagione)} per le prime puntate di stagione uscite tra since e until (date ISO)."""
+    def _get(url):
+        for k in range(4):
+            try:
+                with urllib.request.urlopen(urllib.request.Request(url, headers={'User-Agent': UA}), timeout=40) as r:
+                    return json.loads(r.read().decode('utf-8'))
+            except urllib.error.HTTPError as e:
+                if e.code == 404: return []
+                time.sleep(10 if e.code == 429 else 3 * (k + 1))
+            except Exception:
+                time.sleep(3 * (k + 1))
+        raise RuntimeError('TVmaze non risponde: ' + url)
+    get = get or _get
+    found, d, end, fails = {}, datetime.date.fromisoformat(since), datetime.date.fromisoformat(until), 0
+    while d <= end:
+        D = d.isoformat()
+        for url in [f'https://api.tvmaze.com/schedule/web?date={D}'] + [f'https://api.tvmaze.com/schedule?country={c}&date={D}' for c in TVM_COUNTRIES]:
+            try: eps = get(url) or []
+            except Exception: fails += 1; continue
+            for ep in eps:
+                show = ep.get('show') or (ep.get('_embedded') or {}).get('show') or {}
+                imdb = str((show.get('externals') or {}).get('imdb') or '')
+                if ep.get('number') != 1 or not re.match(r'^tt\d+$', imdb) or ep.get('type', 'regular') != 'regular': continue
+                if show.get('language') and show.get('language') not in TVM_LANG: continue
+                if (show.get('type') or '') in ('Talk Show', 'News', 'Sports', 'Game Show', 'Award Show'): continue
+                ad, sn = str(ep.get('airdate') or '')[:10], ep.get('season') or 1
+                if not re.match(r'^\d{4}-\d\d-\d\d$', ad) or ad < since or ad > until: continue
+                old = found.get(imdb)
+                if not old or sn > old[1] or (sn == old[1] and ad < old[0]): found[imdb] = (ad, sn)
+            if get is _get: time.sleep(0.55)   # TVmaze: al massimo 20 richieste ogni 10 secondi
+        d += datetime.timedelta(days=1)
+    if fails > 40: raise RuntimeError(f'TVmaze: {fails} richieste fallite')
+    return found
+
+
 def ask(key, local=None):
     if local:
         path = os.path.join(local, f'q-{key}.json')
@@ -139,6 +181,18 @@ def main():
             out[key] = res_m; print(f'  {label}: {len(res_m)} titoli (da {via})')
         except Exception as e:
             print(f'  {label}: non disponibile stanotte ({str(e)[:80]}), l\'app le chiederà da sola')
+    # serie: aggiungo le nuove stagioni (e le serie nuove che Wikidata non ha ancora) dal calendario di TVmaze
+    try:
+        tv = tvmaze_premieres(since, built)
+        ms, sn = dict(out.get('mese_s') or {}), {}
+        for imdb, (ad, s) in tv.items():
+            if s > 1 or imdb not in ms: ms[imdb] = ad
+            elif ad < ms[imdb]: ms[imdb] = ad
+            if s > 1: sn[imdb] = s
+        if len(ms) >= 20: out['mese_s'], out['mese_sn'] = ms, sn
+        print(f'  nuove serie e nuove stagioni (TVmaze): {len(tv)} titoli, {len(sn)} nuove stagioni; uscite delle serie in tutto: {len(ms)}')
+    except Exception as e:
+        print(f'  TVmaze non disponibile stanotte ({str(e)[:80]}): restano le uscite di Wikidata')
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
     with open(out_path, 'wb') as f:
         f.write(gzip.compress(json.dumps(out, separators=(',', ':')).encode('utf-8'), 9))
