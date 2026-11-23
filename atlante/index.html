@@ -425,7 +425,8 @@ const xmasSeason = d => d.getMonth() === 11 ? d.getFullYear() : d.getFullYear() 
 function themeMode(){ try{ return localStorage.getItem(THEME_KEY) || 'auto'; }catch(e){ return 'auto'; } }
 function themeName(at){
   const d = at || new Date();
-  try{ const q = new URLSearchParams(location.search).get('tema'); if(['natale', 'miami', 'classico'].includes(q)) return q; }catch(e){}
+  try{ const u = new URLSearchParams(location.search), q = u.get('tema'), pq = u.get('periodo'); if(['natale', 'miami', 'classico'].includes(q)) return q;
+    if(pq) return pq === 'natale' || pq === 'miami' ? pq : 'classico'; }catch(e){}   // ?periodo=… per provare: anche il tema segue il periodo scelto
   if(isXmasDay(d)){ let c = ''; try{ c = localStorage.getItem(XMAS_KEY) || ''; }catch(e){} const [s, v] = c.split(':'); return +s === xmasSeason(d) && ['classico', 'miami'].includes(v) ? v : 'natale'; }
   const m = themeMode(); if(m === 'miami' || m === 'classico') return m;
   const k = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); return k >= 20261119 && k <= 20261130 ? 'miami' : 'classico';
