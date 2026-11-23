@@ -34,6 +34,58 @@ button, input, select{font:inherit; color:inherit;}
 .rk{display:grid; grid-template-columns:40px 34px minmax(0, 1fr) auto; gap:12px; align-items:center; padding:8px 4px; border-bottom:1px solid var(--line);}
 .rk .rk-n{font-family:var(--serif); font-weight:700; font-size:22px; text-align:center; color:var(--amber2);} .rk .th{width:34px; height:51px; object-fit:cover; border-radius:3px; background:var(--s2); display:block;}
 .rk .sub{display:block; color:var(--paper2); font-size:13px;} .rk-a{display:flex; gap:6px;} .rk-a .btn{height:32px; padding:0 10px;} .rk-a .btn:disabled{opacity:.35; cursor:default;}
+/* ---------- 🌴 Tema "Notte a Miami": tramonto al neon, palme, griglia synthwave (originale, solo colori e sfondi) ---------- */
+html.miami{--ink:#140B1F; --s1:#1C1030; --s2:#25163C; --s3:#301F4B; --line:#43295F; --paper:#FFF1F7; --paper2:#DDBFDD; --paper3:#A188B0;
+  --chart:#3FE3D3; --chart2:#27B3A8; --amber:#FF4FA3; --amber2:#FF9E5E; --mix:#FFC85A;}
+html.miami body{background:radial-gradient(120% 70% at 70% -10%, rgba(255,94,120,.16), transparent 60%), radial-gradient(90% 60% at 0% 0%, rgba(140,60,255,.14), transparent 55%), var(--ink); background-attachment:fixed;}
+html.miami body::after{content:""; position:fixed; left:-50%; right:-50%; bottom:-2px; height:38vh; z-index:-1; pointer-events:none;
+  background-image:linear-gradient(rgba(255,79,163,.22) 1px, transparent 1px), linear-gradient(90deg, rgba(63,227,211,.16) 1px, transparent 1px); background-size:56px 56px;
+  transform:perspective(320px) rotateX(62deg); transform-origin:50% 100%; -webkit-mask-image:linear-gradient(to top, #000, transparent 85%); mask-image:linear-gradient(to top, #000, transparent 85%);}
+html.miami .top::before{background:linear-gradient(90deg, rgba(40,12,66,.9) 0%, rgba(120,28,120,.88) 38%, rgba(232,64,120,.86) 70%, rgba(255,150,84,.86) 100%);}
+html.miami .top{background:transparent; border-bottom:1px solid rgba(255,79,163,.55); box-shadow:0 0 24px rgba(255,79,163,.25);}
+html.miami .top::after{content:""; position:absolute; right:0; bottom:0; width:260px; height:100%; pointer-events:none; opacity:.9;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 260 64'%3E%3Cdefs%3E%3ClinearGradient id='s' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23FFE38A'/%3E%3Cstop offset='1' stop-color='%23FF6F61'/%3E%3C/linearGradient%3E%3C/defs%3E%3Ccircle cx='150' cy='66' r='40' fill='url(%23s)' opacity='.95'/%3E%3Cg fill='%23E8407A' opacity='.9'%3E%3Crect x='100' y='44' width='100' height='3'/%3E%3Crect x='100' y='51' width='100' height='4'/%3E%3Crect x='100' y='59' width='100' height='5'/%3E%3C/g%3E%3Cg fill='%23140B1F'%3E%3Cpath d='M196 64c2-18 3-30 1-44l3 0c2 14 1 27-1 44z'/%3E%3Cpath d='M198 20c-10-6-24-6-34 2 10-2 20 0 28 4-9 0-18 4-24 11 9-6 19-8 28-7-5 4-8 10-9 17 4-7 9-12 15-15 3 6 4 13 3 20 3-8 3-15 1-22 7 2 13 7 17 14-2-8-7-14-14-18 9-1 18 2 25 8-6-8-15-12-25-12 8-4 17-5 26-3-10-5-22-5-32 0z'/%3E%3Cpath d='M236 64c1-12 2-21 0-31l2 0c2 10 1 19 0 31z'/%3E%3Cpath d='M237 33c-7-4-17-4-24 1 7-1 14 0 19 3-6 0-12 3-16 8 6-4 13-5 19-5-3 3-5 7-6 12 3-5 6-8 10-10 2 4 3 9 2 14 2-6 2-11 1-15 5 1 9 5 12 10-1-6-5-10-10-13 6-1 13 1 17 6-4-6-10-9-17-9 5-3 12-3 18-2-7-4-15-4-22 0z'/%3E%3C/g%3E%3C/svg%3E") right bottom/auto 100% no-repeat;}
+html.miami .top-in{position:relative; z-index:1;}
+html.miami .brand b{color:#FFF6FB; text-shadow:0 0 6px rgba(255,79,163,.9), 0 0 18px rgba(255,79,163,.55); font-style:italic; letter-spacing:.02em;}
+html.miami .brand .rose{border-color:#3FE3D3; box-shadow:0 0 10px rgba(63,227,211,.7);}
+html.miami .brand .rose::before, html.miami .brand .rose::after{background:#FF9E5E;}
+html.miami .search input{background:rgba(20,11,31,.55); border-color:rgba(255,241,247,.25);}
+html.miami h2.sec, html.miami h1.pg{text-shadow:0 0 14px rgba(255,79,163,.35);}
+html.miami .btn.amber, html.miami .btn.primary{box-shadow:0 0 14px rgba(255,79,163,.45);}
+html.miami .hero{box-shadow:0 0 0 1px rgba(255,79,163,.35), 0 0 30px rgba(255,79,163,.18);}
+@media (max-width:760px){ html.miami .top::after{width:130px; opacity:.4;} html.miami body::after{height:26vh;} html.miami .nav{border-top-color:rgba(255,79,163,.45); box-shadow:0 -6px 22px rgba(255,79,163,.16);} }
+@media (prefers-reduced-motion:reduce){ html.miami .top{box-shadow:none;} }
+html.tv.miami body::after{display:none;}
+
+/* ---------- 🎄 Tema "Natale": abeti di notte, oro e rosso mirtillo, una fila di lucine sotto l'intestazione ---------- */
+html.natale{--ink:#0D1916; --s1:#13231E; --s2:#1A2E27; --s3:#223A31; --line:#2F4A3F; --paper:#F8F2E4; --paper2:#D3C8B0; --paper3:#968B71;
+  --chart:#E8C468; --chart2:#C29A43; --amber:#E2485C; --amber2:#F39A8F; --mix:#E8C468; --pos:#7FD39A;}
+html.natale body{background:radial-gradient(110% 60% at 50% -12%, rgba(232,196,104,.13), transparent 60%), radial-gradient(70% 50% at 100% 0%, rgba(226,72,92,.10), transparent 60%), var(--ink); background-attachment:fixed;}
+html.natale body::after{content:""; position:fixed; inset:0; z-index:-1; pointer-events:none; opacity:.35;
+  background-image:radial-gradient(1.4px 1.4px at 20px 30px, #fff 60%, transparent 61%), radial-gradient(1px 1px at 90px 110px, #fff 60%, transparent 61%), radial-gradient(1.2px 1.2px at 150px 60px, #fff 60%, transparent 61%), radial-gradient(1px 1px at 60px 170px, #fff 60%, transparent 61%);
+  background-size:190px 200px; -webkit-mask-image:linear-gradient(#000, transparent 70%); mask-image:linear-gradient(#000, transparent 70%);}
+html.natale .top::before{background:linear-gradient(90deg, rgba(10,40,30,.92) 0%, rgba(18,52,38,.9) 45%, rgba(70,18,28,.9) 100%);}
+html.natale .top{background:transparent; border-bottom:1px solid rgba(232,196,104,.35);}
+.lucine{display:none;}
+html.natale .lucine{display:block; position:absolute; left:0; right:0; bottom:-9px; height:16px; pointer-events:none; z-index:2;
+  background:linear-gradient(rgba(20,30,24,.9), rgba(20,30,24,.9)) 0 3px/100% 1.5px no-repeat;}
+html.natale .lucine i{position:absolute; inset:0; animation:accendi 4.8s ease-in-out infinite; will-change:opacity, filter;}
+html.natale .lucine i:nth-child(1){background:radial-gradient(circle 4.5px at 8px 8px, #FFF1F1 0 1.5px, #FF4D5A 2.5px 4.5px, transparent 5px) 0 0/64px 16px repeat-x; --g:255,77,90; animation-delay:0s;}
+html.natale .lucine i:nth-child(2){background:radial-gradient(circle 4.5px at 24px 10px, #FFFBE6 0 1.5px, #FFC93C 2.5px 4.5px, transparent 5px) 0 0/64px 16px repeat-x; --g:255,201,60; animation-delay:-1.2s;}
+html.natale .lucine i:nth-child(3){background:radial-gradient(circle 4.5px at 40px 8px, #EFFFF5 0 1.5px, #3EE07F 2.5px 4.5px, transparent 5px) 0 0/64px 16px repeat-x; --g:62,224,127; animation-delay:-2.4s;}
+html.natale .lucine i:nth-child(4){background:radial-gradient(circle 4.5px at 56px 10px, #EEF8FF 0 1.5px, #4FB3FF 2.5px 4.5px, transparent 5px) 0 0/64px 16px repeat-x; --g:79,179,255; animation-delay:-3.6s;}
+@keyframes accendi{ 0%, 100%{ opacity:.8; filter:drop-shadow(0 0 2px rgba(var(--g), .7)); } 50%{ opacity:1; filter:drop-shadow(0 0 3px rgba(var(--g), .95)) drop-shadow(0 0 6px rgba(var(--g), .45)); } }
+html.natale .top-in{position:relative; z-index:1;}
+html.natale .brand b{color:#FFF8EA; text-shadow:0 0 8px rgba(232,196,104,.65), 0 0 20px rgba(232,196,104,.3);}
+html.natale .brand .rose{border-color:#E8C468; box-shadow:0 0 10px rgba(232,196,104,.6);}
+html.natale .brand .rose::before, html.natale .brand .rose::after{background:#E2485C;}
+html.natale .search input{background:rgba(13,25,22,.6); border-color:rgba(248,242,228,.22);}
+html.natale h2.sec, html.natale h1.pg{text-shadow:0 0 14px rgba(232,196,104,.22);}
+html.natale .btn.amber, html.natale .btn.primary{box-shadow:0 0 14px rgba(226,72,92,.4);}
+html.natale .hero{box-shadow:0 0 0 1px rgba(232,196,104,.3), 0 0 30px rgba(232,196,104,.12);}
+@media (max-width:760px){ html.natale .nav{border-top-color:rgba(232,196,104,.4);} }
+@media (prefers-reduced-motion:reduce){ html.natale .lucine i{animation:none; opacity:1;} }
+html.tv.natale body::after{display:none;} html.tv.natale .lucine i{animation:none; opacity:1;}
 /* ---------- 📺 Modalità TV: da leggere dal divano, con il telecomando ---------- */
 html.tv{font-size:calc(20px * var(--k, 1));}
 html.tv body{font-size:calc(20px * var(--k, 1));}
@@ -340,6 +392,7 @@ html.tv .ruler.mini{height:calc(150px * var(--k, 1));}
 </head>
 <body>
 <header class="top">
+  <span class="lucine" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
   <div class="top-in">
     <a class="brand" href="#"><span class="rose" aria-hidden="true"></span><b>Atlante Serie TV</b></a>
     <form class="search" id="searchForm" role="search"><input id="q" type="search" placeholder="Cerca una serie, un attore…" aria-label="Cerca" autocomplete="off"></form>
@@ -358,12 +411,41 @@ html.tv .ruler.mini{height:calc(150px * var(--k, 1));}
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script>
 'use strict';
+/* Temi dell'interfaccia (solo colori e sfondi, mai dati):
+   🎄 "Natale": da solo ogni anno dal 1° dicembre al 6 gennaio.
+   🌴 "Notte a Miami": da solo solo dal 19 al 30 novembre 2026, poi a mano.
+   5 tocchi sul numero di versione in Strumenti cambiano tema: a Natale Natale → classico → Miami → Natale (la scelta vale solo per
+   quelle feste: l'anno dopo il Natale torna da solo); il resto dell'anno classico ↔ Miami (la scelta resta salvata). */
+const THEME_KEY = 'atlante-tema', XMAS_KEY = 'atlante-tema-feste';
+const isXmasDay = d => { const k = (d.getMonth() + 1) * 100 + d.getDate(); return k >= 1201 || k <= 106; };
+const xmasSeason = d => d.getMonth() === 11 ? d.getFullYear() : d.getFullYear() - 1;
+function themeMode(){ try{ return localStorage.getItem(THEME_KEY) || 'auto'; }catch(e){ return 'auto'; } }
+function themeName(at){
+  const d = at || new Date();
+  try{ const q = new URLSearchParams(location.search).get('tema'); if(['natale', 'miami', 'classico'].includes(q)) return q; }catch(e){}
+  if(isXmasDay(d)){ let c = ''; try{ c = localStorage.getItem(XMAS_KEY) || ''; }catch(e){} const [s, v] = c.split(':'); return +s === xmasSeason(d) && ['classico', 'miami'].includes(v) ? v : 'natale'; }
+  const m = themeMode(); if(m === 'miami' || m === 'classico') return m;
+  const k = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); return k >= 20261119 && k <= 20261130 ? 'miami' : 'classico';
+}
+function themeOn(at){ return themeName(at) === 'miami'; }
+function toggleTheme(){
+  const d = new Date(), cur = themeName(d); let next;
+  try{
+    if(isXmasDay(d)){ next = cur === 'natale' ? 'classico' : cur === 'classico' ? 'miami' : 'natale'; if(next === 'natale') localStorage.removeItem(XMAS_KEY); else localStorage.setItem(XMAS_KEY, xmasSeason(d) + ':' + next); }
+    else { next = cur === 'miami' ? 'classico' : 'miami'; localStorage.setItem(THEME_KEY, next); }
+  }catch(e){}
+  applyTheme(); try{ _PERIODS = null; }catch(e){}
+  toast(next === 'miami' ? '🌴 Tema «Notte a Miami»' : next === 'natale' ? '🎄 Tema di Natale' : 'Tema classico');
+}
+function applyTheme(){ try{ const t = themeName(), c = document.documentElement.classList; c.toggle('miami', t === 'miami'); c.toggle('natale', t === 'natale'); }catch(e){} }
+applyTheme();
+
 /* =====================================================================
    Atlante Serie TV — enciclopedia personale delle serie.
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '3.8';
+const APP_VERSION = '3.9';
 /* Copiate dalla Videoteca da build_serie.py: leggono l'indice delle serie e il cast esattamente come lei. */
 let SERIES = null, SERIES_BY_ID = null, SERIES_STATE = 'idle', _seriesPromise = null, IMDB_INDEX = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -987,7 +1069,9 @@ const perPool = f => {
 const perMood = k => { const M = MOODS.find(m=>m[0] === k); return perPool((e, g)=>M[2](g)); };
 const awardN = (e, k) => (CRITICA && CRITICA[k] && CRITICA[k][e.id]) || 0;
 let _PERIODS = null;   // calcolati alla prima richiesta, non all'avvio
+const MIAMI = [['tt0086759', 1984], ['tt0773262', 2006], ['tt2707408', 2015], ['tt0903747', 2008], ['tt5071412', 2017], ['tt3520702', 2015], ['tt0810788', 2007], ['tt0313043', 2002], ['tt1064899', 2016], ['tt6439752', 2017], ['tt3032476', 2015], ['tt0141842', 1999], ['tt2802850', 2014], ['tt6468322', 2017], ['tt2531336', 2021], ['tt2049116', 2014], ['tt2249007', 2013], ['tt0286486', 2002], ['tt1124373', 2008]];   // 🌴 Notti a Miami: [codice IMDb, anno] (se l'anno non torna, il titolo non entra)
 const periods = () => _PERIODS || (_PERIODS = IS_SERIE ? {
+  miami: ['🌴 Notti a Miami', 'Miami, cartelli, colpi grossi e vite criminali: le serie giuste per festeggiare l\'uscita di GTA VI.', () => MIAMI.map(([id, y])=>{ const e = imdbEntry(id); return e && Math.abs((parseInt(e.y, 10) || 0) - y) <= 1 ? e : null; }).filter(Boolean).sort((a, b)=>b.v - a.v)],
   natale: ['🎄 Maratone per le feste', 'Serie brevi e bellissime, da finire durante le vacanze.', () => perPool(e=>e.s >= 1 && e.s <= 3)],
   inverno: ['❄️ Serate d\'inverno', 'Drammi, misteri e fantascienza da seguire con calma, sotto una coperta.', () => perPool((e, g)=>g.has('Drammatico') && ['Giallo', 'Fantascienza', 'Storico', 'Thriller'].some(x=>g.has(x)) && !g.has('Commedia') && !['Documentario', 'Animazione', 'Reality-TV', 'Talk-Show', 'Game-Show'].some(x=>g.has(x)))],
   sanvalentino: ['❤️ San Valentino', 'Storie d\'amore e di sentimenti, da vedere in due.', () => perPool((e, g)=>(g.has('Romantico') || (g.has('Drammatico') && g.has('Famiglia') && !g.has('Commedia'))) && !['Horror', 'Crime', 'Guerra', 'Azione', 'Thriller', 'Fantascienza'].some(x=>g.has(x)) && !['Documentario', 'Animazione', 'Reality-TV', 'Talk-Show', 'Game-Show'].some(x=>g.has(x)))],
@@ -998,6 +1082,7 @@ const periods = () => _PERIODS || (_PERIODS = IS_SERIE ? {
   halloween: ['🎃 Notte di Halloween', 'Orrore, mistero e soprannaturale.', () => perPool((e, g)=>!['Commedia', 'Famiglia', 'Documentario', 'Animazione'].some(x=>g.has(x)) && (g.has('Horror') || (g.has('Fantasy') && ['Thriller', 'Giallo'].some(x=>g.has(x)) && !['Avventura', 'Azione', 'Romantico'].some(x=>g.has(x)))))],
   autunno: ['🍂 Serate d\'autunno', 'Indagini, crimini e misteri.', () => perMood('crimine')],
 } : {
+  miami: ['🌴 Notti a Miami', 'Miami, cartelli, colpi grossi e vite criminali: le serie giuste per festeggiare l\'uscita di GTA VI.', () => MIAMI.map(([id, y])=>{ const e = imdbEntry(id); return e && Math.abs((parseInt(e.y, 10) || 0) - y) <= 1 ? e : null; }).filter(Boolean).sort((a, b)=>b.v - a.v)],
   natale: ['🎄 Film di Natale', 'I classici delle feste, da Frank Capra a Mamma, ho perso l\'aereo.', () => XMAS.map(imdbEntry).filter(Boolean).sort((a, b)=>b.v - a.v)],
   inverno: ['❄️ Serate d\'inverno', 'Film da gustare con calma, sotto una coperta.', () => perMood('pensare')],
   sanvalentino: ['❤️ San Valentino', 'Storie d\'amore, da vedere in due.', () => perMood('romantico')],
@@ -1010,6 +1095,7 @@ const periods = () => _PERIODS || (_PERIODS = IS_SERIE ? {
 });
 function periodKey(d){
   try{ const q = new URLSearchParams(location.search).get('periodo'); if(q && periods()[q]) return q; }catch(e){}
+  if(themeOn(d)) return 'miami';   // 🌴 con il tema «Notte a Miami» (da solo fino al 30/11/2026, poi a mano da Strumenti)
   const k = (d.getMonth() + 1) * 100 + d.getDate();
   return k >= 1201 || k <= 106 ? 'natale' : k <= 206 ? 'inverno' : k <= 215 ? 'sanvalentino' : k <= 331 ? 'oscar' : k <= 620 ? 'primavera' : k <= 831 ? 'estate' : k <= 1014 ? 'festival' : k <= 1102 ? 'halloween' : 'autunno';
 }
@@ -2217,8 +2303,11 @@ function viewTools(){
     r.onload = () => { try{ const j = JSON.parse(r.result); if(!j || typeof j.liste !== 'object') throw new Error('x'); Object.entries(j.liste).forEach(([id, v])=>{ LISTE[id] = Object.assign({}, LISTE[id] || {}, v); }); localStorage.setItem(LKEY, JSON.stringify(LISTE));
       (Array.isArray(j.classifiche) ? j.classifiche : []).forEach(c=>{ if(c && c.id && Array.isArray(c.items) && !CLS.some(x=>x.id === c.id)) CLS.push(c); }); saveCls();
       toast(`Ripristinati: ${Object.keys(j.liste).length} serie nelle liste, ${(j.classifiche || []).length} classifiche`); }catch(err){ toast('Questo file non è una copia delle liste dell\'Atlante Serie TV'); } }; r.readAsText(f); };
-  V().insertAdjacentHTML('beforeend', `<p class="note" id="verLine" style="margin-top:18px; -webkit-user-select:none; user-select:none">${IS_SERIE ? 'Atlante Serie TV' : 'Atlante del Cinema'}, versione ${APP_VERSION}${MAINT ? ' · 🔧 manutenzione visibile (tocca 5 volte qui per nasconderla)' : ''}</p>`);
-  let taps = 0, tapAt = 0; $('verLine').onclick = () => { const n = Date.now(); taps = n - tapAt < 1500 ? taps + 1 : 1; tapAt = n; if(taps >= 5){ setMaint(!MAINT); viewTools(); } };
+  V().insertAdjacentHTML('beforeend', `<p class="note" id="verLine" style="margin-top:18px; -webkit-user-select:none; user-select:none">${IS_SERIE ? 'Atlante Serie TV' : 'Atlante del Cinema'}, versione <span id="verNum">${APP_VERSION}</span>${MAINT ? ' · 🔧 manutenzione visibile (tocca 5 volte qui per nasconderla)' : ''}</p>`);
+  let taps = 0, tapAt = 0, ttaps = 0, ttAt = 0; $('verLine').style.touchAction = 'manipulation';
+  $('verLine').onclick = ev => { const n = Date.now();
+    if(ev.target && ev.target.id === 'verNum'){ ttaps = n - ttAt < 1500 ? ttaps + 1 : 1; ttAt = n; if(ttaps >= 5){ ttaps = 0; toggleTheme(); } return; }   // 5 tocchi sul numero: tema
+    taps = n - tapAt < 1500 ? taps + 1 : 1; tapAt = n; if(taps >= 5){ setMaint(!MAINT); viewTools(); } };   // 5 tocchi sul resto della riga: manutenzione
 }
 
 /* ---------- Navigazione ---------- */
