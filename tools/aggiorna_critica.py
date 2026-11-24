@@ -87,8 +87,10 @@ def tvmaze_premieres(since, until, get=None):
                 if (show.get('type') or '') in ('Talk Show', 'News', 'Sports', 'Game Show', 'Award Show'): continue
                 ad, sn = str(ep.get('airdate') or '')[:10], ep.get('season') or 1
                 if not re.match(r'^\d{4}-\d\d-\d\d$', ad) or ad < since or ad > until: continue
+                cc = {str(((show.get(k) or {}).get('country') or {}).get('code') or '') for k in ('network', 'webChannel')}
+                ita = 'IT' in cc or show.get('language') == 'Italian'
                 old = found.get(imdb)
-                if not old or sn > old[1] or (sn == old[1] and ad < old[0]): found[imdb] = (ad, sn)
+                if not old or sn > old[1] or (sn == old[1] and ad < old[0]): found[imdb] = (ad, sn, ita or (old[2] if old else False))
             if get is _get: time.sleep(0.55)   # TVmaze: al massimo 20 richieste ogni 10 secondi
         d += datetime.timedelta(days=1)
     if fails > 40: raise RuntimeError(f'TVmaze: {fails} richieste fallite')
@@ -181,16 +183,35 @@ def main():
             out[key] = res_m; print(f'  {label}: {len(res_m)} titoli (da {via})')
         except Exception as e:
             print(f'  {label}: non disponibile stanotte ({str(e)[:80]}), l\'app le chiederà da sola')
+    # italiani usciti nel mese ma ancora senza codice IMDb su Wikidata (succede spesso nelle prime settimane):
+    # titolo italiano + data; l'app li cerca nel suo indice per titolo e anno
+    TQ = {'mese_t': ('uscite italiane senza codice IMDb (film)', PFX + XSD + 'PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?f ?lab ?d WHERE { VALUES ?c { wd:Q11424 wd:Q24869 wd:Q506240 wd:Q202866 wd:Q93204 } ?f wdt:P31 ?c ; wdt:P495 wd:Q38 ; p:P577 ?st . ?st ps:P577 ?d . ' + rng + ' ?f rdfs:label ?lab . FILTER(LANG(?lab) = "it") FILTER NOT EXISTS { ?f wdt:P345 ?x } }'),
+          'mese_st': ('uscite italiane senza codice IMDb (serie)', PFX + XSD + 'PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?f ?lab ?d WHERE { VALUES ?c { wd:Q5398426 wd:Q1259759 wd:Q526877 } ?f wdt:P31 ?c ; wdt:P495 wd:Q38 . { ?f wdt:P580 ?d } UNION { ?f wdt:P577 ?d } ' + rng + ' ?f rdfs:label ?lab . FILTER(LANG(?lab) = "it") FILTER NOT EXISTS { ?f wdt:P345 ?x } }')}
+    for key, (label, q) in TQ.items():
+        try:
+            EXTRA[key] = (label, q); j, via = ask(key, local); seen = {}
+            for b in j.get('results', {}).get('bindings', []):
+                f, lab, d = b.get('f', {}).get('value', ''), str(b.get('lab', {}).get('value', '')).strip(), str(b.get('d', {}).get('value', ''))[:10]
+                if not lab or not re.match(r'^\d{4}-\d\d-\d\d$', d) or d < since or d > built: continue
+                if f not in seen or d < seen[f][2]: seen[f] = [lab, int(d[:4]), d]
+            out[key] = sorted(seen.values(), key=lambda r: r[2], reverse=True)[:300]
+            print(f'  {label}: {len(out[key])} titoli (da {via})')
+        except Exception as e:
+            print(f'  {label}: non disponibile stanotte ({str(e)[:80]})')
     # serie: aggiungo le nuove stagioni (e le serie nuove che Wikidata non ha ancora) dal calendario di TVmaze
     try:
         tv = tvmaze_premieres(since, built)
         ms, sn = dict(out.get('mese_s') or {}), {}
-        for imdb, (ad, s) in tv.items():
+        n_it = 0
+        for imdb, (ad, s, ita) in tv.items():
             if s > 1 or imdb not in ms: ms[imdb] = ad
             elif ad < ms[imdb]: ms[imdb] = ad
             if s > 1: sn[imdb] = s
+            if ita:   # serie di una rete o piattaforma italiana: italiana anche se Wikidata non lo sa ancora
+                for k in ('ita', 'ita_l'):
+                    if isinstance(out.get(k), dict) and not out[k].get(imdb): out[k][imdb] = 1; n_it += 1 if k == 'ita' else 0
         if len(ms) >= 20: out['mese_s'], out['mese_sn'] = ms, sn
-        print(f'  nuove serie e nuove stagioni (TVmaze): {len(tv)} titoli, {len(sn)} nuove stagioni; uscite delle serie in tutto: {len(ms)}')
+        print(f'  nuove serie e nuove stagioni (TVmaze): {len(tv)} titoli, {len(sn)} nuove stagioni, {n_it} serie italiane aggiunte; uscite delle serie in tutto: {len(ms)}')
     except Exception as e:
         print(f'  TVmaze non disponibile stanotte ({str(e)[:80]}): restano le uscite di Wikidata')
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
