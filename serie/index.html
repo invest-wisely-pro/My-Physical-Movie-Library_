@@ -464,7 +464,7 @@ applyTheme();
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '4.1';
+const APP_VERSION = '4.2';
 /* Copiate dalla Videoteca da build_serie.py: leggono l'indice delle serie e il cast esattamente come lei. */
 let SERIES = null, SERIES_BY_ID = null, SERIES_STATE = 'idle', _seriesPromise = null, IMDB_INDEX = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -956,6 +956,11 @@ function monthFromNightly(){   // le uscite del mese preparate dall'aggiornament
   const k = NEW_SEASONS ? 'mese_s' : 'mese', m = CRITICA && CRITICA[k], t = today(), since = monthSince();
   if(!m || !CRITICA.built || Date.parse(t) - Date.parse(CRITICA.built) > 2 * 864e5) return false;
   const dates = new Map(); Object.entries(m).forEach(([id, dd])=>{ if(dd >= since && dd <= t && imdbEntry(id)) dates.set(id, dd); });
+  // titoli italiani usciti nel mese che su Wikidata non hanno ancora il codice IMDb: li cerco qui per titolo e anno (±1)
+  try{ const x = CRITICA[NEW_SEASONS ? 'mese_st' : 'mese_t'];
+    if(Array.isArray(x)) x.forEach(([lab, y, dd])=>{ if(!lab || dd < since || dd > t) return; const r = matchLine(`${lab} (${y})`), e = r && r.e;
+      if(!e || Math.abs((parseInt(e.y, 10) || 0) - y) > 1 || normKey(e.it || '') !== normKey(lab) && normKey(e.en || '') !== normKey(lab)) return;
+      if(!dates.has(e.id)) dates.set(e.id, dd); if(CRITICA.ita && !CRITICA.ita[e.id]) CRITICA.ita[e.id] = 1; }); }catch(err){}
   MONTH = dates; return true;
 }
 async function fetchMonth(){
