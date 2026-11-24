@@ -432,7 +432,7 @@ const themeOff = () => { try{ return localStorage.getItem(OFF_KEY) === '1'; }cat
 function themeName(at, base){   // base = il tema del periodo, senza contare il pulsante «spegni»
   const d = at || new Date(), off = !base && themeOff();
   try{ const u = new URLSearchParams(location.search), q = u.get('tema'), pq = u.get('periodo'); if(['natale', 'miami', 'classico'].includes(q)) return q;
-    if(pq) return pq === 'natale' || pq === 'miami' ? pq : 'classico'; }catch(e){}   // ?periodo=… per provare: anche il tema segue il periodo scelto
+    if(pq) return (pq === 'natale' || pq === 'miami') && !off ? pq : 'classico'; }catch(e){}   // anche qui l'interruttore «spenta» vale   // ?periodo=… per provare: anche il tema segue il periodo scelto
   if(isXmasDay(d)){ let c = ''; try{ c = localStorage.getItem(XMAS_KEY) || ''; }catch(e){} const [s, v] = c.split(':'); return +s === xmasSeason(d) && ['classico', 'miami'].includes(v) ? v : off ? 'classico' : 'natale'; }
   const m = themeMode(); if(m === 'miami') return off ? 'classico' : 'miami'; if(m === 'classico') return 'classico';
   const k = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); return k >= 20261119 && k <= 20261130 && !off ? 'miami' : 'classico';
@@ -464,7 +464,7 @@ applyTheme();
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '4.0';
+const APP_VERSION = '4.1';
 /* Copiate dalla Videoteca da build_serie.py: leggono l'indice delle serie e il cast esattamente come lei. */
 let SERIES = null, SERIES_BY_ID = null, SERIES_STATE = 'idle', _seriesPromise = null, IMDB_INDEX = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
