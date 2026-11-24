@@ -351,6 +351,14 @@ html.tv .hero-bg{display:none;} html.tv .hero{border-radius:calc(24px * var(--k,
 html.tv .hero-in{grid-template-columns:minmax(0, 1fr) calc(270px * var(--k, 1)); padding:calc(40px * var(--k, 1)) calc(46px * var(--k, 1)) calc(56px * var(--k, 1)); gap:0 calc(46px * var(--k, 1));}
 html.tv .hero-t{font-size:calc(58px * var(--k, 1));} html.tv .hero-eye{font-size:calc(15px * var(--k, 1));} html.tv .hero-meta, html.tv .hero-sum{font-size:calc(20px * var(--k, 1));} html.tv .hs{font-size:calc(18px * var(--k, 1));} html.tv .hs small{font-size:calc(14px * var(--k, 1));}
 .quick{display:flex; flex-wrap:wrap; gap:10px; margin:14px 0 2px;} .quick .btn{flex:none;}
+.theme-row{display:flex; justify-content:flex-end; margin:10px 0 0;}
+.theme-chip{display:inline-flex; align-items:center; gap:10px; font:inherit; font-size:13.5px; color:var(--paper2); background:transparent; border:1px solid var(--line); border-radius:999px; padding:6px 8px 6px 14px; cursor:pointer;}
+.theme-chip:hover{border-color:var(--paper3); color:var(--paper);}
+.theme-chip .sw{position:relative; width:34px; height:20px; border-radius:10px; background:var(--s3); border:1px solid var(--line); transition:background .2s;}
+.theme-chip .sw::after{content:""; position:absolute; top:2px; left:2px; width:14px; height:14px; border-radius:50%; background:var(--paper3); transition:transform .2s, background .2s;}
+.theme-chip[aria-checked="true"] .sw{background:var(--chart);} .theme-chip[aria-checked="true"] .sw::after{transform:translateX(14px); background:#fff;}
+.theme-chip b{font-weight:600; min-width:44px; text-align:left; color:var(--paper3);} .theme-chip[aria-checked="true"] b{color:var(--paper);}
+@media (max-width:760px){ .theme-row{justify-content:flex-start;} }
 @media (max-width:760px){ html:not(.tv) .quick{flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; margin:12px -18px 0; padding:2px 18px;} html:not(.tv) .quick::-webkit-scrollbar{display:none;} }   /* telefono: una riga sola che scorre col dito */
 .hero-in{position:relative; z-index:1;}
 .hero-snow{position:absolute; inset:0; z-index:0; overflow:hidden; pointer-events:none;}
@@ -416,19 +424,29 @@ html.tv .ruler.mini{height:calc(150px * var(--k, 1));}
    🌴 "Notte a Miami": da solo solo dal 19 al 30 novembre 2026, poi a mano.
    5 tocchi sul numero di versione in Strumenti cambiano tema: a Natale Natale → classico → Miami → Natale (la scelta vale solo per
    quelle feste: l'anno dopo il Natale torna da solo); il resto dell'anno classico ↔ Miami (la scelta resta salvata). */
-const THEME_KEY = 'atlante-tema', XMAS_KEY = 'atlante-tema-feste';
+const THEME_KEY = 'atlante-tema', XMAS_KEY = 'atlante-tema-feste', OFF_KEY = 'atlante-tema-spento';   // OFF_KEY: «Atmosfera» spenta dal pulsante in Esplora (resta spenta anche le feste seguenti, finché non la riaccendi)
 const isXmasDay = d => { const k = (d.getMonth() + 1) * 100 + d.getDate(); return k >= 1201 || k <= 106; };
 const xmasSeason = d => d.getMonth() === 11 ? d.getFullYear() : d.getFullYear() - 1;
 function themeMode(){ try{ return localStorage.getItem(THEME_KEY) || 'auto'; }catch(e){ return 'auto'; } }
-function themeName(at){
-  const d = at || new Date();
+const themeOff = () => { try{ return localStorage.getItem(OFF_KEY) === '1'; }catch(e){ return false; } };
+function themeName(at, base){   // base = il tema del periodo, senza contare il pulsante «spegni»
+  const d = at || new Date(), off = !base && themeOff();
   try{ const u = new URLSearchParams(location.search), q = u.get('tema'), pq = u.get('periodo'); if(['natale', 'miami', 'classico'].includes(q)) return q;
     if(pq) return pq === 'natale' || pq === 'miami' ? pq : 'classico'; }catch(e){}   // ?periodo=… per provare: anche il tema segue il periodo scelto
-  if(isXmasDay(d)){ let c = ''; try{ c = localStorage.getItem(XMAS_KEY) || ''; }catch(e){} const [s, v] = c.split(':'); return +s === xmasSeason(d) && ['classico', 'miami'].includes(v) ? v : 'natale'; }
-  const m = themeMode(); if(m === 'miami' || m === 'classico') return m;
-  const k = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); return k >= 20261119 && k <= 20261130 ? 'miami' : 'classico';
+  if(isXmasDay(d)){ let c = ''; try{ c = localStorage.getItem(XMAS_KEY) || ''; }catch(e){} const [s, v] = c.split(':'); return +s === xmasSeason(d) && ['classico', 'miami'].includes(v) ? v : off ? 'classico' : 'natale'; }
+  const m = themeMode(); if(m === 'miami') return off ? 'classico' : 'miami'; if(m === 'classico') return 'classico';
+  const k = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate(); return k >= 20261119 && k <= 20261130 && !off ? 'miami' : 'classico';
 }
 function themeOn(at){ return themeName(at) === 'miami'; }
+function themeChip(){   // in Esplora: accendi e spegni l'atmosfera del periodo (Natale o Notte a Miami); la neve in vetrina a Natale resta comunque
+  if(TV) return ''; let b = ''; try{ b = themeName(new Date(), true); }catch(e){} if(b === 'classico') return '';
+  const on = !themeOff(), name = b === 'natale' ? '🎄 Atmosfera di Natale' : '🌴 Atmosfera «Notte a Miami»';
+  return `<button class="theme-chip" id="themeChip" type="button" role="switch" aria-checked="${on}" title="Colori e decorazioni del periodo: puoi accenderli o spegnerli quando vuoi">${name} <span class="sw" aria-hidden="true"></span><b>${on ? 'accesa' : 'spenta'}</b></button>`;
+}
+function themeChipToggle(){ const on = themeOff(); try{ if(on) localStorage.removeItem(OFF_KEY); else localStorage.setItem(OFF_KEY, '1'); }catch(e){} applyTheme();
+  const c = document.getElementById('themeChip'); if(c){ const n = !themeOff(); c.setAttribute('aria-checked', String(n)); c.querySelector('b').textContent = n ? 'accesa' : 'spenta'; }
+  toast(themeOff() ? 'Atmosfera spenta: torna l\'aspetto di sempre' : 'Atmosfera accesa'); }
+document.addEventListener('click', ev=>{ if(ev.target && ev.target.closest && ev.target.closest('#themeChip')) themeChipToggle(); });
 function toggleTheme(){
   const d = new Date(), cur = themeName(d); let next;
   try{
@@ -446,7 +464,7 @@ applyTheme();
    Legge gli indici della Videoteca (stesso sito, cartella superiore):
    IMDb, cast, Frusciante e Criticoni; e l'indice della critica.
    ===================================================================== */
-const APP_VERSION = '3.9';
+const APP_VERSION = '4.0';
 /* Copiate dalla Videoteca da build_serie.py: leggono l'indice delle serie e il cast esattamente come lei. */
 let SERIES = null, SERIES_BY_ID = null, SERIES_STATE = 'idle', _seriesPromise = null, IMDB_INDEX = null;
 let CAST_INDEX = null, CAST_STATE = 'idle', _castPromise = null;
@@ -1096,7 +1114,7 @@ const periods = () => _PERIODS || (_PERIODS = IS_SERIE ? {
 });
 function periodKey(d){
   try{ const q = new URLSearchParams(location.search).get('periodo'); if(q && periods()[q]) return q; }catch(e){}
-  if(themeOn(d)) return 'miami';   // 🌴 con il tema «Notte a Miami» (da solo fino al 30/11/2026, poi a mano da Strumenti)
+  if(themeName(d, true) === 'miami') return 'miami';   // 🌴 «Notti a Miami» (da solo fino al 30/11/2026, poi a mano da Strumenti): resta anche se l'atmosfera è spenta
   const k = (d.getMonth() + 1) * 100 + d.getDate();
   return k >= 1201 || k <= 106 ? 'natale' : k <= 206 ? 'inverno' : k <= 215 ? 'sanvalentino' : k <= 331 ? 'oscar' : k <= 620 ? 'primavera' : k <= 831 ? 'estate' : k <= 1014 ? 'festival' : k <= 1102 ? 'halloween' : 'autunno';
 }
@@ -1178,7 +1196,7 @@ function heroHTML(){
 }
 function quickHTML(){   // i pulsanti di sempre, subito sotto la vetrina: riguardano tutta l'app, non il titolo del giorno
   const nav = k => { try{ return document.querySelector(`.nav [data-nav="${k}"]`); }catch(err){ return null; } };
-  return `<div class="quick"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button><a class="btn" href="#stasera">🍿 Cosa guardo stasera?</a><a class="btn" href="#perte">✨ Per te</a></div>`;
+  return `<div class="quick"><button class="btn amber" id="surprise" type="button">🎲 Sorprendimi</button><a class="btn" href="#stasera">🍿 Cosa guardo stasera?</a><a class="btn" href="#perte">✨ Per te</a></div>${(c => c ? `<div class="theme-row">${c}</div>` : '')(themeChip())}`;
 }
 function heroBg(id){   // quando la locandina arriva dopo (le serie), anche lo sfondo della vetrina la prende
   try{ const h = document.querySelector('.hero-s[data-id="' + id + '"]'), u = unL(WPOST.get(id) || ''); if(!h || !u || h.querySelector('.hero-bg')) return;
