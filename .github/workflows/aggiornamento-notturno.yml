@@ -1,12 +1,14 @@
-# Aggiornamento notturno: ogni notte alle 2 (ora di Roma) aggiorna, uno dopo l'altro, l'indice IMDb (film, serie,
+# Aggiornamento notturno: ogni notte dopo le 2 (ora di Roma) aggiorna, uno dopo l'altro, l'indice IMDb (film, serie,
 # attori), Frusciante e i Criticoni, e la critica dell'Atlante. Salva una volta sola e, per non far crescere il
 # repository, sostituisce il salvataggio della notte prima (mai i tuoi).
+# GitHub a volte avvia le automazioni programmate con ore di ritardo, o le salta: per questo ci sono più turni
+# nella notte e nella mattina; il primo che parte dopo le 2 fa l'aggiornamento, gli altri vedono che è già fatto
+# e si fermano in pochi secondi.
 # Si può anche avviare a mano: scheda "Actions" → "Aggiornamento notturno" → "Run workflow".
 name: Aggiornamento notturno
 on:
   schedule:
-    - cron: '0 0 * * *'    # le 2 a Roma con l'ora legale (estate)
-    - cron: '0 1 * * *'    # le 2 a Roma con l'ora solare (inverno)
+    - cron: '23 0-9 * * *'   # ogni ora dalle 00:23 alle 09:23 UTC (a Roma dalle 1:23/2:23 alle 10:23/11:23): basta che ne parta uno
   workflow_dispatch:
 permissions:
   contents: write
@@ -18,20 +20,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 350
     steps:
-      - name: Sono le 2 a Roma?
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 15
+      - name: Tocca a questo turno?
         id: ora
         run: |
-          OFF=$(TZ=Europe/Rome date +%z)
-          if [ "${{ github.event_name }}" != "schedule" ]; then echo "via=1" >> "$GITHUB_OUTPUT"; exit 0; fi
-          if { [ "$OFF" = "+0200" ] && [ "${{ github.event.schedule }}" = "0 0 * * *" ]; } || { [ "$OFF" = "+0100" ] && [ "${{ github.event.schedule }}" = "0 1 * * *" ]; }; then
-            echo "via=1" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" != "schedule" ]; then echo "Avviato a mano: si aggiorna."; echo "via=1" >> "$GITHUB_OUTPUT"; exit 0; fi
+          OGGI=$(TZ=Europe/Rome date +%Y-%m-%d); ORA=$(TZ=Europe/Rome date +%-H)
+          if git log -n 15 --format=%s | grep -qx "Aggiornamento notturno del $OGGI"; then
+            echo "L'aggiornamento di oggi ($OGGI) è già fatto: questo turno si ferma."; echo "via=0" >> "$GITHUB_OUTPUT"
+          elif [ "$ORA" -lt 2 ]; then
+            echo "A Roma sono le $ORA: troppo presto, ci pensa il prossimo turno."; echo "via=0" >> "$GITHUB_OUTPUT"
           else
-            echo "A Roma non sono le 2 (ora legale o solare): questo turno si salta."; echo "via=0" >> "$GITHUB_OUTPUT"
+            echo "A Roma sono le $ORA e l'aggiornamento di oggi ($OGGI) manca: si parte."; echo "via=1" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/checkout@v4
-        if: steps.ora.outputs.via == '1'
-        with:
-          fetch-depth: 2
       - uses: actions/setup-python@v5
         if: steps.ora.outputs.via == '1'
         with:
