@@ -19,8 +19,13 @@ Copia di sicurezza: l'indice viene salvato anche in data/criticoni.json.gz, acca
 Se il sito non risponde o cambia struttura (troppo pochi film), lo script rimette nell'app l'ultima
 copia salvata invece di fermarsi: i giudizi raccolti non si perdono, anche caricando un index.html nuovo.
 Solo se manca anche la copia si ferma con un errore, SENZA modificare index.html.
+
+Aggiornamento a mano (se il sito blocca gli accessi automatici, come da novembre 2026): sul tuo computer apri
+filmcriticoni.it, incolla nella console del browser tools/criticoni-dal-browser.js e carica il file che scarica,
+criticoni-pagine.json.gz, nella cartella data/ del repository. Quando il sito non risponde, questo script usa
+quelle pagine (se sono più recenti dell'ultima copia salvata).
 """
-import base64, datetime, gzip, html, json, os, re, sys, time, urllib.parse, urllib.request
+import base64, datetime, gzip, html, json, os, re, sys, tempfile, time, urllib.parse, urllib.request
 from html.parser import HTMLParser
 
 BASE = 'https://filmcriticoni.it'
@@ -173,7 +178,7 @@ def film_poster(src, slug, local=None):
     """La locandina dalla pagina del film: negli elenchi del sito le immagini le aggiunge il browser, qui ci sono."""
     if local:
         path = os.path.join(local, f'film-{src}-{slug}.html')
-        if not os.path.exists(path): return NO_POSTER
+        if not os.path.exists(path): return ''   # pagina non salvata: si riprova la volta dopo
         page = open(path, encoding='utf-8').read()
     else:
         page = get(BASE + FILM_PATH[src] + urllib.parse.quote(slug))
@@ -238,6 +243,25 @@ def restore_backup(html_path, reason):
     sys.exit(0)
 
 
+def bundle_pages(html_path, newer_than=''):
+    """Le pagine salvate dal browser (data/criticoni-pagine.json.gz): le scrive in una cartella come per --local.
+    Restituisce (cartella, data) oppure None se mancano o non sono più recenti dell'ultima copia."""
+    bp = os.path.join(os.path.dirname(os.path.abspath(html_path)), 'data', 'criticoni-pagine.json.gz')
+    if not os.path.exists(bp): return None
+    try: b = json.loads(gzip.decompress(open(bp, 'rb').read()).decode('utf-8'))
+    except Exception as e: print(f'  pagine salvate a mano illeggibili ({e})'); return None
+    saved = str(b.get('saved', ''))[:10]
+    if not re.match(r'^\d{4}-\d\d-\d\d$', saved) or (newer_than and saved <= newer_than):
+        print(f'  pagine salvate a mano del {saved or "?"}: non più recenti dell\'ultima copia ({newer_than}), le lascio stare'); return None
+    d = tempfile.mkdtemp(prefix='criticoni-')
+    n = 0
+    for name, page in (b.get('pages') or {}).items():
+        if re.match(r'^(?:[cf]-\d+|film-[cf]-[a-z0-9-]+)\.html$', name):
+            open(os.path.join(d, name), 'w', encoding='utf-8').write(page); n += 1
+    print(f'  uso le pagine salvate a mano il {saved}: {n} pagine')
+    return (d, saved) if n else None
+
+
 def main():
     args = sys.argv[1:]
     if not args: print(__doc__); sys.exit(2)
@@ -251,7 +275,15 @@ def main():
         try:
             data[src] = crawl(src, local=local, delay=0 if local else 1.0)
         except Exception as e:
-            restore_backup(html_path, f'il sito non risponde ({e})')
+            if local: restore_backup(html_path, f'le pagine salvate non si leggono ({e})')
+            last = ''
+            try: last = json.loads(gzip.decompress(open(backup_path(html_path), 'rb').read()).decode('utf-8')).get('built', '')
+            except Exception: pass
+            b = bundle_pages(html_path, last)
+            if not b: restore_backup(html_path, f'il sito non risponde ({e})')
+            local, built = b; data['built'] = built
+            print(f'  il sito non risponde ({e}): leggo le pagine salvate a mano')
+            data[src] = crawl(src, local=local, delay=0)   # e i seguenti, con local impostato, dalle stesse pagine
         if len(data[src]) < mins[src]:
             restore_backup(html_path, f'trovati solo {len(data[src])} film per {"i Criticoni" if src == "c" else "Frusciante"} '
                                       f'(attesi almeno {mins[src]}): la struttura del sito potrebbe essere cambiata')
