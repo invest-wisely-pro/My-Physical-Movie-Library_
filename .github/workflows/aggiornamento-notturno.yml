@@ -60,10 +60,19 @@ jobs:
           if git diff --quiet -- index.html data; then echo "Nessuna novità"; exit 0; fi
           git add index.html data
           MSG="Aggiornamento notturno del $(TZ=Europe/Rome date +%Y-%m-%d)"
-          if [ "$(git log -1 --format=%an)" = "aggiornamento-notturno" ]; then
-            git commit --amend -m "$MSG"     # si sostituisce quello della notte prima: il repository non cresce
-            git push --force-with-lease
-          else
-            git commit -m "$MSG"             # l'ultimo salvataggio è tuo: se ne aggiunge uno nuovo
-            git push
-          fi
+          git commit -q -m "$MSG"
+          # Se mentre girava hai caricato dei file, i dati nuovi si mettono sopra i tuoi (mai al loro posto).
+          # Il salvataggio della notte prima, se è l'ultimo, viene sostituito: il repository non cresce.
+          for i in 1 2 3 4 5; do
+            git fetch -q origin main
+            git rebase -q -X theirs origin/main || { git rebase --abort; echo "Non riesco a unire i dati ai file caricati"; exit 1; }
+            T=$(git rev-parse origin/main)
+            if [ "$(git log -1 --format=%an "$T")" = "aggiornamento-notturno" ] && [ "$(git rev-list --count "$T")" -gt 1 ]; then
+              git reset -q --soft "$T~1" && git commit -q -m "$MSG"
+              git push -q --force-with-lease=main:"$T" origin HEAD:main && { echo "Salvato (sostituisce quello della notte prima)"; exit 0; }
+            else
+              git push -q origin HEAD:main && { echo "Salvato"; exit 0; }
+            fi
+            echo "Il repository è cambiato mentre salvavo: riprovo ($i)"; sleep $((i * 10))
+          done
+          exit 1
