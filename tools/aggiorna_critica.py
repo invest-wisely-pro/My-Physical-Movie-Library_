@@ -168,17 +168,30 @@ def main():
     since = (datetime.date.fromisoformat(built) - datetime.timedelta(days=45)).isoformat()
     XSD = 'PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n'
     rng = f'FILTER(?d >= "{since}T00:00:00Z"^^xsd:dateTime && ?d <= "{built}T23:59:59Z"^^xsd:dateTime)'
-    MQ = {'mese': ('uscite del mese (film)', PFX + XSD + 'SELECT ?imdb ?d ?pl WHERE { ?f wdt:P345 ?imdb . FILTER(STRSTARTS(?imdb, "tt")) ?f p:P577 ?st . ?st ps:P577 ?d . ' + rng + ' OPTIONAL { ?st pq:P291 ?pl } }'),
+    # film: tutte le date di uscita dei film che ne hanno almeno una nel periodo (per capire se in Italia era già uscito prima)
+    rng0 = rng.replace('?d ', '?d0 ').replace('?d)', '?d0)')
+    MQ = {'mese': ('uscite del mese (film)', PFX + XSD + 'SELECT ?imdb ?d ?pl WHERE { ?f wdt:P345 ?imdb . FILTER(STRSTARTS(?imdb, "tt")) ?f p:P577 ?s0 . ?s0 ps:P577 ?d0 . ' + rng0 + ' ?f p:P577 ?st . ?st ps:P577 ?d . OPTIONAL { ?st pq:P291 ?pl } }'),
           'mese_s': ('uscite del mese (serie)', PFX + XSD + 'SELECT ?imdb ?d WHERE { ?f wdt:P345 ?imdb . FILTER(STRSTARTS(?imdb, "tt")) ?f wdt:P580 ?d . ' + rng + ' }')}
     for key, (label, q) in MQ.items():
         try:
-            EXTRA[key] = (label, q); j, via = ask(key, local); it, anyd = {}, {}
+            EXTRA[key] = (label, q); j, via = ask(key, local); it, anyd, it_all, any_all = {}, {}, {}, {}
             for b in j.get('results', {}).get('bindings', []):
                 imdb, d = b.get('imdb', {}).get('value', ''), str(b.get('d', {}).get('value', ''))[:10]
-                if not re.match(r'^tt\d+$', imdb) or not re.match(r'^\d{4}-\d\d-\d\d$', d) or d < since or d > built: continue
-                m = it if str(b.get('pl', {}).get('value', '')).endswith('/Q38') else anyd
+                if not re.match(r'^tt\d+$', imdb) or not re.match(r'^\d{4}-\d\d-\d\d$', d): continue
+                ita = str(b.get('pl', {}).get('value', '')).endswith('/Q38')
+                for m in ((it_all,) if ita else ()) + (any_all,):    # prima uscita in assoluto (e in Italia)
+                    if imdb not in m or d < m[imdb]: m[imdb] = d
+                if d < since or d > built: continue
+                m = it if ita else anyd
                 if imdb not in m or d < m[imdb]: m[imdb] = d
-            res_m = {i: it.get(i) or anyd.get(i) for i in set(it) | set(anyd)}   # la data italiana se c'è, altrimenti la prima uscita
+            old_cut = (datetime.date.fromisoformat(since) - datetime.timedelta(days=365)).isoformat()
+            res_m, dropped = {}, 0
+            for i in set(it) | set(anyd):
+                if i in it: res_m[i] = it[i]                                       # uscito in Italia nel periodo
+                elif key == 'mese' and i in it_all and it_all[i] < since: dropped += 1   # in Italia era già uscito prima
+                elif key == 'mese' and any_all.get(i, since) < old_cut: dropped += 1   # film vecchio che esce ora in un altro paese
+                else: res_m[i] = anyd[i]                                           # altrimenti la prima uscita del periodo
+            if dropped: print(f'  {label}: {dropped} titoli già usciti prima (in Italia o da più di un anno) esclusi')
             if len(res_m) < 20: print(f'  {label}: solo {len(res_m)} titoli, non credibile: la salto'); continue
             out[key] = res_m; print(f'  {label}: {len(res_m)} titoli (da {via})')
         except Exception as e:
