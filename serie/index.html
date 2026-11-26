@@ -2355,14 +2355,18 @@ async function checkIndia(ids){
 const noIndia = l => l.filter(e=>!INDIA.has(e.id));
 
 /* ---------- ⭐ I migliori dell'anno in corso (a inizio anno, finché non ce ne sono abbastanza, quelli dell'anno prima) ---------- */
-function bestOfYear(){
+function bestOfYear(raw){
   const Y0 = new Date().getFullYear(), rank = e => (e.v / (e.v + 3000)) * e._R + (3000 / (e.v + 3000)) * 6.9;
-  for(const Y of [Y0, Y0 - 1]){ const l = BY_V.filter(e=>parseInt(e.y, 10) === Y && e.v >= 3000).sort((a, b)=>rank(b) - rank(a)); if(l.length >= 12 || Y < Y0) return { Y, l }; }
+  for(const Y of [Y0, Y0 - 1]){ const l = BY_V.filter(e=>parseInt(e.y, 10) === Y && e.v >= 3000 && (raw || worldOk(e))).sort((a, b)=>rank(b) - rank(a)); if(l.length >= 12 || Y < Y0) return { Y, l }; }
 }
+// tra le migliori dell'anno solo serie occidentali, italiane o premiate e lodate nel mondo: niente titoli con voti
+// altissimi ma noti quasi solo in India, in Asia o tra i fan di un anime. Il paese arriva da Wikidata; finché non
+// si sa, passano solo le serie con un pubblico ampio.
+const worldOk = e => { if(isIta(e) || intlAcclaim(e)) return true; const o = originOf(e); return o === 'ovest' || (o === '' && e.v >= 10000); };
 function bestStrip(){ const b = bestOfYear(), l = noIndia(b.l).slice(0, 14);
   return l.length >= 6 ? `<h2 class="sec">⭐ Le migliori serie del ${b.Y} <span class="note" style="font-family:var(--ui)">si aggiorna con l'anno</span><a class="more" href="#lista/migliori-anno">Vedi tutti</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; }
 function homeCandidates(){ const a = [], add = l => l.slice(0, 40).forEach(e=>e && a.push(e.id));
-  add(MASTER.filter(e=>e._abs).length >= 6 ? MASTER.filter(e=>e._abs) : MASTER); add(BY_V); add(bestOfYear().l); add(monthList().slice().sort((p, q)=>q.v - p.v)); add((SEASONS_NEW || []).map(x=>x.e));
+  add(MASTER.filter(e=>e._abs).length >= 6 ? MASTER.filter(e=>e._abs) : MASTER); add(BY_V); add(bestOfYear(true).l); add(monthList().slice().sort((p, q)=>q.v - p.v)); add((SEASONS_NEW || []).map(x=>x.e));
   return a; }
 
 /* ---------- 📺 Per piattaforma: elenco curato delle serie originali (piattaforma di origine; in Italia alcune sono su altri servizi) ---------- */

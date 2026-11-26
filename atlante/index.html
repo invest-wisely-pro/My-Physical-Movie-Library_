@@ -2468,8 +2468,11 @@ const noIndia = l => l.filter(e=>!INDIA.has(e.id));
 /* ---------- ⭐ I migliori dell'anno in corso (a inizio anno, finché non ce ne sono abbastanza, quelli dell'anno prima) ---------- */
 function bestOfYear(){
   const Y0 = new Date().getFullYear(), rank = e => (e.v / (e.v + 3000)) * e._R + (3000 / (e.v + 3000)) * 6.9;
-  for(const Y of [Y0, Y0 - 1]){ const l = BY_V.filter(e=>parseInt(e.y, 10) === Y && e.v >= 8000).sort((a, b)=>rank(b) - rank(a)); if(l.length >= 12 || Y < Y0) return { Y, l }; }
+  for(const Y of [Y0, Y0 - 1]){ const l = BY_V.filter(e=>parseInt(e.y, 10) === Y && e.v >= 8000 && worldOk(e)).sort((a, b)=>rank(b) - rank(a)); if(l.length >= 12 || Y < Y0) return { Y, l }; }
 }
+// tra i migliori dell'anno solo film visti anche fuori dal loro paese: con un voto di Rotten Tomatoes o Metacritic
+// (o italiani). Così non entrano i titoli con voti altissimi ma noti quasi solo in India o tra i fan di un anime.
+const worldOk = e => !CRITICA || !CRITICA.rt || CRITICA.rt[e.id] != null || (CRITICA.mc && CRITICA.mc[e.id] != null) || isIta(e);
 function bestStrip(){ const b = bestOfYear(), l = noIndia(b.l).slice(0, 14);
   return l.length >= 6 ? `<h2 class="sec">⭐ I migliori del ${b.Y} <span class="note" style="font-family:var(--ui)">si aggiorna con l'anno</span><a class="more" href="#lista/migliori-anno">Vedi tutti</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; }
 function homeCandidates(){ const a = [], add = l => l.slice(0, 40).forEach(e=>e && a.push(e.id));
