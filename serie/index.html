@@ -396,6 +396,16 @@ html:not(.tv) .sw:not(.at-end) > .strip{-webkit-mask-image:linear-gradient(90deg
 @media (hover:none){ .sw-b{display:none;} }
 .ruler.mini{height:92px; margin:6px 0 46px;} @media (max-width:640px){ .ruler.mini{height:76px;} }
 html.tv .ruler.mini{height:calc(150px * var(--k, 1));}
+.rip-pick label{display:flex; align-items:center; gap:8px; font-weight:600;} .rip-pick select{min-width:120px;}
+.rip-head{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px; margin:22px 0 6px;} .rip-dens{margin:0;}
+details.rip-s > summary{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 14px; cursor:pointer; list-style:none; font-family:var(--serif); font-size:16.5px;}
+details.rip-s > summary::-webkit-details-marker{display:none;} details.rip-s > summary::after{content:'▾'; opacity:.6; transition:transform .2s;} details.rip-s:not([open]) > summary::after{transform:rotate(-90deg);}
+details.rip-s[open] > summary{border-bottom:1px solid var(--line);} details.rip-s > summary .note{margin-left:auto; font-family:var(--ui);}
+.rip-ep{padding:10px 0; border-bottom:1px solid var(--line);} .rip-ep:last-child{border-bottom:0;} .rip-t{margin:0 0 4px; font-weight:700;}
+.rip-t .sc{display:inline-block; min-width:46px; color:var(--chart); font-variant-numeric:tabular-nums;} .rip-x{margin:0;} .rip-x[lang="en"]{opacity:.78;}
+.rip-warn{padding:10px 12px; border:1px dashed var(--line); border-radius:10px;}
+.tile .rip-badge{position:absolute; right:8px; bottom:8px; z-index:3; background:var(--chart); color:#0d1a20; font:700 11.5px/1 var(--ui); padding:5px 7px; border-radius:6px;}
+.rip-ot{font-weight:400; opacity:.55; font-size:.92em; margin-left:4px;} .rip-src{margin:4px 0 12px;} .rip-ep .rip-x + .rip-x{margin-top:10px;}
 </style>
 </head>
 <body>
@@ -1264,6 +1274,7 @@ function viewHome(){
   const fr = BY_V.filter(e=>e._f && e._f.s === 1).slice(0, 14);
   V().innerHTML = heroHTML() + quickHTML()
     + (seasonOnTop() ? seasonStrip() : '')
+    + (EPISODES ? ripassoStrip() : '')
     + (()=>{ const ms = monthStrip(); if(ms) return ms; const l = novitaList().slice(0, 14); return l.length ? `<h2 class="sec">${esc(NOVITA_TITLE)} <a class="more" href="#lista/novita">Vedi tutte</a></h2><div class="strip">${l.map(tile).join('')}</div>` : ''; })()
     + (seasonOnTop() ? '' : seasonStrip())
     + perTeStrip()
@@ -2253,7 +2264,7 @@ async function loadEpisodes(tt){   // nella pagina della serie: le stagioni clic
   const d = await fetchShow(tt).catch(()=>null);
   if(!$('eps') || location.hash !== '#film/' + tt) return;
   if(!d || !d.seasons || !d.seasons.length){ $('eps').innerHTML = d && d.at ? '' : '<p class="note">Stagioni ed episodi arriveranno con la rete.</p>'; return; }
-  $('eps').innerHTML = `<div class="box"><h3>Stagioni ed episodi</h3><div class="in"><div class="seasons">${d.seasons.map(s=>`<a class="season" href="#stagione/${tt}/${s.n}">${s.img ? `<img src="${esc(s.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}<b>Stagione ${s.n}</b><span>${[s.prem ? s.prem.slice(0, 4) : '', s.eps ? s.eps + ' episodi' : ''].filter(Boolean).join(', ')}</span></a>`).join('')}</div>${TVM_NOTE}</div></div>`;
+  $('eps').innerHTML = ripassoCard(tt, d) + `<div class="box"><h3>Stagioni ed episodi</h3><div class="in"><div class="seasons">${d.seasons.map(s=>`<a class="season" href="#stagione/${tt}/${s.n}">${s.img ? `<img src="${esc(s.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''}<b>Stagione ${s.n}</b><span>${[s.prem ? s.prem.slice(0, 4) : '', s.eps ? s.eps + ' episodi' : ''].filter(Boolean).join(', ')}</span></a>`).join('')}</div>${TVM_NOTE}</div></div>`;
 }
 async function viewSeason(tt, n){
   setNav(''); n = +n; const e = imdbEntry(tt); if(!e) return viewFilm(tt);
@@ -2277,8 +2288,188 @@ async function viewEpisode(tt, s, n){
   $('ep').innerHTML = (x.img ? `<div class="still"><img src="${esc(x.img)}" alt="" referrerpolicy="no-referrer" onerror="this.parentElement.remove()"></div>` : '')
     + `<h1 class="pg">${sxe(s, n)}, ${esc(x.t || 'Episodio ' + n)}</h1><p class="lead">${esc(epMeta(x))}</p>`
     + (x.sum ? `<div class="box"><h3>La trama</h3><div class="in">${trBlock('epTr', x.sum)}</div></div>` : '')
-    + `<div class="marks">${pv ? `<a class="btn" href="#episodio/${tt}/${pv.s}/${pv.n}">← ${sxe(pv.s, pv.n)}</a>` : ''}<a class="btn" href="#stagione/${tt}/${s}">Tutti gli episodi</a>${nx ? `<a class="btn" href="#episodio/${tt}/${nx.s}/${nx.n}">${sxe(nx.s, nx.n)} →</a>` : ''}${x.url ? `<a class="btn" href="${esc(x.url)}" target="_blank" rel="noopener">Apri su TVmaze ↗</a>` : ''}</div>` + TVM_NOTE;
+    + `<div class="marks">${pv ? `<a class="btn" href="#episodio/${tt}/${pv.s}/${pv.n}">← ${sxe(pv.s, pv.n)}</a>` : ''}<a class="btn" href="#stagione/${tt}/${s}">Tutti gli episodi</a>${nx ? `<a class="btn" href="#episodio/${tt}/${nx.s}/${nx.n}">${sxe(nx.s, nx.n)} →</a>` : ''}${x.url ? `<a class="btn" href="${esc(x.url)}" target="_blank" rel="noopener">Apri su TVmaze ↗</a>` : ''}</div>`
+    + `<div class="marks"><button class="btn" type="button" id="ripHere" aria-pressed="${!!(PUNTO[tt] && PUNTO[tt].s === s && PUNTO[tt].n === n)}">📍 Sono arrivato qui</button><a class="btn" href="#ripasso/${tt}">📖 Ripasso senza spoiler</a></div>` + TVM_NOTE;
   if(x.sum) fillTr('epTr', x.sum);
+  $('ripHere').onclick = () => { setPunto(tt, s, n); $('ripHere').setAttribute('aria-pressed', 'true'); toast(`Punto salvato: ${sxe(s, n)}. Il ripasso arriverà fino a qui.`); };
+}
+
+/* ---------- 📖 Ripasso senza spoiler: le trame degli episodi fino al punto in cui sei arrivato, e niente di quello che viene dopo ----------
+   Le trame sono quelle dei singoli episodi (TVmaze, scritte episodio per episodio): mai l'introduzione della serie o le schede dei
+   personaggi, che spesso raccontano il finale. Il punto si salva su questo dispositivo; gli episodi successivi non vengono nemmeno
+   letti, e nel selettore compaiono solo con numero e data (anche un titolo può anticipare qualcosa). */
+const PUNTO_KEY = 'atlante-serie-punto', DENS_KEY = 'atlante-ripasso-dens';
+let PUNTO = (()=>{ try{ return JSON.parse(localStorage.getItem(PUNTO_KEY) || '{}') || {}; }catch(e){ return {}; } })();
+function setPunto(tt, s, n){ if(s) PUNTO[tt] = { s: +s, n: +n, at: Date.now() }; else delete PUNTO[tt]; try{ localStorage.setItem(PUNTO_KEY, JSON.stringify(PUNTO)); }catch(e){ toast('Non riesco a salvare il punto in questo browser'); } }
+const epBefore = (x, p) => x.s < p.s || (x.s === p.s && x.n <= p.n);
+const firstSentences = (t, min) => {   // «In breve»: le prime frasi, finché bastano a capire l'episodio
+  const parts = String(t || '').replace(/\s*\n+\s*/g, ' ').split(/(?<=[.!?…»"])\s+(?=["“«(]?[A-ZÀ-Ý0-9])/); let out = '';
+  for(const p of parts){ if(out && out.length + p.length > 420) break; out += (out ? ' ' : '') + p; if(out.length >= (min || 70)) break; }
+  return out.length > 420 ? out.slice(0, 400).replace(/[\s,;:]+\S*$/, '') + '…' : out;   // una frase lunghissima si accorcia
+};
+/* Trame italiane degli episodi da Wikipedia (pagine «Episodi di …»): si usano solo dove si abbinano con certezza agli episodi
+   di TVmaze (stesso numero di episodi, o stesso titolo originale); per tutto il resto resta la trama di TVmaze. */
+const ORD_IT = ['prima', 'seconda', 'terza', 'quarta', 'quinta', 'sesta', 'settima', 'ottava', 'nona', 'decima', 'undicesima', 'dodicesima', 'tredicesima', 'quattordicesima', 'quindicesima', 'sedicesima', 'diciassettesima', 'diciottesima', 'diciannovesima', 'ventesima', 'ventunesima', 'ventiduesima', 'ventitreesima', 'ventiquattresima', 'venticinquesima', 'ventiseiesima', 'ventisettesima', 'ventottesima', 'ventinovesima', 'trentesima'];
+const wkSeason = t => { t = String(t || '').toLowerCase().trim(); let m = t.match(/^(\S+) stagione$/) || t.match(/\((\S+) stagione\)$/); if(m){ const i = ORD_IT.indexOf(m[1]); if(i >= 0) return i + 1; }
+  m = t.match(/^stagione (\d+)$/) || t.match(/\(stagione (\d+)\)$/); return m ? +m[1] : 0; };
+const WK_PLOT = /^(trama|sinossi|riassunto)$/i;
+const WK_SKIP = /^(note|altri progetti|collegamenti esterni|voci correlate|bibliografia|curiosità|produzione|accoglienza|ascolti|distribuzione|riconoscimenti|cast|interpreti|personaggi|speciali?|episodi? speciali?|webisodi|minisodi|edizione italiana|colonna sonora|guest star|altri interpreti|citazioni|riferimenti|trama|sinossi|episodi|puntate)\b/i;
+function wikiEpisodes(html, title, main){   // una pagina → { seasons: { stagione: [{ t, ot, x }] }, loose: [...] }; main: voce della miniserie, episodi sotto «Trama»/«Episodi»
+  const doc = new DOMParser().parseFromString(`<div id="wkr">${html}</div>`, 'text/html'), root = doc.getElementById('wkr');
+  root.querySelectorAll('sup, .mw-editsection, style, link, .noprint, .hatnote, table, figure, .thumb, .gallery, .mw-empty-elt, .reflist, .references').forEach(n=>n.remove());
+  root.querySelectorAll('p > b:first-child, p > i:first-child > b').forEach(b=>{ if(!b.nextSibling || !/^\s*[:.]/.test(b.nextSibling.textContent || '')) b.after(': '); });
+  const clean = s => s.replace(/\s+/g, ' ').replace(/\s+([,.;:!?])/g, '$1').trim(), flat = [];
+  (function walk(el){ for(const c of el.children){ const tag = c.tagName;
+    if(/^H[2-6]$/.test(tag)) flat.push({ h: +tag[1], t: clean(c.textContent) });
+    else if(c.classList.contains('mw-heading')){ const h = c.querySelector('h2,h3,h4,h5,h6'); if(h) flat.push({ h: +h.tagName[1], t: clean(h.textContent) }); }
+    else if(tag === 'P'){ const t = clean(c.textContent); if(t) flat.push({ p: t }); }
+    else if(tag === 'UL'){ for(const li of c.children){ const m = clean(li.textContent).match(/^titolo originale\s*:\s*(.+)$/i); if(m) flat.push({ ot: m[1] }); } }
+    else if(tag === 'DIV' || tag === 'SECTION') walk(c); } })(root.querySelector('.mw-parser-output') || root);
+  if(main){ const i = flat.findIndex(x=>x.h === 2 && /^(trama|episodi|puntate)$/i.test(x.t)); if(i < 0) return { seasons: {}, loose: [] };
+    const j = flat.findIndex((x, k)=>k > i && x.h && x.h <= 2), part = flat.slice(i + 1, j < 0 ? undefined : j);
+    if(part.filter(x=>x.h === 3).length < 2) return { seasons: {}, loose: [] }; flat.length = 0; flat.push(...part); }
+  const out = { seasons: {}, loose: [] }, sLevel = main ? 0 : (flat.find(x=>x.h && wkSeason(x.t)) || {}).h || 0;
+  let season = sLevel ? 0 : wkSeason(title), skip = false, ep = null, epH = 0, sub = null, plotH = 0;
+  const push = () => { if(!ep) return; const a = season ? (out.seasons[season] = out.seasons[season] || []) : out.loose; a.push(ep); ep = null; };
+  for(const x of flat){
+    if(x.h){
+      if(sLevel && x.h <= sLevel){ push(); season = wkSeason(x.t); skip = !season; continue; }
+      if(ep && x.h > epH){ if(plotH && x.h > plotH) continue; sub = x.t; plotH = WK_PLOT.test(x.t) ? x.h : 0; continue; }   // sottosezioni dell'episodio
+      push(); sub = null; plotH = 0;
+      if(skip || (sLevel && !season) || WK_SKIP.test(x.t)) continue;
+      ep = { t: x.t, ot: '', x: '' }; epH = x.h; continue;
+    }
+    if(!ep) continue;
+    if(x.ot){ if(!ep.ot) ep.ot = x.ot; continue; }
+    if(x.p && (!sub || plotH)) ep.x += (ep.x ? '\n\n' : '') + x.p;
+  }
+  push(); return out;
+}
+// pagine di una serie + episodi di TVmaze → Map('s-n' → { t: titolo italiano, x: trama italiana })
+const wkNorm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
+const wkBase = s => wkNorm(s).replace(/\b(parts?|parte|parti|pt)\s*\d+\s*(and|e)\s*\d+\b/g, ' ').replace(/\b(part|parte|pt|chapter|capitolo)\s*(\d+|one|two|three|i{1,3}|uno|due|tre)\b/g, ' ').replace(/\b(\d+)\s*$/, ' ').replace(/\s+/g, ' ').trim();
+function wkSim(a, b){ if(!a || !b) return 0; if(a === b) return 1; const g = t => { const m = new Map(); for(let i = 0; i < t.length - 1; i++){ const k = t.slice(i, i + 2); m.set(k, (m.get(k) || 0) + 1); } return m; };
+  const A = g(a), B = g(b); let n = 0; A.forEach((c, k)=>{ n += Math.min(c, B.get(k) || 0); }); return 2 * n / Math.max(1, a.length - 1 + b.length - 1); }
+function wikiMerge(parsed, tvEps){   // parsed: risultati di wikiEpisodes delle pagine della serie
+  const W = new Map(), loose = [], res = new Map(), T = new Map();
+  tvEps.forEach(x=>{ if(!T.has(x.s)) T.set(x.s, []); T.get(x.s).push(x); }); T.forEach(l=>l.sort((a, b)=>a.n - b.n));
+  parsed.forEach(r=>{ const ks = Object.keys(r.seasons); ks.forEach(k=>{ const s = +k, l = r.seasons[k]; if(!W.has(s) || l.length > W.get(s).length) W.set(s, l); }); if(!ks.length) loose.push(...r.loose); });
+  if(!W.size && loose.length){   // una pagina sola, senza stagioni: si divide con i conteggi di TVmaze, se il totale torna
+    const counts = [...T.keys()].sort((a, b)=>a - b).map(s=>[s, T.get(s).length]), tot = counts.reduce((a, c)=>a + c[1], 0);
+    if(loose.length === tot){ let k = 0; counts.forEach(([s, n])=>{ W.set(s, loose.slice(k, k + n)); k += n; }); } else if(counts.length === 1) W.set(counts[0][0], loose);
+  }
+  W.forEach((wl, s)=>{ const tl = T.get(s); if(!tl || !tl.length) return;
+    const sim = (a, b) => wkSim(wkBase(a), wkBase(b));
+    if(wl.length === tl.length){   // stesso numero di episodi: in ordine, purché nessun titolo dica che l'ordine è sfalsato
+      const shifted = wl.some((w, i)=>w.ot && sim(w.ot, tl[i].t) < 0.7 && tl.some((x, j)=>j !== i && sim(w.ot, x.t) >= 0.9));
+      if(!shifted){ wl.forEach((w, i)=>res.set(s + '-' + tl[i].n, w)); return; }
+    }
+    const used = new Map();   // altrimenti per titolo originale; un episodio doppio va sull'ultima delle sue parti (mai prima del tempo)
+    tl.forEach(x=>{ let best = null, bs = 0; wl.forEach(w=>{ if(!w.ot) return; const v = sim(w.ot, x.t); if(v > bs){ bs = v; best = w; } }); if(best && bs >= 0.8) used.set(best, x); });
+    used.forEach((x, w)=>res.set(s + '-' + x.n, w));
+  });
+  res.forEach((w, k)=>{ if(w.x.length < 60) res.delete(k); });
+  return res;
+}
+async function fetchWikiEps(tt, maxS){   // pagine «Episodi di …» di Wikipedia in italiano fino alla stagione maxS, già lette e ridotte alle trame
+  const det = await fetchDetails(tt).catch(()=>null), it = det && det.sl && det.sl.it; if(!it) return null;
+  const base = it.replace(/ \((serie televisiva|miniserie televisiva|soap opera|serie animata|programma televisivo)[^)]*\)$/, ''), e = imdbEntry(tt);
+  const key = 'wkep1:' + tt, ttl = (e && !e.y2 ? 7 : 60) * 864e5; let c = await dget(key);
+  if(!c || Date.now() - c.at > ttl){
+    if(navigator.onLine === false && c) return { parsed: Object.values(c.parsed), pages: c.pages };
+    const re = new RegExp('^Episodi d(i|e) ' + base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '( \\(\\S+ stagione\\))?$'), found = new Set();
+    for(const pre of ['Episodi di ', 'Episodi de ']){ try{ const j = await jget('https://it.wikipedia.org/w/api.php?action=query&list=prefixsearch&pslimit=50&format=json&formatversion=2&origin=*&pssearch=' + encodeURIComponent(pre + base));
+      ((j.query && j.query.prefixsearch) || []).forEach(x=>{ if(re.test(x.title)) found.add(x.title); }); }catch(err){} }
+    c = { at: Date.now(), main: it, pages: [...found].map(t=>({ title: t, s: wkSeason(t) })).sort((a, b)=>(a.s || 99) - (b.s || 99)), parsed: {} };
+  }
+  const want = c.pages.length ? c.pages.filter(pg=>!pg.s || pg.s <= maxS) : [{ title: c.main, s: 0, main: true }];
+  let news = 0;
+  for(const pg of want){ if(c.parsed[pg.title]) continue;
+    try{ const j = await jget('https://it.wikipedia.org/w/api.php?action=parse&prop=text&formatversion=2&format=json&origin=*&redirects=1&page=' + encodeURIComponent(pg.title));
+      c.parsed[pg.title] = j && j.parse ? wikiEpisodes(j.parse.text, pg.title, !!pg.main) : { seasons: {}, loose: [] }; news++; }catch(err){} }
+  if(news || !c.saved){ c.saved = 1; await dset(key, c); }
+  return { parsed: want.map(pg=>c.parsed[pg.title]).filter(Boolean), pages: c.pages };
+}
+function ripassoCard(tt, d){   // nella pagina della serie, sopra le stagioni
+  const p = PUNTO[tt], eps = (d && d.eps) || [], aired = eps.filter(x=>x.d && x.d <= today());
+  if(!aired.length) return '';
+  const nx = p && aired.find(x=>!epBefore(x, p));
+  return `<div class="box rip-card"><h3>📖 Ripasso senza spoiler</h3><div class="in"><p>${p ? `Sei arrivato a <b>${sxe(p.s, p.n)}</b>.${nx ? ` Il prossimo è il ${sxe(nx.s, nx.n)}.` : ' Hai visto tutti gli episodi usciti finora.'}` : 'Ti sei fermato a metà o sta per uscire una nuova stagione? Indica fin dove sei arrivato e rileggi la storia fino a lì, senza nulla di quello che viene dopo.'}</p>`
+    + `<div class="marks" style="margin-top:10px"><a class="btn" href="#ripasso/${tt}" style="background:var(--chart); border-color:var(--chart); color:#0d1a20">${p ? 'Ripassa fino al ' + sxe(p.s, p.n) : 'Inizia il ripasso'}</a></div></div></div>`;
+}
+async function viewRipasso(tt){
+  setNav(''); const e = imdbEntry(tt); if(!e) return viewFilm(tt);
+  V().innerHTML = `<p class="crumbs"><a href="#film/${tt}">← ${esc(title(e))}</a></p><h1 class="pg">Ripasso: ${esc(title(e))}</h1><div id="rip"><p class="note">Carico gli episodi…</p></div>`;
+  const here = () => location.hash === '#ripasso/' + tt && $('rip');
+  const d = await fetchShow(tt).catch(()=>null); if(!here()) return;
+  const all = ((d && d.eps) || []), aired = all.filter(x=>x.d && x.d <= today());
+  if(!aired.length){ $('rip').innerHTML = `<p class="note">${navigator.onLine === false ? 'Sei offline: il ripasso arriverà con la rete.' : 'Per questa serie non ci sono ancora episodi usciti con la trama.'}</p>`; return; }
+  const seasons = [...new Set(aired.map(x=>x.s))];
+  let p = PUNTO[tt] && aired.some(x=>x.s === PUNTO[tt].s && x.n === PUNTO[tt].n) ? PUNTO[tt] : null, dens = (()=>{ try{ return localStorage.getItem(DENS_KEY) === 'full' ? 'full' : 'brief'; }catch(err){ return 'brief'; } })();
+  let wk = new Map(), wkState = 'idle', wkMax = 0, wkPages = [];
+  const opened = new Set();
+  const ensureWiki = async s => {   // le trame italiane di Wikipedia fino alla stagione s (le pagine delle stagioni dopo non si scaricano)
+    if(s <= wkMax || wkState === 'busy') return; wkState = 'busy'; wkMax = s;
+    try{ const r = await fetchWikiEps(tt, s); if(r){ wk = wikiMerge(r.parsed, all); wkPages = r.pages; } wkState = 'done'; }catch(err){ wkState = 'error'; }
+    if(here()) draw();
+  };
+  const draw = () => {
+    V().querySelectorAll('details.rip-s').forEach(dt=>{ const s = +dt.dataset.s; if(dt.open) opened.add(s); else opened.delete(s); });
+    const ps = p ? p.s : seasons[0], sel = aired.filter(x=>x.s === ps);
+    const opt = x => `<option value="${x.n}"${p && x.s === p.s && x.n === p.n ? ' selected' : ''}>${x.n}${x.d ? ' · ' + esc(dayShort(x.d)) + ' ' + x.d.slice(0, 4) : ''}</option>`;
+    const picker = `<div class="box"><h3>Fin dove sei arrivato?</h3><div class="in"><div class="st-row rip-pick">`
+      + `<label>Stagione <select id="ripS">${seasons.map(s=>`<option value="${s}"${s === ps ? ' selected' : ''}>${s}</option>`).join('')}</select></label>`
+      + `<label>Episodio <select id="ripE">${p ? '' : '<option value="">scegli…</option>'}${sel.map(opt).join('')}</select></label>`
+      + (p ? `<button class="btn" type="button" id="ripAll">Le ho viste tutte</button>` : '')
+      + `</div><p class="note" style="margin-top:8px">Degli episodi successivi vedi solo numero e data: anche un titolo può anticipare qualcosa. Il punto resta salvato su questo dispositivo.</p></div></div>`;
+    if(!p){ $('rip').innerHTML = `<p class="lead">Scegli l'ultimo episodio che hai visto: qui sotto comparirà la storia fino a quel punto, e niente di quello che viene dopo.</p>` + picker; wire(); return; }
+    const done = aired.filter(x=>epBefore(x, p)), nx = aired.find(x=>!epBefore(x, p));
+    const W = x => wk.get(x.s + '-' + x.n), hasT = x => W(x) || x.sum, nIt = done.filter(W).length, cover = done.length ? done.filter(hasT).length / done.length : 0;
+    const text = x => { const w = W(x); if(w){ const t = dens === 'full' ? w.x : firstSentences(w.x, 230); return t.split(/\n\n+/).map(par=>`<p class="plot rip-x" lang="it">${esc(par)}</p>`).join(''); }
+      return x.sum ? `<p class="plot rip-x" lang="en">${esc(dens === 'full' ? x.sum : firstSentences(x.sum))}</p>` : '<p class="note">Trama non disponibile per questo episodio.</p>'; };
+    const name = x => { const w = W(x); return w && w.t && !/^episodio \d+$/i.test(w.t) ? `${esc(w.t)}${x.t && wkNorm(x.t) !== wkNorm(w.t) ? ` <span class="rip-ot">${esc(x.t)}</span>` : ''}` : esc(x.t || 'Episodio ' + x.n); };
+    const seg = `<div class="marks rip-dens" role="group" aria-label="Quanto dettaglio">${[['brief', 'In breve'], ['full', 'Completo']].map(([k, l])=>`<button class="btn" type="button" data-dens="${k}" aria-pressed="${dens === k}">${l}</button>`).join('')}</div>`;
+    const src = wkState === 'busy' ? 'Cerco le trame in italiano su Wikipedia…'
+      : nIt ? `Trame in italiano da Wikipedia per ${nIt === done.length ? 'tutti gli episodi' : `${nIt} episodi su ${done.length}; le altre da TVmaze, tradotte automaticamente`}.`
+      : 'Trame degli episodi da TVmaze, tradotte automaticamente dall\'inglese.';
+    $('rip').innerHTML = picker
+      + (d.sum ? `<div class="box"><h3>La premessa</h3><div class="in"><div id="ripPrem">${trBlock('ripPremTr', d.sum)}</div></div></div>` : '')
+      + `<div class="rip-head"><h2 class="sec" style="margin:0">La storia fino al ${sxe(p.s, p.n)}</h2>${seg}</div><p class="note rip-src" id="ripSrc">${src}</p>`
+      + (cover < 0.5 && wkState !== 'busy' ? `<p class="note rip-warn">${done.some(hasT) ? `Solo ${done.filter(hasT).length} episodi su ${done.length} hanno una trama: il ripasso è parziale.` : 'Per questa serie non ho trovato le trame degli episodi: per ora il ripasso non è disponibile.'}</p>` : '')
+      + seasons.filter(s=>s <= p.s).map(s=>{ const list = done.filter(x=>x.s === s), open = s === p.s || opened.has(s);
+        return `<details class="box rip-s" data-s="${s}"${open ? ' open' : ''}><summary><b>Stagione ${s}</b><span class="note">${list.length} episodi${s < p.s ? ', vista tutta' : ''}</span></summary><div class="in">`
+          + list.map(x=>`<div class="rip-ep"><p class="rip-t"><span class="sc">${sxe(x.s, x.n)}</span> ${name(x)}</p>${text(x)}</div>`).join('') + `</div></details>`; }).join('')
+      + `<p class="note" id="ripTrNote"></p>`
+      + (nx ? `<div class="box"><div class="in"><p>Ora tocca al <b>${sxe(nx.s, nx.n)}</b>${nx.d ? `, uscito il ${esc(fmtD(nx.d))}` : ''}. Buona visione!</p></div></div>` : `<div class="box"><div class="in"><p>Sei in pari con tutti gli episodi usciti finora.${e.y2 ? '' : ' Quando ne esce uno nuovo, ritrovi qui il ripasso fino al punto in cui sei.'}</p></div></div>`)
+      + `<p class="note">Episodi: <a href="https://www.tvmaze.com" target="_blank" rel="noopener">TVmaze</a> (CC BY-SA).${nIt ? ` Trame in italiano: Wikipedia (CC BY-SA 4.0)${wkPages.length ? ', ' + wkPages.filter(pg=>!pg.s || pg.s <= p.s).map(pg=>`<a href="https://it.wikipedia.org/wiki/${encodeURIComponent(pg.title.replace(/ /g, '_'))}" target="_blank" rel="noopener" title="Attenzione: la pagina racconta anche gli episodi successivi">${esc(pg.s ? 'stagione ' + pg.s : pg.title)}</a>`).join(', ') + ' (le pagine contengono anche gli episodi successivi)' : ''}.` : ''}</p>`;
+    wire(); if(d.sum) fillTr('ripPremTr', d.sum); translateRip(); ensureWiki(p.s);
+  };
+  let trGen = 0;
+  async function translateRip(){   // solo le trame in inglese, dal più recente al più vecchio
+    const gen = ++trGen, els = [...V().querySelectorAll('.rip-x[lang="en"]')].reverse();
+    for(const el of els){
+      if(gen !== trGen || !here()) return;
+      if(!el.closest('details').open) continue;
+      try{ const t = await translateIt(el.textContent); if(gen !== trGen) return; el.textContent = t; el.lang = 'it'; el.classList.add('tr'); }
+      catch(err){ const n = $('ripTrNote'); if(n) n.textContent = err.message === 'offline' ? 'Sei offline: le trame restano in inglese finché torna la rete.' : 'Il traduttore gratuito ha finito il limite di oggi: le trame che restano sono in inglese. Sul computer, con Chrome, si traduce sul dispositivo e senza limiti.'; return; }
+    }
+  }
+  function wire(){
+    const sS = $('ripS'), sE = $('ripE');
+    if(sS) sS.onchange = () => { const s = +sS.value, l = aired.filter(x=>x.s === s); p = null; draw(); $('ripS').value = s;
+      $('ripE').innerHTML = '<option value="">scegli…</option>' + l.map(x=>`<option value="${x.n}">${x.n}${x.d ? ' · ' + esc(dayShort(x.d)) + ' ' + x.d.slice(0, 4) : ''}</option>`).join(''); $('ripE').focus(); };
+    if(sE) sE.onchange = () => { if(!sE.value) return; p = { s: +$('ripS').value, n: +sE.value }; setPunto(tt, p.s, p.n); draw(); toast(`Punto salvato: ${sxe(p.s, p.n)}`); };
+    if($('ripAll')) $('ripAll').onclick = () => { const last = aired[aired.length - 1]; p = { s: last.s, n: last.n }; setPunto(tt, p.s, p.n); draw(); };
+    V().querySelectorAll('[data-dens]').forEach(b=>b.onclick = () => { dens = b.dataset.dens; try{ localStorage.setItem(DENS_KEY, dens); }catch(err){} draw(); });
+    V().querySelectorAll('details.rip-s').forEach(dt=>dt.addEventListener('toggle', ()=>{ if(dt.open) translateRip(); }));
+  }
+  draw();
+}
+function ripassoStrip(){   // in Esplora: le serie che stai seguendo, prima quelle con una stagione nuova da quando ti sei fermato
+  const ids = Object.keys(PUNTO).filter(id=>imdbEntry(id)); if(!ids.length) return '';
+  const nsn = id => (CRITICA && CRITICA.mese_sn && CRITICA.mese_sn[id]) || 0;
+  const l = ids.map(id=>({ e: enrich(imdbEntry(id)), p: PUNTO[id], nw: nsn(id) > PUNTO[id].s })).sort((a, b)=>(b.nw - a.nw) || b.p.at - a.p.at).slice(0, 14);
+  return `<h2 class="sec">📖 Riprendi da dove eri rimasto <span class="note" style="font-family:var(--ui)">ripasso senza spoiler</span></h2><div class="strip">${l.map(x=>tile(x.e).replace(`href="#film/${x.e.id}"`, `href="#ripasso/${x.e.id}"`).replace(/<\/a>$/, `<span class="rip-badge">${x.nw ? 'nuova stagione' : sxe(x.p.s, x.p.n)}</span></a>`)).join('')}</div>`;
 }
 
 /* ---------- Strumenti ---------- */
@@ -2406,6 +2597,7 @@ function route(){
   if(k === 'libreria') return viewLibrary(arg);
   if(k === 'persona'){ const [nm, qid] = arg.split('/'); return viewPersona(nm, qid); }
   if(EPISODES && k === 'stagione'){ const [tt, n] = arg.split('/'); return viewSeason(tt, n); }
+  if(EPISODES && k === 'ripasso') return viewRipasso(arg);
   if(EPISODES && k === 'episodio'){ const [tt, sn, en] = arg.split('/'); return viewEpisode(tt, sn, en); }
   if(k === 'stasera') return viewStasera();
   if(k === 'periodo') return viewPeriodo(arg);
