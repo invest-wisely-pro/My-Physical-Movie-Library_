@@ -405,7 +405,15 @@ details.rip-s[open] > summary{border-bottom:1px solid var(--line);} details.rip-
 .rip-t .sc{display:inline-block; min-width:46px; color:var(--chart); font-variant-numeric:tabular-nums;} .rip-x{margin:0;} .rip-x[lang="en"]{opacity:.78;}
 .rip-warn{padding:10px 12px; border:1px dashed var(--line); border-radius:10px;}
 .tile .rip-badge{position:absolute; right:8px; bottom:8px; z-index:3; background:var(--chart); color:#0d1a20; font:700 11.5px/1 var(--ui); padding:5px 7px; border-radius:6px;}
-.rip-ot{font-weight:400; opacity:.55; font-size:.92em; margin-left:4px;} .rip-src{margin:4px 0 12px;} .rip-ep .rip-x + .rip-x{margin-top:10px;}
+h2.sec button.more{background:none; border:0; padding:0; cursor:pointer; font-family:var(--ui); font-size:13px; font-weight:600; color:var(--paper3); margin-left:auto;} h2.sec button.more:hover{color:var(--chart);} .rip-ot{font-weight:400; opacity:.55; font-size:.92em; margin-left:4px;} .rip-src{margin:4px 0 12px;} .rip-ep .rip-x + .rip-x{margin-top:10px;}
+.btn.btn-pri{background:var(--chart); border-color:var(--chart); color:#0d1a20;} .rip-adv{display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-bottom:14px;}
+.tile .rip-badge.pari{background:var(--s3); color:var(--paper2);}
+.tile .rip-del{position:absolute; right:6px; top:6px; z-index:4; width:30px; height:30px; display:grid; place-items:center; border-radius:50%; background:rgba(10,14,16,.72); color:#fff; font-size:13px; font-weight:700; cursor:pointer; opacity:0; transition:opacity .15s;}
+.tile:hover .rip-del, .tile:focus-within .rip-del, .tile .rip-del:focus{opacity:1;} @media (hover:none){ .tile .rip-del{opacity:1;} }
+.rip-sheet .rip-sh-t{margin:0 6px 6px; padding:4px 8px 10px; border-bottom:1px solid rgba(255,255,255,.08); display:flex; flex-direction:column; gap:2px;} .rip-sheet .rip-sh-t span{color:var(--paper3); font-size:13.5px;}
+.rip-sheet .rip-ic{width:24px; text-align:center; flex:none; color:var(--chart);}
+@media (min-width:761px){ .rip-sheet{left:calc(50% - 220px); right:auto; width:440px; bottom:28px;} }
+.toast .toast-undo{margin-left:10px; background:none; border:0; color:var(--chart2); font:inherit; font-weight:800; cursor:pointer; text-decoration:underline;}
 </style>
 </head>
 <body>
@@ -2391,11 +2399,11 @@ async function fetchWikiEps(tt, maxS){   // pagine «Episodi di …» di Wikiped
   return { parsed: want.map(pg=>c.parsed[pg.title]).filter(Boolean), pages: c.pages };
 }
 function ripassoCard(tt, d){   // nella pagina della serie, sopra le stagioni
-  const p = PUNTO[tt], eps = (d && d.eps) || [], aired = eps.filter(x=>x.d && x.d <= today());
+  const p = PUNTO[tt], eps = (d && d.eps) || [], aired = eps.filter(x=>x.d && x.d <= today()); if(d && d.eps) RIP_D[tt] = d;
   if(!aired.length) return '';
   const nx = p && aired.find(x=>!epBefore(x, p));
-  return `<div class="box rip-card"><h3>📖 Ripasso senza spoiler</h3><div class="in"><p>${p ? `Sei arrivato a <b>${sxe(p.s, p.n)}</b>.${nx ? ` Il prossimo è il ${sxe(nx.s, nx.n)}.` : ' Hai visto tutti gli episodi usciti finora.'}` : 'Ti sei fermato a metà o sta per uscire una nuova stagione? Indica fin dove sei arrivato e rileggi la storia fino a lì, senza nulla di quello che viene dopo.'}</p>`
-    + `<div class="marks" style="margin-top:10px"><a class="btn" href="#ripasso/${tt}" style="background:var(--chart); border-color:var(--chart); color:#0d1a20">${p ? 'Ripassa fino al ' + sxe(p.s, p.n) : 'Inizia il ripasso'}</a></div></div></div>`;
+  return `<div class="box rip-card"><h3>📖 Ripasso senza spoiler</h3><div class="in"><p>${p ? `Sei arrivato al <b>${sxe(p.s, p.n)}</b>.${nx ? ` Il prossimo è il ${sxe(nx.s, nx.n)}.` : ' Hai visto tutti gli episodi usciti finora.'}` : 'Ti sei fermato a metà o sta per uscire una nuova stagione? Indica fin dove sei arrivato e rileggi la storia fino a lì, senza nulla di quello che viene dopo.'}</p>`
+    + `<div class="marks" style="margin-top:10px">${nx ? `<button class="btn btn-pri" type="button" data-ripadv="${tt}|${nx.s}|${nx.n}">✓ Ho visto il ${sxe(nx.s, nx.n)}</button>` : ''}<a class="btn${nx ? '' : ' btn-pri'}" href="#ripasso/${tt}">${p ? 'Ripassa fino al ' + sxe(p.s, p.n) : 'Inizia il ripasso'}</a></div></div></div>`;
 }
 async function viewRipasso(tt){
   setNav(''); const e = imdbEntry(tt); if(!e) return viewFilm(tt);
@@ -2417,7 +2425,8 @@ async function viewRipasso(tt){
     V().querySelectorAll('details.rip-s').forEach(dt=>{ const s = +dt.dataset.s; if(dt.open) opened.add(s); else opened.delete(s); });
     const ps = p ? p.s : seasons[0], sel = aired.filter(x=>x.s === ps);
     const opt = x => `<option value="${x.n}"${p && x.s === p.s && x.n === p.n ? ' selected' : ''}>${x.n}${x.d ? ' · ' + esc(dayShort(x.d)) + ' ' + x.d.slice(0, 4) : ''}</option>`;
-    const picker = `<div class="box"><h3>Fin dove sei arrivato?</h3><div class="in"><div class="st-row rip-pick">`
+    const nx0 = p && aired.find(x=>!epBefore(x, p));
+    const picker = `<div class="box"><h3>Fin dove sei arrivato?</h3><div class="in">${nx0 ? `<div class="rip-adv"><button class="btn btn-pri" type="button" id="ripNext">✓ Ho visto il ${sxe(nx0.s, nx0.n)}</button><span class="note">oppure scegli qui sotto un altro episodio</span></div>` : ''}<div class="st-row rip-pick">`
       + `<label>Stagione <select id="ripS">${seasons.map(s=>`<option value="${s}"${s === ps ? ' selected' : ''}>${s}</option>`).join('')}</select></label>`
       + `<label>Episodio <select id="ripE">${p ? '' : '<option value="">scegli…</option>'}${sel.map(opt).join('')}</select></label>`
       + (p ? `<button class="btn" type="button" id="ripAll">Le ho viste tutte</button>` : '')
@@ -2459,18 +2468,75 @@ async function viewRipasso(tt){
     if(sS) sS.onchange = () => { const s = +sS.value, l = aired.filter(x=>x.s === s); p = null; draw(); $('ripS').value = s;
       $('ripE').innerHTML = '<option value="">scegli…</option>' + l.map(x=>`<option value="${x.n}">${x.n}${x.d ? ' · ' + esc(dayShort(x.d)) + ' ' + x.d.slice(0, 4) : ''}</option>`).join(''); $('ripE').focus(); };
     if(sE) sE.onchange = () => { if(!sE.value) return; p = { s: +$('ripS').value, n: +sE.value }; setPunto(tt, p.s, p.n); draw(); toast(`Punto salvato: ${sxe(p.s, p.n)}`); };
+    if($('ripNext')) $('ripNext').onclick = () => { const x = aired.find(y=>!epBefore(y, p)); if(!x) return; p = { s: x.s, n: x.n }; setPunto(tt, x.s, x.n); draw(); const n2 = aired.find(y=>!epBefore(y, p)); toast(`✓ ${sxe(x.s, x.n)} visto. ${n2 ? 'Prossimo: ' + sxe(n2.s, n2.n) : 'Sei in pari con gli episodi usciti.'}`); };
     if($('ripAll')) $('ripAll').onclick = () => { const last = aired[aired.length - 1]; p = { s: last.s, n: last.n }; setPunto(tt, p.s, p.n); draw(); };
     V().querySelectorAll('[data-dens]').forEach(b=>b.onclick = () => { dens = b.dataset.dens; try{ localStorage.setItem(DENS_KEY, dens); }catch(err){} draw(); });
     V().querySelectorAll('details.rip-s').forEach(dt=>dt.addEventListener('toggle', ()=>{ if(dt.open) translateRip(); }));
   }
   draw();
 }
-function ripassoStrip(){   // in Esplora: le serie che stai seguendo, prima quelle con una stagione nuova da quando ti sei fermato
-  const ids = Object.keys(PUNTO).filter(id=>imdbEntry(id)); if(!ids.length) return '';
+const RIPROW_KEY = 'atlante-ripasso-fila', ripRowOn = () => { try{ return localStorage.getItem(RIPROW_KEY) !== 'off'; }catch(e){ return true; } };
+function ripRowSet(on){ try{ if(on) localStorage.removeItem(RIPROW_KEY); else localStorage.setItem(RIPROW_KEY, 'off'); }catch(e){} }
+document.addEventListener('click', ev=>{ const t = ev.target && ev.target.closest ? ev.target : null; if(!t) return;
+  if(t.closest('#ripHide')){ ripRowSet(false); const h = t.closest('h2'); if(h){ while(h.nextElementSibling && !/^H2$/.test(h.nextElementSibling.tagName) && (h.nextElementSibling.matches('.strip') || h.nextElementSibling.querySelector('.rip-badge, .strip'))) h.nextElementSibling.remove(); h.remove(); } toast('Fila nascosta. La riaccendi da Strumenti.'); }
+  const sw = t.closest('#ripRowSw'); if(sw){ const on = !ripRowOn(); ripRowSet(on); sw.setAttribute('aria-checked', String(on)); sw.querySelector('b').textContent = on ? 'accesa' : 'spenta'; }
+  if(t.closest('#ripForgetAll') && confirm('Dimentico il punto in cui sei arrivato in tutte le serie?')){ PUNTO = {}; try{ localStorage.removeItem(PUNTO_KEY); }catch(e){} toast('Fatto: nessuna serie in «Continua a seguire».'); viewTools(); }
+});
+function ripassoStrip(){   // in Esplora: «Continua a seguire», prima le serie con una stagione nuova da quando ti sei fermato
+  if(!ripRowOn()) return ''; const ids = Object.keys(PUNTO).filter(id=>imdbEntry(id)); if(!ids.length) return '';
   const nsn = id => (CRITICA && CRITICA.mese_sn && CRITICA.mese_sn[id]) || 0;
-  const l = ids.map(id=>({ e: enrich(imdbEntry(id)), p: PUNTO[id], nw: nsn(id) > PUNTO[id].s })).sort((a, b)=>(b.nw - a.nw) || b.p.at - a.p.at).slice(0, 14);
-  return `<h2 class="sec">📖 Riprendi da dove eri rimasto <span class="note" style="font-family:var(--ui)">ripasso senza spoiler</span></h2><div class="strip">${l.map(x=>tile(x.e).replace(`href="#film/${x.e.id}"`, `href="#ripasso/${x.e.id}"`).replace(/<\/a>$/, `<span class="rip-badge">${x.nw ? 'nuova stagione' : sxe(x.p.s, x.p.n)}</span></a>`)).join('')}</div>`;
+  const l = ids.map(id=>({ e: enrich(imdbEntry(id)), p: PUNTO[id], nw: nsn(id) > PUNTO[id].s })).sort((a, b)=>(b.nw - a.nw) || b.p.at - a.p.at).slice(0, 20);
+  setTimeout(ripFixBadges, 0);
+  return `<h2 class="sec" id="ripRowH">▶ Continua a seguire <span class="note" style="font-family:var(--ui)">con il ripasso senza spoiler</span></h2><div class="strip" id="ripStrip">${l.map(ripTile).join('')}</div>`;
 }
+function ripTile(x){ const e = x.e, p = x.p;
+  return tile(e).replace(`href="#film/${e.id}"`, `href="#ripasso/${e.id}" data-rip="${e.id}"`)
+    .replace(/<\/a>$/, `<span class="rip-badge" data-ripb="${e.id}">${x.nw ? 'Nuova stagione' : 'Prossimo ' + sxe(p.s, p.n + 1)}</span><span class="rip-del" role="button" tabindex="0" data-ripx="${e.id}" aria-label="Togli ${esc(title(e))} da Continua a seguire" title="Togli da «Continua a seguire»">✕</span></a>`); }
+const RIP_D = {};   // episodi già letti, per sapere qual è il prossimo
+const ripNext = (tt, d) => { const p = PUNTO[tt], eps = ((d && d.eps) || []).filter(x=>x.d && x.d <= today()); return p ? eps.find(x=>!epBefore(x, p)) : eps[0]; };
+async function ripFixBadges(){   // il prossimo episodio vero (anche se è il primo della stagione dopo), oppure «In pari»
+  for(const el of [...document.querySelectorAll('[data-ripb]')]){ const tt = el.dataset.ripb;
+    const d = RIP_D[tt] || await fetchShow(tt).catch(()=>null); if(!d || !d.eps || !d.eps.length || !el.isConnected) continue; RIP_D[tt] = d;
+    const nx = ripNext(tt, d); const fresh = nx && nx.s > PUNTO[tt].s && nx.n === 1 && (Date.now() - Date.parse(nx.d)) < 60 * 864e5;
+    el.textContent = nx ? (fresh ? 'Nuova stagione · ' : 'Prossimo ') + sxe(nx.s, nx.n) : 'In pari'; el.classList.toggle('pari', !nx); }
+}
+function ripSave(){ try{ localStorage.setItem(PUNTO_KEY, JSON.stringify(PUNTO)); }catch(e){} }
+function toastUndo(msg, undo){ toast(msg); const el = $('toast'), b = document.createElement('button'); b.type = 'button'; b.className = 'toast-undo'; b.textContent = 'Annulla';
+  b.onclick = () => { undo(); el.classList.remove('show'); el.style.pointerEvents = ''; }; el.append(' ', b); el.style.pointerEvents = 'auto';
+  clearTimeout(_tT); _tT = setTimeout(()=>{ el.classList.remove('show'); el.style.pointerEvents = ''; }, 6000); }
+function ripRemove(tt){   // la ✕ sulla locandina: la serie esce dalla fila, con «Annulla» per qualche secondo
+  const old = PUNTO[tt]; if(!old) return; setPunto(tt);
+  const t = document.querySelector(`a.tile[data-rip="${tt}"]`); if(t) t.remove();
+  if(!document.querySelector('#ripStrip a.tile')){ const h = $('ripRowH'); let n = h && h.nextElementSibling; while(n && n.tagName !== 'H2' && (n.id === 'ripStrip' || n.querySelector('#ripStrip'))){ const k = n.nextElementSibling; n.remove(); n = k; } if(h) h.remove(); }
+  const e = imdbEntry(tt); toastUndo(`${e ? title(e) : 'La serie'}: tolta da «Continua a seguire»`, ()=>{ PUNTO[tt] = old; ripSave(); if(!location.hash || location.hash === '#') viewHome(); });
+}
+async function ripAdvance(tt, x){   // «✓ Ho visto…»: un tocco e il punto va avanti di un episodio
+  setPunto(tt, x.s, x.n); const d = RIP_D[tt] || await fetchShow(tt).catch(()=>null), nx = ripNext(tt, d);
+  toast(`✓ ${sxe(x.s, x.n)} visto. ${nx ? 'Prossimo: ' + sxe(nx.s, nx.n) : 'Sei in pari con gli episodi usciti.'}`);
+}
+async function ripSheet(tt){   // tocco sulla locandina: le azioni, in un pannello dal basso
+  if(document.querySelector('.sheet')) sheetClose();
+  const e = imdbEntry(tt); if(!e) return; const d = RIP_D[tt] || await fetchShow(tt).catch(()=>null); if(d) RIP_D[tt] = d;
+  const p = PUNTO[tt], nx = ripNext(tt, d);
+  const b = document.createElement('div'); b.className = 'sheet-bg'; b.onclick = sheetClose;
+  const s = document.createElement('nav'); s.className = 'sheet rip-sheet'; s.setAttribute('role', 'dialog'); s.setAttribute('aria-label', 'Continua a seguire: ' + title(e));
+  s.innerHTML = `<p class="rip-sh-t"><b>${esc(title(e))}</b><span>${p ? `Sei arrivato al ${sxe(p.s, p.n)}` : ''}${nx ? ` · prossimo ${sxe(nx.s, nx.n)}${nx.d ? ', uscito il ' + esc(fmtD(nx.d)) : ''}` : p ? ' · in pari con gli episodi usciti' : ''}</span></p>`
+    + (nx ? `<a href="#" data-act="seen"><span class="rip-ic">✓</span><span>Ho visto il ${sxe(nx.s, nx.n)}</span></a>` : '')
+    + `<a href="#ripasso/${tt}" data-act="go"><span class="rip-ic">📖</span><span>Ripassa fin qui</span></a>`
+    + `<a href="#film/${tt}" data-act="go"><span class="rip-ic">ⓘ</span><span>Apri la scheda della serie</span></a>`
+    + `<a href="#" data-act="del"><span class="rip-ic">✕</span><span>Togli da «Continua a seguire»</span></a>`;
+  s.addEventListener('click', ev=>{ const a = ev.target.closest('a'); if(!a) return; const k = a.dataset.act;
+    if(k !== 'go') ev.preventDefault(); sheetClose();
+    if(k === 'seen' && nx){ ripAdvance(tt, nx).then(ripFixBadges); }
+    if(k === 'del') ripRemove(tt); });
+  document.body.append(b, s); requestAnimationFrame(()=>{ b.classList.add('on'); s.classList.add('on'); }); const f = s.querySelector('a'); if(f) f.focus({ preventScroll: true });
+}
+document.addEventListener('click', ev=>{ const t = ev.target && ev.target.closest ? ev.target : null; if(!t) return;
+  const x = t.closest('[data-ripx]'); if(x){ ev.preventDefault(); ev.stopPropagation(); ripRemove(x.dataset.ripx); return; }
+  const a = t.closest('a.tile[data-rip]'); if(a && !ev.metaKey && !ev.ctrlKey){ ev.preventDefault(); ripSheet(a.dataset.rip); return; }
+  const v = t.closest('[data-ripadv]'); if(v){ const [tt, s, n] = v.dataset.ripadv.split('|'); ripAdvance(tt, { s: +s, n: +n }).then(()=>{ const c = document.querySelector('.rip-card'); if(c && RIP_D[tt]) c.outerHTML = ripassoCard(tt, RIP_D[tt]); }); }
+}, true);
+document.addEventListener('keydown', ev=>{ if((ev.key === 'Enter' || ev.key === ' ') && ev.target && ev.target.matches && ev.target.matches('[data-ripx]')){ ev.preventDefault(); ripRemove(ev.target.dataset.ripx); } });
 
 /* ---------- Strumenti ---------- */
 const CRITICA_SCRIPT_TEXT = /*@@CRITICA_SCRIPT@@*/'';
@@ -2485,7 +2551,11 @@ function setMaint(on){ MAINT = !!on; try{ localStorage.setItem(MAINT_KEY, MAINT 
 function viewTools(){
   setNav('strumenti'); const base = repoBase(), built = id => { const el = document.getElementById(id); return el && el.dataset.built ? el.dataset.built : ''; };
   const st = (ok, txt) => `<dt>${ok ? '✅' : '⚠️'} ${txt[0]}</dt><dd>${esc(txt[1])}</dd>`;
+  const nRip = Object.keys(PUNTO).filter(id=>imdbEntry(id)).length, rOn = ripRowOn();
   V().innerHTML = `<h1 class="pg">Strumenti</h1>`
+    + (EPISODES ? `<div class="box"><h3>📖 Ripasso senza spoiler</h3><div class="in"><p>${nRip ? `Stai seguendo ${nRip === 1 ? '1 serie' : nRip + ' serie'}: per ognuna l'app ricorda fin dove sei arrivato.` : 'Non stai ancora seguendo nessuna serie: apri una serie e indica fin dove sei arrivato, dal riquadro «Ripasso senza spoiler».'}</p>`
+      + `<div class="marks" style="margin-top:10px; align-items:center"><button class="theme-chip" id="ripRowSw" type="button" role="switch" aria-checked="${rOn}">Fila «Continua a seguire» in Esplora <span class="sw" aria-hidden="true"></span><b>${rOn ? 'accesa' : 'spenta'}</b></button>`
+      + (nRip ? `<button class="btn" type="button" id="ripForgetAll">Dimentica tutti i punti</button>` : '') + `</div></div></div>` : '')
     + `<div class="box"><h3>Gli indici</h3><div class="in"><dl class="kv">${st(true, ['Serie TV', `${ALL.length.toLocaleString('it-IT')} serie, del ${built('imdbSeriesData') || 'ultimo aggiornamento della Videoteca'}`])}`
     + st(!!CAST_INDEX, ['Attori', CAST_INDEX ? `del ${built('imdbCastData') || '?'}` : 'non ancora creato: lo crea "Aggiorna indice IMDb" della Videoteca'])
 
