@@ -2450,6 +2450,14 @@ async function viewRipasso(tt){
           + list.map(x=>`<div class="rip-ep"><p class="rip-t"><span class="sc">${sxe(x.s, x.n)}</span> ${name(x)}</p>${text(x)}</div>`).join('') + `</div></details>`; }).join('')
       + `<p class="note" id="ripTrNote"></p>`
       + (nx ? `<div class="box"><div class="in"><p>Ora tocca al <b>${sxe(nx.s, nx.n)}</b>${nx.d ? `, uscito il ${esc(fmtD(nx.d))}` : ''}. Buona visione!</p></div></div>` : `<div class="box"><div class="in"><p>Sei in pari con tutti gli episodi usciti finora.${e.y2 ? '' : ' Quando ne esce uno nuovo, ritrovi qui il ripasso fino al punto in cui sei.'}</p></div></div>`)
+      + (()=>{   // 🎥 YouTube: solo ricerche già scritte, mai video aperti da soli; la stagione da riassumere è sempre una già vista per intero
+        const endS = !aired.some(x=>x.s === p.s && x.n > p.n), recS = endS ? p.s : p.s - 1, nextS = endS && all.some(x=>x.s === p.s + 1) ? p.s + 1 : 0;
+        if(!recS && !nextS) return '';
+        const yt = q => 'https://www.youtube.com/results?search_query=' + encodeURIComponent(q), name = title(e);
+        return `<div class="box rip-yt"><h3>🎥 Video su YouTube</h3><div class="in"><div class="marks">`
+          + (recS ? `<a class="btn" href="${esc(yt(name + ' riassunto stagione ' + recS))}" target="_blank" rel="noopener">▶ Riassunto video della stagione ${recS}</a>` : '')
+          + (nextS ? `<a class="btn" href="${esc(yt(name + ' stagione ' + nextS + ' trailer ufficiale ita'))}" target="_blank" rel="noopener">🎬 Trailer della stagione ${nextS}</a>` : '')
+          + `</div><p class="note" style="margin-top:8px">Si apre una ricerca su YouTube. Attenzione: i video suggeriti e le miniature possono contenere spoiler${nextS ? ', e il trailer mostra scene della nuova stagione' : ''}.${!endS && recS ? ` Il riassunto è della stagione ${recS}, quella che hai già visto tutta: quella in corso no, per non rovinarti il resto.` : ''}</p></div></div>`; })()
       + `<p class="note">Episodi: <a href="https://www.tvmaze.com" target="_blank" rel="noopener">TVmaze</a> (CC BY-SA).${nIt ? ` Trame in italiano: Wikipedia (CC BY-SA 4.0)${wkPages.length ? ', ' + wkPages.filter(pg=>!pg.s || pg.s <= p.s).map(pg=>`<a href="https://it.wikipedia.org/wiki/${encodeURIComponent(pg.title.replace(/ /g, '_'))}" target="_blank" rel="noopener" title="Attenzione: la pagina racconta anche gli episodi successivi">${esc(pg.s ? 'stagione ' + pg.s : pg.title)}</a>`).join(', ') + ' (le pagine contengono anche gli episodi successivi)' : ''}.` : ''}</p>`;
     wire(); if(d.sum) fillTr('ripPremTr', d.sum); translateRip(); ensureWiki(p.s);
   };
